@@ -5,6 +5,7 @@ repos:
     hooks:
       - id: ruff         # no args -> check-only
       - id: ruff-format
+        args: [--check]    # <--- important
 
   # mypy - runs on commit
   - repo: https://github.com/pre-commit/mirrors-mypy
