@@ -62,15 +62,24 @@ data/
 
 ## ETL Configuration
 
+### Payments ETL Configuration
+
 ```python
 from pathlib import Path
 from pos_core.etl import PaymentsETLConfig
 
-# Default configuration
+# Default configuration using from_root (recommended)
+config = PaymentsETLConfig.from_root(
+    data_root=Path("data"),
+    sucursales_file=Path("utils/sucursales.json"),
+    chunk_size_days=180  # Maximum days per HTTP request
+)
+
+# Alternative: using from_data_root (alias)
 config = PaymentsETLConfig.from_data_root(
     data_root=Path("data"),
     sucursales_json=Path("utils/sucursales.json"),
-    chunk_size_days=180  # Maximum days per HTTP request
+    chunk_size_days=180
 )
 
 # Custom configuration
@@ -86,7 +95,35 @@ custom_paths = PaymentsPaths(
 config = PaymentsETLConfig(
     paths=custom_paths,
     chunk_size_days=90,
-    excluded_branches=["CEDIS"]
+    excluded_branches=["CEDIS"]  # Branches to exclude from processing
+)
+```
+
+### Sales ETL Configuration
+
+```python
+from pathlib import Path
+from pos_core.etl import SalesETLConfig
+
+# Default configuration
+config = SalesETLConfig.from_root(
+    data_root=Path("data"),
+    sucursales_file=Path("utils/sucursales.json")
+)
+
+# Custom configuration
+from pos_core.etl import SalesPaths
+
+custom_paths = SalesPaths(
+    raw_sales=Path("custom/raw"),
+    clean_sales=Path("custom/clean"),
+    proc_sales=Path("custom/processed"),
+    sucursales_json=Path("custom/sucursales.json")
+)
+
+config = SalesETLConfig(
+    paths=custom_paths,
+    chunk_days=90  # Only if chunking is needed
 )
 ```
 
@@ -105,4 +142,3 @@ config = ForecastConfig(
     branches=["Banana", "Queen"]
 )
 ```
-

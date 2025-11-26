@@ -98,6 +98,32 @@ class PaymentsETLConfig:
 
         return cls(paths=paths, chunk_size_days=chunk_size_days)
 
+    @classmethod
+    def from_root(
+        cls,
+        data_root: Path | str,
+        sucursales_file: Path | str,
+        chunk_size_days: int = 180,
+    ) -> PaymentsETLConfig:
+        """Build a default config given a data_root and sucursales file.
+
+        Alias for `from_data_root` for consistency with SalesETLConfig.
+
+        Args:
+            data_root: Root directory for ETL data (will be converted to Path if string).
+            sucursales_file: Path to sucursales.json configuration file
+                (will be converted to Path if string).
+            chunk_size_days: Maximum days per HTTP request chunk (default: 180).
+
+        Returns:
+            PaymentsETLConfig instance with default paths.
+        """
+        return cls.from_data_root(
+            data_root=data_root,
+            sucursales_json=sucursales_file,
+            chunk_size_days=chunk_size_days,
+        )
+
 
 def ensure_dirs(config: PaymentsETLConfig) -> None:
     """Create all directories needed by the payments ETL.
@@ -134,6 +160,11 @@ def build_payments_dataset(
     - Calls ensure_dirs(config) before writing anything
     - Returns the final aggregated payments DataFrame
 
+    This function is a thin wrapper around the stage functions:
+    - download_payments
+    - clean_payments
+    - aggregate_payments
+
     Args:
         start_date: Start date in YYYY-MM-DD format (inclusive).
         end_date: End date in YYYY-MM-DD format (inclusive).
@@ -157,9 +188,11 @@ def build_payments_dataset(
         >>> df.head()
     """
     # Import here to avoid circular imports
-    from pos_core.etl.a_extract.HTTP_extraction import download_payments_reports
-    from pos_core.etl.b_transform.pos_excel_payments_cleaner import clean_payments_directory
-    from pos_core.etl.c_load.aggregate_payments_by_day import aggregate_payments_daily
+    from pos_core.etl.payments import (
+        aggregate_payments,
+        clean_payments,
+        download_payments,
+    )
 
     ensure_dirs(config)
 
@@ -177,40 +210,23 @@ def build_payments_dataset(
     logger.info("Steps to execute: %s", steps)
 
     if "extract" in steps:
-        logger.info("Step 1: Extracting payments reports")
-        download_payments_reports(
-            start_date=start_date,
-            end_date=end_date,
-            output_dir=config.paths.raw_payments,
-            sucursales_json=config.paths.sucursales_json,
-            branches=branches,
-            chunk_size_days=config.chunk_size_days,
-        )
+        download_payments(start_date, end_date, config, branches)
 
     if "transform" in steps:
-        logger.info("Step 2: Cleaning payments files")
-        clean_payments_directory(
-            input_dir=config.paths.raw_payments,
-            output_dir=config.paths.clean_payments,
-            recursive=True,
-        )
-
-    aggregated_path = config.paths.proc_payments / "aggregated_payments_daily.csv"
+        clean_payments(start_date, end_date, config, branches)
 
     result_df = None
     if "aggregate" in steps:
-        logger.info("Step 3: Aggregating payments data")
-        result_df = aggregate_payments_daily(
-            clean_dir=config.paths.clean_payments,
-            output_path=aggregated_path,
-        )
+        result_df = aggregate_payments(start_date, end_date, config, branches)
     else:
         # If we didn't aggregate now, but the file exists, load it
+        aggregated_path = config.paths.proc_payments / "aggregated_payments_daily.csv"
         if aggregated_path.exists():
             logger.info("Loading existing aggregated file: %s", aggregated_path)
             result_df = pd.read_csv(aggregated_path)
 
     if result_df is None:
+        aggregated_path = config.paths.proc_payments / "aggregated_payments_daily.csv"
         raise FileNotFoundError(
             f"Could not find aggregated payments file at {aggregated_path}. "
             "Run the 'aggregate' step to generate it."

@@ -44,29 +44,92 @@ This convention makes it easy to:
 - Re-run specific stages without re-processing everything
 - Debug issues at each stage
 
-## Payments vs Sales
+## API Layers
 
-The package provides two levels of APIs:
+The package provides three levels of APIs:
 
-### Payments (High-Level API)
+### Query Functions (Recommended)
 
-The **payments** API is the primary public interface:
+The **query functions** are the recommended way to get data:
 
-- `build_payments_dataset()`: Complete ETL orchestration
-- `run_payments_forecast()`: Forecasting
-- `run_payments_qa()`: Quality assurance
+- **`get_payments()`**: Get payments data, running ETL stages only if needed
+- **`get_sales()`**: Get sales data at specified level, running ETL stages only if needed
+- **`get_payments_forecast()`**: Get payments forecast, automatically handling historical data
 
-This is the recommended way to work with payment data.
+**Key features**:
+- Automatic idempotence through metadata checks
+- Only runs ETL stages when needed
+- Simple, high-level interface
+- Returns DataFrames directly
 
-### Sales (Low-Level Utilities)
+**Example**:
+```python
+from pos_core.etl import PaymentsETLConfig, get_payments
 
-The **sales** API provides lower-level utilities:
+config = PaymentsETLConfig.from_root(Path("data"), Path("utils/sucursales.json"))
+df = get_payments("2025-01-01", "2025-01-31", config, refresh=False)
+```
 
-- Direct access to extraction functions
-- Manual cleaning and transformation
-- Fine-grained control over the pipeline
+### Stage Functions (Fine-Grained Control)
 
-Use this when you need more control or are working with sales detail data (which doesn't have a high-level API yet).
+**Stage functions** provide control over individual ETL stages:
+
+- **Payments**: `download_payments()`, `clean_payments()`, `aggregate_payments()`
+- **Sales**: `download_sales()`, `clean_sales()`, `aggregate_sales()`
+
+**Use when**:
+- You need to run specific stages independently
+- You want to inspect intermediate results
+- You're building custom workflows
+
+**Example**:
+```python
+from pos_core.etl import PaymentsETLConfig, download_payments, clean_payments
+
+config = PaymentsETLConfig.from_root(Path("data"), Path("utils/sucursales.json"))
+download_payments("2025-01-01", "2025-01-31", config)
+clean_payments("2025-01-01", "2025-01-31", config)
+```
+
+### Low-Level Functions (Advanced)
+
+**Low-level functions** in `pos_core.etl.a_extract`, `pos_core.etl.b_transform`, and `pos_core.etl.c_load` provide direct access to extraction, transformation, and aggregation logic.
+
+**Use when**:
+- You need to customize the ETL logic
+- You're building custom pipelines
+- You need access to internal implementation details
+
+**Note**: These are considered internal APIs and may change between minor versions.
+
+## Metadata and Idempotence
+
+The ETL pipeline uses metadata files to track stage completion and enable idempotent operations.
+
+### Metadata Storage
+
+Metadata files are stored in `_meta/` subdirectories within each stage directory:
+- `a_raw/payments/_meta/2025-01-01_2025-01-31.json`
+- `b_clean/payments/_meta/2025-01-01_2025-01-31.json`
+- `c_processed/payments/_meta/2025-01-01_2025-01-31.json`
+
+### Metadata Contents
+
+Each metadata file contains:
+- `start_date`, `end_date`: Date range processed
+- `branches`: List of branches processed
+- `cleaner_version`: Version identifier for the cleaner (enables re-cleaning when logic changes)
+- `last_run`: ISO timestamp of when the stage was run
+- `status`: "ok", "failed", or "partial"
+
+### Automatic Idempotence
+
+Query functions automatically check metadata:
+- If metadata exists and `status == "ok"` and `cleaner_version` matches, skip the stage
+- If `refresh=True`, force re-run all stages
+- If `refresh=False`, use existing data when available
+
+This makes it safe to re-run queries without duplicating work.
 
 ## POS System Requirements
 
@@ -89,6 +152,7 @@ The ETL pipeline is designed for incremental processing:
 
 - **Smart date range chunking**: Automatically splits large date ranges into manageable chunks
 - **Existing data discovery**: Skips downloading files that already exist
+- **Metadata-based idempotence**: Tracks stage completion to avoid redundant work
 - **Resumable**: Can be interrupted and resumed without losing progress
 
 This makes it practical to process years of historical data.
@@ -102,4 +166,3 @@ The forecasting module uses **ARIMA (AutoRegressive Integrated Moving Average)**
 - **Per-branch, per-metric**: Separate models for each combination
 
 The models require at least 30 days of historical data to generate reliable forecasts.
-

@@ -58,19 +58,20 @@ Here's a minimal example to get started:
 
 ```python
 from pathlib import Path
-from pos_core.etl import PaymentsETLConfig, build_payments_dataset
-from pos_core.forecasting import ForecastConfig, run_payments_forecast
+from pos_core.etl import PaymentsETLConfig, get_payments, get_payments_forecast
 
-# Configure and run ETL
-config = PaymentsETLConfig.from_data_root(Path("data"))
-payments = build_payments_dataset("2025-01-01", "2025-01-31", config)
+# Configure
+config = PaymentsETLConfig.from_root(Path("data"), Path("utils/sucursales.json"))
+
+# Get payments data (automatically runs ETL stages only if needed)
+payments = get_payments("2025-01-01", "2025-01-31", config)
 
 # Generate forecast
-forecast = run_payments_forecast(payments, ForecastConfig(horizon_days=7))
-print(forecast.forecast.head())
+forecast = get_payments_forecast("2025-01-31", horizon_weeks=1, config=config)
+print(forecast.head())
 ```
 
-This downloads payment data for the date range, cleans and aggregates it, then generates a 7-day forecast. 
+This gets payment data for the date range (running ETL stages only if needed), then generates a 7-day forecast. The query functions automatically handle idempotence - they skip work that's already been done. 
 
 For more examples, see:
 - **Runnable scripts**: Check the [`examples/`](examples/) directory for complete, runnable example scripts
@@ -136,123 +137,46 @@ data/
 
 ## Usage Examples
 
-### Example 1: Advanced – Sales Detail ETL (Low-Level APIs)
+### Example 1: Recommended – Sales Detail ETL (Query API)
 
-**Advanced example**: Using low-level APIs for sales detail ETL. This example shows how to download sales detail reports for all sucursales for a specific week, clean them, and aggregate by product group.
-
-**Note**: Unlike payments (which has the high-level `build_payments_dataset()` API), sales details currently require using lower-level functions directly. Payments is the primary public API; sales details are lower-level utilities.
+**Recommended approach**: Using the high-level query API for sales detail ETL. This example shows how to get sales data aggregated by ticket and by product group for a specific week.
 
 ```python
 from pathlib import Path
-from datetime import date
-import os
-import pandas as pd
+from pos_core.etl import SalesETLConfig, get_sales
 
-from pos_core.etl.a_extract.HTTP_extraction import (
-    make_session,
-    login_if_needed,
-    export_sales_report,
-    build_out_name
-)
-from pos_core.etl.branch_config import load_branch_segments_from_json
-from pos_core.etl.b_transform.pos_excel_sales_details_cleaner import (
-    transform_detalle_ventas,
-    output_name_for
-)
-from pos_core.etl.c_load.aggregate_sales_details_by_ticket import aggregate_by_ticket
-from pos_core.etl.c_load.aggregate_sales_details_by_group import build_category_pivot
+# Set up configuration
+data_root = Path("data")
+sucursales_json = Path("utils/sucursales.json")
+config = SalesETLConfig.from_root(data_root, sucursales_json)
 
 # Define the week (Monday to Sunday)
 week_start = "2025-01-06"  # Monday
 week_end = "2025-01-12"    # Sunday
 
-# Set up paths
-data_root = Path("data")
-raw_sales_dir = data_root / "a_raw" / "sales" / "batch"
-clean_sales_dir = data_root / "b_clean" / "sales" / "batch"
-sucursales_json = Path("utils/sucursales.json")
-
-# Step 1: Download sales detail reports for all sucursales
-raw_sales_dir.mkdir(parents=True, exist_ok=True)
-
-# Get base URL from environment (or set explicitly)
-base_url = os.environ.get("WS_BASE")
-if not base_url:
-    raise ValueError("WS_BASE environment variable must be set")
-
-# Create session and authenticate
-session = make_session()
-login_if_needed(session, base_url=base_url, user=None, password=None)
-
-# Load branch configuration
-branch_segments = load_branch_segments_from_json(sucursales_json)
-start_date = date.fromisoformat(week_start)
-end_date = date.fromisoformat(week_end)
-
-# Download reports for each branch
-for branch_name, segments in branch_segments.items():
-    for segment in segments:
-        code = segment.code
-        # Check if this code was valid during the week
-        if segment.valid_from and segment.valid_from > end_date:
-            continue
-        if segment.valid_to and segment.valid_to < start_date:
-            continue
-        
-        try:
-            # Export the report
-            suggested, blob = export_sales_report(
-                s=session,
-                base_url=base_url,
-                report="Detail",
-                subsidiary_id=code,
-                start=start_date,
-                end=end_date,
-            )
-            
-            # Save file
-            out_name = build_out_name("Detail", branch_name, start_date, end_date, suggested)
-            out_path = raw_sales_dir / out_name
-            out_path.write_bytes(blob)
-            print(f"Downloaded: {out_path}")
-        except Exception as e:
-            print(f"Error downloading {branch_name} ({code}): {e}")
-
-# Step 2: Clean Excel files to CSV
-clean_sales_dir.mkdir(parents=True, exist_ok=True)
-
-for xlsx_file in raw_sales_dir.glob("*.xlsx"):
-    try:
-        df = transform_detalle_ventas(xlsx_file)
-        out_name = output_name_for(xlsx_file, df)
-        out_path = clean_sales_dir / out_name
-        out_path.parent.mkdir(parents=True, exist_ok=True)
-        df.to_csv(out_path, index=False, encoding="utf-8")
-        print(f"Cleaned: {out_path} ({len(df)} rows)")
-    except Exception as e:
-        print(f"Error cleaning {xlsx_file}: {e}")
-
-# Step 3: Aggregate by ticket
-ticket_csv = data_root / "c_processed" / "sales" / f"sales_by_ticket_{week_start}_{week_end}.csv"
-ticket_csv.parent.mkdir(parents=True, exist_ok=True)
-
-ticket_df = aggregate_by_ticket(
-    input_csv=str(clean_sales_dir / "*.csv"),
-    output_csv=str(ticket_csv),
-    recursive=True
+# Get sales data aggregated by ticket (runs ETL stages only if needed)
+df_ticket = get_sales(
+    start_date=week_start,
+    end_date=week_end,
+    config=config,
+    level="ticket",
+    refresh=True,  # Force re-run all stages
 )
-print(f"Aggregated by ticket: {ticket_csv} ({len(ticket_df)} tickets)")
 
-# Step 4: Aggregate by group (creates pivot table: groups × sucursales)
-group_csv = data_root / "c_processed" / "sales" / f"sales_by_group_{week_start}_{week_end}.csv"
-group_csv.parent.mkdir(parents=True, exist_ok=True)
+print(f"Aggregated by ticket: {len(df_ticket)} tickets")
+print(df_ticket.head())
 
-group_pivot = build_category_pivot(
-    input_csv=str(ticket_csv),
-    output_csv=str(group_csv)
+# Get sales data aggregated by group (reuses existing data if available)
+df_group = get_sales(
+    start_date=week_start,
+    end_date=week_end,
+    config=config,
+    level="group",
+    refresh=False,  # Use existing data if available
 )
-print(f"Aggregated by group: {group_csv}")
-print(group_pivot)
+
+print(f"Aggregated by group: pivot table with {len(df_group)} groups")
+print(df_group.head())
 ```
 
 The final output (`sales_by_group_*.csv`) will be a pivot table with:
@@ -260,16 +184,17 @@ The final output (`sales_by_group_*.csv`) will be a pivot table with:
 - **Columns**: Sucursales (branches)
 - **Values**: Total sales amounts for each group-branch combination
 
+**Note**: For fine-grained control, you can also use stage functions (`download_sales`, `clean_sales`, `aggregate_sales`) or low-level functions in `pos_core.etl.a_extract`, `pos_core.etl.b_transform`, and `pos_core.etl.c_load`.
+
 ### Example 2: Recommended – Main Payments ETL Workflow
 
-**Full workflow example**: Build a comprehensive aggregated payments dataset with one row per day per sucursal for the last 3 years. At the end, you'll have a DataFrame ready for analysis or forecasting.
+**Recommended approach**: Using the query API to get payments data. The query functions automatically handle running ETL stages only when needed.
 
 ```python
 from pathlib import Path
 from datetime import date, timedelta
-import pandas as pd
 
-from pos_core.etl import PaymentsETLConfig, build_payments_dataset
+from pos_core.etl import PaymentsETLConfig, get_payments
 
 # Calculate date range (3 years ago to today)
 end_date = date.today()
@@ -279,22 +204,18 @@ start_date = end_date - timedelta(days=3 * 365)
 data_root = Path("data")
 sucursales_json = Path("utils/sucursales.json")
 
-config = PaymentsETLConfig.from_data_root(
-    data_root=data_root,
-    sucursales_json=sucursales_json,
-    chunk_size_days=180  # Process in 6-month chunks
-)
+config = PaymentsETLConfig.from_root(data_root, sucursales_json)
 
-# Run the complete ETL pipeline
+# Get payments data (automatically runs ETL stages only if needed)
 # This will:
-# 1. Download missing payment reports from POS API
-# 2. Clean the raw Excel files into normalized CSVs
-# 3. Aggregate cleaned data into daily dataset
-payments_df = build_payments_dataset(
+# 1. Check metadata and download missing payment reports from POS API
+# 2. Clean raw Excel files into normalized CSVs (if needed)
+# 3. Aggregate cleaned data into daily dataset (if needed)
+payments_df = get_payments(
     start_date=start_date.strftime("%Y-%m-%d"),
     end_date=end_date.strftime("%Y-%m-%d"),
     config=config,
-    branches=None  # Process all branches
+    refresh=False,  # Use existing data if available
 )
 
 # The resulting DataFrame has one row per sucursal per day
@@ -333,21 +254,44 @@ The resulting DataFrame contains columns such as:
 - `ingreso_total`: Total income
 - Additional payment method columns (AMEX, UberEats, Rappi, etc.)
 
-### Example 3: Recommended – Forecasting Workflow Based on Example 2 Output
+### Example 3: Recommended – Forecasting Workflow
 
-**Full workflow example**: Generate forecasts for the next 7 days using historical payment data. At the end, you'll have forecasted values for each branch and metric, plus a deposit schedule for cash flow planning.
+**Recommended approach**: Using the query API to get forecasts. This automatically handles getting historical data and running the forecast.
+
+```python
+from pathlib import Path
+from pos_core.etl import PaymentsETLConfig, get_payments_forecast
+
+# Set up configuration
+data_root = Path("data")
+sucursales_json = Path("utils/sucursales.json")
+config = PaymentsETLConfig.from_root(data_root, sucursales_json)
+
+# Get payments forecast (automatically gets historical data and runs forecast)
+forecast_df = get_payments_forecast(
+    as_of="2025-11-24",  # Forecast as of this date
+    horizon_weeks=13,  # Forecast 13 weeks ahead
+    config=config,
+    refresh=False,  # Use existing data if available
+)
+
+print("Forecast DataFrame:")
+print(forecast_df.head(20))
+```
+
+**Alternative**: If you need the full `ForecastResult` with deposit schedule and metadata, use `run_payments_forecast()` directly:
 
 ```python
 from pathlib import Path
 import pandas as pd
-
+from pos_core.etl import PaymentsETLConfig, get_payments
 from pos_core.forecasting import ForecastConfig, run_payments_forecast
 
-# Load the aggregated payments dataset (from Example 2 or existing file)
-data_root = Path("data")
-payments_file = data_root / "c_processed" / "payments" / "aggregated_payments_daily.csv"
+# Get historical data
+config = PaymentsETLConfig.from_root(Path("data"), Path("utils/sucursales.json"))
+payments_df = get_payments("2022-01-01", "2025-11-24", config)
 
-payments_df = pd.read_csv(payments_file)
+# Ensure fecha is datetime
 payments_df['fecha'] = pd.to_datetime(payments_df['fecha'])
 
 # Configure forecast
@@ -427,11 +371,23 @@ print(f"Saved deposit schedule to: {deposit_output}")
 
 ### ETL Module (`pos_core.etl`)
 
-- **`PaymentsETLConfig`**: Configuration dataclass for payments ETL pipeline
-- **`PaymentsPaths`**: Path configuration for ETL stages
-- **`build_payments_dataset()`**: Main orchestration function for payments ETL
+#### Configuration
+- **`PaymentsETLConfig`**, **`PaymentsPaths`**: Configuration for payments ETL pipeline
+- **`SalesETLConfig`**, **`SalesPaths`**: Configuration for sales ETL pipeline
 
-See [`src/pos_core/etl/api.py`](src/pos_core/etl/api.py) when viewing this repo for detailed API documentation.
+#### Query Functions (Recommended)
+- **`get_payments()`**: Get payments data, running ETL stages only if needed
+- **`get_sales()`**: Get sales data at specified level (ticket/group/day), running ETL stages only if needed
+- **`get_payments_forecast()`**: Get payments forecast, automatically handling historical data retrieval
+
+#### Stage Functions (Fine-Grained Control)
+- **Payments**: `download_payments()`, `clean_payments()`, `aggregate_payments()`
+- **Sales**: `download_sales()`, `clean_sales()`, `aggregate_sales()`
+
+#### Orchestration Functions
+- **`build_payments_dataset()`**: Complete payments ETL orchestration (uses stage functions internally)
+
+See [`src/pos_core/etl/api.py`](src/pos_core/etl/api.py) and [`src/pos_core/etl/queries.py`](src/pos_core/etl/queries.py) when viewing this repo for detailed API documentation.
 
 ### Forecasting Module (`pos_core.forecasting`)
 
@@ -481,10 +437,17 @@ from pathlib import Path
 from pos_core.etl import PaymentsETLConfig
 
 # Default configuration using standard directory structure
+config = PaymentsETLConfig.from_root(
+    data_root=Path("data"),
+    sucursales_file=Path("utils/sucursales.json"),
+    chunk_size_days=180  # Maximum days per HTTP request
+)
+
+# Alternative: using from_data_root (alias)
 config = PaymentsETLConfig.from_data_root(
     data_root=Path("data"),
     sucursales_json=Path("utils/sucursales.json"),
-    chunk_size_days=180  # Maximum days per HTTP request
+    chunk_size_days=180
 )
 
 # Custom configuration
@@ -501,6 +464,19 @@ config = PaymentsETLConfig(
     paths=custom_paths,
     chunk_size_days=90,
     excluded_branches=["CEDIS"]  # Branches to exclude from processing
+)
+```
+
+### Sales ETL Configuration
+
+```python
+from pathlib import Path
+from pos_core.etl import SalesETLConfig
+
+# Default configuration using standard directory structure
+config = SalesETLConfig.from_root(
+    data_root=Path("data"),
+    sucursales_file=Path("utils/sucursales.json")
 )
 ```
 
@@ -628,7 +604,7 @@ The package has been tested on:
 
 ### Common Issues
 
-1. **Missing sucursales.json**: Ensure the file exists at the expected location or specify the path explicitly in `PaymentsETLConfig.from_data_root()`.
+1. **Missing sucursales.json**: Ensure the file exists at the expected location or specify the path explicitly in `PaymentsETLConfig.from_root()` or `SalesETLConfig.from_root()`.
 
 2. **Authentication Errors**: Verify that `WS_BASE`, `WS_USER`, and `WS_PASS` environment variables are set correctly.
 
@@ -636,7 +612,7 @@ The package has been tested on:
 
 4. **ARIMA Convergence Warnings**: Common when data is short or noisy; forecasts still work, but you can restrict metrics/branches or reduce `horizon_days` to reduce warnings.
 
-5. **Missing Date Ranges**: The ETL pipeline automatically discovers existing data and only downloads missing ranges. To force re-download, delete the relevant files in `a_raw/`.
+5. **Missing Date Ranges**: The ETL pipeline uses metadata to track completed stages and automatically skips work that's already been done. To force re-run, use `refresh=True` in query functions or `force=True` in stage functions. Alternatively, delete the relevant files in `a_raw/` or metadata files in `_meta/` subdirectories.
 
 6. **Branch Code Windows**: If a branch code changed over time, ensure your `sucursales.json` includes validity windows (`valid_from`, `valid_to`).
 

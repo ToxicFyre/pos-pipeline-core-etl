@@ -14,16 +14,15 @@ A comprehensive Python package for Point of Sale (POS) data processing, forecast
 
 ```python
 from pathlib import Path
-from pos_core.etl import PaymentsETLConfig, build_payments_dataset
-from pos_core.forecasting import ForecastConfig, run_payments_forecast
+from pos_core.etl import PaymentsETLConfig, get_payments, get_payments_forecast
 
-# Configure and run ETL
-config = PaymentsETLConfig.from_data_root(Path("data"))
-payments = build_payments_dataset("2025-01-01", "2025-01-31", config)
+# Configure and get payments data
+config = PaymentsETLConfig.from_root(Path("data"), Path("utils/sucursales.json"))
+payments = get_payments("2025-01-01", "2025-01-31", config)
 
 # Generate forecast
-forecast = run_payments_forecast(payments, ForecastConfig(horizon_days=7))
-print(forecast.forecast.head())
+forecast = get_payments_forecast("2025-01-31", horizon_weeks=1, config=config)
+print(forecast.head())
 ```
 
 ## Installation
