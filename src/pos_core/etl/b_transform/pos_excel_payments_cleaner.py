@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-POS "Detalle por forma de pago" cleaner -> normalized CSV
+POS "Detalle por forma de pago" cleaner -> normalized CSV.
 
 Single file:
   python -m pos_etl.b_transform.pos_excel_payments_cleaner --input path/to/file.xlsx
