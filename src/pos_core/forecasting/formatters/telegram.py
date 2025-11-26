@@ -2,36 +2,29 @@
 
 from __future__ import annotations
 
-from datetime import date
-from typing import Dict
-
 import pandas as pd
 
-from pos_forecasting.cash_flow import calculate_cash_flow_deposits
-from pos_forecasting.config import BRANCHES, METRICS
-from pos_forecasting.date_formatters import SPANISH_DAYS
+from pos_core.forecasting.api import ForecastResult
+from pos_core.forecasting.date_formatters import SPANISH_DAYS
 
 
-def format_telegram_message(
-    forecasts: Dict[str, Dict[str, pd.Series]],
-    historical_df: pd.DataFrame,
-    last_historical_date: date,
-) -> str:
+def format_telegram_message(result: ForecastResult) -> str:
     """Format forecasts as a Telegram-friendly message using HTML formatting.
     
+    This function accepts a ForecastResult and returns a formatted HTML string.
+    It does NOT send any messages or touch the network.
+    
     Args:
-        forecasts: Nested dictionary {branch: {metric: forecast_series}}
-        historical_df: DataFrame with historical payment data
-        last_historical_date: Last date in historical data
+        result: ForecastResult containing forecast and deposit_schedule DataFrames
         
     Returns:
         Formatted message string with Telegram HTML formatting
         
     Raises:
-        ValueError: If no forecasts are provided
+        ValueError: If ForecastResult is empty or invalid
     """
-    if not forecasts or not any(forecasts.values()):
-        raise ValueError("No forecasts to format")
+    if result.forecast.empty:
+        raise ValueError("No forecasts to format: forecast DataFrame is empty")
     
     # Metric display names
     metric_names = {
@@ -41,43 +34,53 @@ def format_telegram_message(
         "ingreso_total": "Total",
     }
     
-    lines = ["📊 <b>Forecast de Pagos - Próximos 7 Días</b>\n"]
+    horizon_days = result.metadata.get("horizon_days", 7)
+    lines = [f"📊 <b>Forecast de Pagos - Próximos {horizon_days} Días</b>\n"]
+    
+    # Get branches and metrics from forecast DataFrame
+    branches = sorted(result.forecast["sucursal"].unique())
+    metrics = sorted(result.forecast["metric"].unique())
     
     # Track totals across all branches for each metric and each day
     # Structure: {metric: {date: total_value}}
-    daily_totals = {metric: {} for metric in METRICS}
+    daily_totals = {metric: {} for metric in metrics}
     
-    for branch in BRANCHES:
-        if branch not in forecasts or not forecasts[branch]:
+    # Process each branch
+    for branch in branches:
+        branch_forecasts = result.forecast[result.forecast["sucursal"] == branch]
+        if branch_forecasts.empty:
             continue
         
         lines.append(f"<b>{branch}</b>")
         
-        for metric in METRICS:
-            if metric not in forecasts[branch]:
+        for metric in metrics:
+            metric_forecasts = branch_forecasts[branch_forecasts["metric"] == metric]
+            if metric_forecasts.empty:
                 continue
             
-            forecast_series = forecasts[branch][metric]
-            metric_display = metric_names[metric]
-            
+            metric_display = metric_names.get(metric, metric)
             lines.append(f"{metric_display}:")
             
             # Daily breakdown
             total = 0.0
-            for forecast_date, value in forecast_series.items():
-                day_name = SPANISH_DAYS[forecast_date.weekday()]
-                date_str = forecast_date.strftime("%Y-%m-%d")
+            for _, row in metric_forecasts.iterrows():
+                fecha = row["fecha"]
+                valor = row["valor"]
+                
+                # Convert to date if needed
+                fecha_date = fecha.date() if isinstance(fecha, pd.Timestamp) else fecha
+                day_name = SPANISH_DAYS[fecha_date.weekday()]
+                date_str = fecha_date.strftime("%Y-%m-%d")
+                
                 # Format currency - $ is safe in HTML
-                value_str = f"${value:,.2f}"
+                value_str = f"${valor:,.2f}"
                 lines.append(f"  {day_name} {date_str}: {value_str}")
-                total += value
+                total += valor
                 
                 # Accumulate daily totals across branches
-                # Convert forecast_date to date if it's a Timestamp
-                forecast_date_key = forecast_date.date() if isinstance(forecast_date, pd.Timestamp) else forecast_date
-                if forecast_date_key not in daily_totals[metric]:
-                    daily_totals[metric][forecast_date_key] = 0.0
-                daily_totals[metric][forecast_date_key] += value
+                if fecha_date not in daily_totals[metric]:
+                    daily_totals[metric][fecha_date] = 0.0
+                daily_totals[metric][fecha_date] += valor
             
             # Total for this metric
             total_str = f"${total:,.2f}"
@@ -90,12 +93,12 @@ def format_telegram_message(
     
     # Get all unique dates from forecasts (sorted)
     all_dates = set()
-    for metric in METRICS:
+    for metric in metrics:
         all_dates.update(daily_totals[metric].keys())
-    all_dates = sorted([d.date() if isinstance(d, pd.Timestamp) else d for d in all_dates])
+    all_dates = sorted(all_dates)
     
-    for metric in METRICS:
-        metric_display = metric_names[metric]
+    for metric in metrics:
+        metric_display = metric_names.get(metric, metric)
         lines.append(f"{metric_display}:")
         
         for forecast_date in all_dates:
@@ -111,31 +114,31 @@ def format_telegram_message(
         total_str = f"${metric_total:,.2f}"
         lines.append(f"  <b>Total: {total_str}</b>\n")
     
-    # Add Cash Flow section
+    # Add Cash Flow section using deposit_schedule from result
     lines.append("<b>Cash Flow (Depósitos Reales):</b>")
     
-    # Calculate cash flow deposits using shared deposit schedule functions
-    cash_flow = calculate_cash_flow_deposits(
-        all_dates, daily_totals, historical_df, last_historical_date
-    )
-    
-    # Format cash flow section
-    for deposit_date in sorted(cash_flow.keys()):
-        day_name = SPANISH_DAYS[deposit_date.weekday()]
-        date_str = deposit_date.strftime("%Y-%m-%d")
-        cf = cash_flow[deposit_date]
-        
-        lines.append(f"{day_name} {date_str}:")
-        
-        if cf["efectivo"] > 0:
-            lines.append(f"  Efectivo: ${cf['efectivo']:,.2f}")
-        if cf["credito"] > 0:
-            lines.append(f"  Crédito: ${cf['credito']:,.2f}")
-        if cf["debito"] > 0:
-            lines.append(f"  Débito: ${cf['debito']:,.2f}")
-        
-        total_deposit = cf["efectivo"] + cf["credito"] + cf["debito"]
-        lines.append(f"  <b>Total: ${total_deposit:,.2f}</b>\n")
+    if not result.deposit_schedule.empty:
+        for _, row in result.deposit_schedule.iterrows():
+            fecha = row["fecha"]
+            fecha_date = fecha.date() if isinstance(fecha, pd.Timestamp) else fecha
+            day_name = SPANISH_DAYS[fecha_date.weekday()]
+            date_str = fecha_date.strftime("%Y-%m-%d")
+            
+            efectivo = row.get("efectivo", 0.0)
+            credito = row.get("credito", 0.0)
+            debito = row.get("debito", 0.0)
+            total_deposit = row.get("total", efectivo + credito + debito)
+            
+            lines.append(f"{day_name} {date_str}:")
+            
+            if efectivo > 0:
+                lines.append(f"  Efectivo: ${efectivo:,.2f}")
+            if credito > 0:
+                lines.append(f"  Crédito: ${credito:,.2f}")
+            if debito > 0:
+                lines.append(f"  Débito: ${debito:,.2f}")
+            
+            lines.append(f"  <b>Total: ${total_deposit:,.2f}</b>\n")
     
     return "\n".join(lines)
 

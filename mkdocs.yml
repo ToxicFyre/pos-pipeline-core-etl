@@ -1,0 +1,55 @@
+site_name: POS Core ETL
+site_description: Point of Sale ETL pipeline with forecasting and QA capabilities
+site_url: https://toxicfyre.github.io/pos-pipeline-core-etl/
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - toc.integrate
+    - search.suggest
+    - search.highlight
+
+nav:
+  - Home: index.md
+  - User Guide:
+    - Installation: user-guide/installation.md
+    - Quickstart: user-guide/quickstart.md
+    - Configuration: user-guide/configuration.md
+    - Concepts: user-guide/concepts.md
+    - Examples: user-guide/examples.md
+  - API Reference:
+    - ETL: api-reference/etl.md
+    - Forecasting: api-reference/forecasting.md
+    - QA: api-reference/qa.md
+    - Exceptions: api-reference/exceptions.md
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - admonition
+  - pymdownx.details
+  - tables
+  - toc:
+      permalink: true
+
+plugins:
+  - search
+

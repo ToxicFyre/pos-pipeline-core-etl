@@ -1,0 +1,546 @@
+POS Core ETL - Complete Repository Description
+===============================================
+
+OVERVIEW
+--------
+This repository contains a comprehensive Python package for Point of Sale (POS) data 
+processing, forecasting, and quality assurance. The package is designed to extract 
+payment and sales data from POS systems (specifically Wansoft-style HTTP exports), 
+clean and transform it, aggregate it for analysis, generate forecasts using time 
+series models, and perform automated quality checks.
+
+The codebase has been modernized to follow Python packaging best practices and 
+provides clean, configurable APIs that can be used as an independent Python package. 
+It is structured as a production-ready library that can be installed via pip and 
+integrated into other projects.
+
+PACKAGE INFORMATION
+-------------------
+- Package Name: pos-core-etl
+- Version: 0.1.0
+- Python Version: >=3.10
+- License: MIT
+- Author: ToxicFyre
+- Repository: https://github.com/ToxicFyre/pos-pipeline-core-etl
+- Documentation: https://toxicfyre.github.io/pos-pipeline-core-etl/
+
+PACKAGE STRUCTURE
+-----------------
+The package follows a modular architecture organized under `src/pos_core/`:
+
+pos_core/
+├── __init__.py              # Package root with version info (__version__ = "0.1.0")
+├── exceptions.py            # Domain-specific exceptions (PosAPIError, ConfigError, DataQualityError)
+│
+├── etl/                     # ETL (Extract, Transform, Load) pipeline module
+│   ├── __init__.py          # Exports: PaymentsETLConfig, PaymentsPaths, build_payments_dataset
+│   ├── api.py               # Public API for payments ETL (main entry point)
+│   ├── branch_config.py     # Branch configuration utilities (CodeWindow, load_branch_segments_from_json)
+│   ├── config.py            # Legacy path configuration (deprecated in favor of api.py)
+│   ├── utils.py             # Shared utilities (date parsing, interval manipulation, file discovery)
+│   ├── build_payments_dataset.py  # Core orchestration logic for payments ETL
+│   │
+│   ├── a_extract/           # Extraction module
+│   │   ├── __init__.py
+│   │   └── HTTP_extraction.py  # Downloads payment/sales/transfer reports from POS HTTP API
+│   │
+│   ├── b_transform/         # Transformation module
+│   │   ├── __init__.py
+│   │   ├── pos_excel_payments_cleaner.py      # Cleans raw Excel payment files to CSV
+│   │   ├── pos_excel_sales_details_cleaner.py # Cleans sales detail Excel files to CSV
+│   │   ├── pos_excel_transfer_cleaner.py      # Cleans transfer Excel files to CSV
+│   │   └── pos_cleaning_utils.py              # Shared cleaning utilities
+│   │
+│   └── c_load/              # Load/Aggregation module
+│       ├── __init__.py
+│       ├── aggregate_payments_by_day.py       # Aggregates payments to daily level (one row per branch+date)
+│       ├── aggregate_sales_details_by_group.py # Aggregates sales by product group
+│       ├── aggregate_sales_details_by_ticket.py # Aggregates sales by ticket
+│       └── aggregate_transfer_data.py         # Aggregates transfer data
+│
+├── forecasting/             # Time series forecasting module
+│   ├── __init__.py          # Exports: ForecastConfig, ForecastResult, run_payments_forecast
+│   ├── api.py               # Public API for payments forecasting
+│   ├── config.py            # Forecasting configuration constants
+│   ├── pipeline.py          # Forecasting pipeline orchestration
+│   ├── cash_flow.py         # Cash flow calculations and deposit timing
+│   ├── deposit_schedule.py  # Deposit schedule generation
+│   ├── date_formatters.py  # Date formatting utilities
+│   │
+│   ├── data/                # Data preparation
+│   │   ├── __init__.py
+│   │   ├── loaders.py       # Data loading utilities
+│   │   └── preparation.py   # Data preparation functions (build_daily_series, calculate_ingreso_total)
+│   │
+│   ├── models/              # Forecasting models
+│   │   ├── __init__.py
+│   │   ├── base.py          # Base model interface
+│   │   └── arima.py         # ARIMA time series model implementation (LogARIMAModel)
+│   │
+│   └── formatters/          # Output formatters
+│       ├── __init__.py
+│       ├── console.py       # Console output formatting
+│       └── telegram.py      # Telegram message formatting
+│
+└── qa/                      # Quality Assurance module
+    ├── __init__.py          # Exports: PaymentsQAResult, run_payments_qa
+    ├── api.py               # Public API for payments QA
+    ├── qa_payments.py       # Core QA logic (anomaly detection, validation)
+    └── README               # QA module documentation
+
+MAIN MODULES
+------------
+
+1. ETL MODULE (pos_core.etl)
+   Purpose: Extract, transform, and load POS payment data
+
+   Key Features:
+   - HTTP-based extraction of payment reports from POS API (Wansoft-style)
+   - Intelligent date range chunking (configurable chunk size, default 180 days)
+   - Branch code window handling (tracks branch code changes over time via validity windows)
+   - Incremental processing (skips already-downloaded date ranges)
+   - Excel file cleaning and normalization to CSV
+   - Daily aggregation of payment data by branch (one row per branch + date)
+   - Support for multiple payment methods (cash, credit, debit, AMEX, UberEats, Rappi, transfers, etc.)
+   - Multi-branch support with code window tracking
+   - Optional authentication (username/password via environment variables)
+
+   Main API:
+   - PaymentsETLConfig: Configuration dataclass with paths and settings
+     * from_data_root(): Factory method for default directory structure
+     * paths: PaymentsPaths object containing all filesystem paths
+     * chunk_size_days: Maximum days per HTTP request (default: 180)
+     * excluded_branches: List of branches to exclude (default: ["CEDIS"])
+   
+   - PaymentsPaths: Path configuration for ETL stages
+     * raw_payments: Directory for raw Excel files
+     * clean_payments: Directory for cleaned CSV files
+     * proc_payments: Directory for processed/aggregated data
+     * sucursales_json: Path to branch configuration file
+   
+   - build_payments_dataset(): Main orchestration function
+     * Accepts: start_date, end_date, config, optional branches and steps
+     * Returns: Aggregated pandas DataFrame (one row per sucursal + fecha)
+     * Supports selective step execution: "extract", "transform", "aggregate"
+     * Automatically discovers existing data to avoid re-downloading
+
+   Data Flow:
+   1. Extract: Downloads raw Excel files from POS HTTP API
+      - Uses environment variables: WS_BASE (required), WS_USER, WS_PASS (optional)
+      - Handles authentication if needed
+      - Downloads reports for each branch and date range chunk
+      - Saves to a_raw/payments/batch/
+   
+   2. Transform: Cleans Excel files into normalized CSV format
+      - Parses Excel files with openpyxl
+      - Normalizes column names and data types
+      - Handles missing values and edge cases
+      - Saves to b_clean/payments/batch/
+   
+   3. Aggregate: Aggregates cleaned data to daily level
+      - Groups by sucursal (branch) and fecha (date)
+      - Sums payment method columns
+      - Creates one row per branch + date combination
+      - Saves to c_processed/payments/aggregated_payments_daily.csv
+
+   Directory Structure Convention:
+   - a_raw/payments/batch: Raw Excel files from POS API
+   - b_clean/payments/batch: Cleaned CSV files
+   - c_processed/payments: Aggregated daily datasets
+
+   Low-Level APIs (for advanced use):
+   - Sales detail ETL: Lower-level functions for sales detail reports
+   - Transfer ETL: Lower-level functions for transfer reports
+   - These are utilities, not the primary public API
+
+2. FORECASTING MODULE (pos_core.forecasting)
+   Purpose: Generate time series forecasts for payment metrics
+
+   Key Features:
+   - ARIMA-based forecasting models (LogARIMAModel)
+   - Multi-metric forecasting (cash, credit, debit, total income)
+   - Multi-branch support (forecasts for each branch independently)
+   - Configurable forecast horizon (default: 7 days)
+   - Cash flow deposit schedule generation (accounts for deposit timing delays)
+   - Weekly seasonality handling (7-day period)
+   - Automatic hyperparameter selection
+   - Handles missing data (fills gaps with 0.0)
+   - Minimum 30 days of data required for forecasting
+
+   Main API:
+   - ForecastConfig: Configuration for forecasting
+     * horizon_days: Number of days ahead to forecast (default: 7)
+     * metrics: List of metrics to forecast (default: cash, credit, debit, total)
+     * branches: Optional list of branch names (None = all branches)
+   
+   - ForecastResult: Result dataclass containing:
+     * forecast: DataFrame with columns (sucursal, fecha, metric, valor)
+     * deposit_schedule: DataFrame with cash-flow deposit schedule (fecha, efectivo, credito, debito, total)
+     * metadata: Dictionary with branches, metrics, horizon, success/failure counts, last_historical_date
+   
+   - run_payments_forecast(): Main forecasting function
+     * Accepts: payments DataFrame and optional ForecastConfig
+     * Returns: ForecastResult with forecasts and deposit schedule
+     * Pure function (no file I/O, no side effects)
+     * Logs progress via logging module
+
+   Forecast Output:
+   - Forecast DataFrame: Long format with columns (sucursal, fecha, metric, valor)
+     * One row per branch/metric/date combination
+     * Can be pivoted for easier viewing
+   
+   - Deposit Schedule DataFrame: Cash flow view with columns (fecha, efectivo, credito, debito, total)
+     * Accounts for deposit timing (credit/debit deposits delayed by 1-2 days)
+     * Aggregated across all branches
+     * Useful for cash flow planning
+   
+   - Metadata: Includes branches, metrics, horizon_days, successful_forecasts, failed_forecasts, last_historical_date
+
+   Model Details:
+   - Uses LogARIMAModel (log-transform + ARIMA)
+   - Automatic order selection (p, d, q parameters)
+   - Handles weekly seasonality
+   - Robust to missing data and outliers
+
+3. QA MODULE (pos_core.qa)
+   Purpose: Automated quality assurance checks on aggregated payment data
+
+   Key Features:
+   - Multi-level validation (Level 0-4+)
+   - Missing day detection (identifies gaps in time series per branch)
+   - Duplicate day detection (finds duplicate branch+date combinations)
+   - Statistical anomaly detection (z-score based, threshold: 3.0)
+   - Zero payment method flagging (tickets > 0 but payment methods = 0)
+   - Schema validation (required columns, null checks, negative value checks)
+
+   Main API:
+   - PaymentsQAResult: Result dataclass with:
+     * summary: Dictionary with counts and flags
+     * missing_days: DataFrame with missing days per sucursal, or None
+     * duplicate_days: DataFrame with duplicate rows, or None
+     * zscore_anomalies: DataFrame with z-score anomalies, or None
+     * zero_method_flags: DataFrame with zero method flags, or None
+   
+   - run_payments_qa(): Main QA function
+     * Accepts: payments DataFrame and QA level (default: 4)
+     * Returns: PaymentsQAResult with summary and detailed DataFrames
+     * Pure function (no file I/O, no side effects)
+
+   QA Levels:
+   - Level 0: Schema validation (always run)
+     * Required columns check
+     * Null value checks
+     * Negative value checks
+   
+   - Level 3: Missing and duplicate days
+     * Missing days: Identifies gaps in time series per branch
+     * Duplicate days: Finds duplicate (sucursal, fecha) combinations
+     * Zero method flags: Tickets > 0 but payment methods = 0
+   
+   - Level 4: Statistical anomalies (z-score)
+     * Calculates z-scores for each metric per branch
+     * Flags values with |z-score| > 3.0
+     * Helps identify outliers and data quality issues
+
+DEPENDENCIES
+------------
+Core Dependencies (required):
+- pandas >= 1.3.0: Data manipulation and analysis
+- numpy >= 1.20.0: Numerical computations
+- requests >= 2.25.0: HTTP requests for API extraction
+- beautifulsoup4 >= 4.9.0: HTML parsing for web scraping (used in HTTP extraction)
+- statsmodels >= 0.12.0: Time series models (ARIMA)
+- openpyxl >= 3.0.0: Excel file reading/writing
+
+Development Dependencies (optional, via [dev] extra):
+- pytest >= 7.0: Testing framework
+- mypy >= 1.0.0: Static type checking
+- ruff >= 0.1.0: Fast Python linter
+- black >= 23.0.0: Code formatter
+
+KEY FEATURES
+------------
+
+1. Modern Python Packaging
+   - Uses pyproject.toml (PEP 517/518 compliant)
+   - Proper package structure with src/ layout
+   - Installable via pip install -e . or pip install pos-core-etl
+   - Full type hints throughout codebase
+   - Comprehensive docstrings
+   - Semantic versioning
+
+2. Clean Public APIs
+   - No hardcoded paths (configurable via dataclasses)
+   - Pure functions (no side effects in core logic)
+   - Explicit configuration objects
+   - Comprehensive docstrings with examples
+   - Type hints for all public functions
+
+3. Incremental Processing
+   - Discovers existing data to avoid re-downloading
+   - Smart date range chunking (configurable chunk size)
+   - Branch code window tracking (handles branch code changes over time)
+   - Efficient processing of large date ranges
+
+4. Comprehensive Error Handling
+   - Clear error messages
+   - Explicit exception types (PosAPIError, ConfigError, DataQualityError)
+   - Logging instead of print statements
+   - Graceful handling of missing data
+
+5. Testing
+   - Smoke tests for all three main modules (ETL, Forecasting, QA)
+   - Tests verify imports and basic functionality
+   - Located in tests/ directory
+   - Can be run with: pytest tests/
+
+6. Branch Configuration
+   - Supports branch code windows (tracks when branch codes were valid)
+   - Handles branch name variations (e.g., "Kavia" vs "Kavia_OLD")
+   - Excludes certain branches (e.g., "CEDIS") from processing
+   - Configuration via sucursales.json file
+
+7. Data Quality
+   - Automated QA checks
+   - Statistical anomaly detection
+   - Missing/duplicate day detection
+   - Schema validation
+   - Zero method flagging
+
+8. Documentation
+   - Comprehensive README with examples
+   - mkdocs-based documentation site
+   - API reference documentation
+   - Runnable example scripts in examples/ directory
+   - Inline code documentation
+
+CURRENT STATE & READINESS FOR PACKAGING
+---------------------------------------
+
+The repository has been modernized and is ready to be turned into an independent Python package:
+
+✅ Completed:
+- Modern packaging structure (pyproject.toml, src/ layout)
+- Clean public APIs for all three modules
+- Full type hints throughout codebase
+- Comprehensive docstrings
+- Smoke tests for all modules
+- No hardcoded paths (configurable via APIs)
+- Pure functions (no side effects in core logic)
+- Proper logging (no print statements in core code)
+- MIT License
+- Semantic versioning
+- Documentation site (mkdocs)
+- Example scripts
+
+⚠️ Considerations for Independent Package:
+- External dependencies: The package assumes access to a POS HTTP API with specific endpoints (Wansoft-style)
+- Configuration files: Requires sucursales.json file for branch configuration
+  * Default location: data_root.parent / "utils" / "sucursales.json"
+  * Format: JSON mapping branch names to codes with validity windows
+- Data directory structure: Uses conventional ETL directory structure (a_raw, b_clean, c_processed)
+  * Can be customized via PaymentsETLConfig
+- Environment variables: HTTP extraction may require:
+  * WS_BASE (required): Base URL of POS instance
+  * WS_USER (optional): Username for authentication
+  * WS_PASS (optional): Password for authentication
+- Legacy config.py: Contains hardcoded paths but is deprecated in favor of api.py
+
+USAGE EXAMPLE
+-------------
+
+```python
+from pathlib import Path
+import pandas as pd
+from pos_core.etl import PaymentsETLConfig, build_payments_dataset
+from pos_core.forecasting import ForecastConfig, run_payments_forecast
+from pos_core.qa import run_payments_qa
+
+# 1. Configure ETL
+config = PaymentsETLConfig.from_data_root(Path("data"))
+
+# 2. Run ETL pipeline (downloads, cleans, aggregates)
+payments_df = build_payments_dataset(
+    start_date="2023-01-01",
+    end_date="2023-12-31",
+    config=config
+)
+
+# 3. Run forecasting
+forecast_config = ForecastConfig(horizon_days=7)
+forecast_result = run_payments_forecast(payments_df, config=forecast_config)
+print(forecast_result.forecast.head())
+print(forecast_result.deposit_schedule)
+
+# 4. Run QA
+qa_result = run_payments_qa(payments_df, level=4)
+print(f"QA Summary: {qa_result.summary}")
+if qa_result.missing_days is not None:
+    print(f"Missing days: {len(qa_result.missing_days)}")
+```
+
+CONFIGURATION
+-------------
+
+1. ETL Configuration:
+   - PaymentsETLConfig: Contains paths, chunk_size_days, excluded_branches
+   - PaymentsPaths: Contains all filesystem paths
+   - Can be created via PaymentsETLConfig.from_data_root() for default structure
+   - Or custom paths can be specified
+
+2. Forecasting Configuration:
+   - ForecastConfig: Contains horizon_days, metrics, branches
+   - Default metrics: ingreso_efectivo, ingreso_credito, ingreso_debito, ingreso_total
+   - Default horizon: 7 days
+   - Can specify specific branches or None for all
+
+3. QA Configuration:
+   - QA level (0-4+) passed directly to run_payments_qa()
+   - Level 0: Schema validation (always run)
+   - Level 3: Missing/duplicate days, zero method flags
+   - Level 4: Statistical anomalies (z-score)
+
+BRANCH CONFIGURATION
+--------------------
+The package requires a sucursales.json file that defines branch configurations:
+
+Format:
+```json
+{
+  "Banana": {
+    "code": "8888",
+    "valid_from": "2024-02-21",
+    "valid_to": null
+  },
+  "Queen": {
+    "code": "6362",
+    "valid_from": "2024-01-01",
+    "valid_to": null
+  }
+}
+```
+
+- Maps branch names to codes
+- Tracks code validity windows (valid_from, valid_to dates)
+- Supports branch name variations (e.g., "Kavia", "Kavia_OLD")
+- Default location: data_root.parent / "utils" / "sucursales.json"
+- Can be specified explicitly in PaymentsETLConfig
+
+FILE NAMING CONVENTIONS
+-----------------------
+- Raw files: Payments_<label>_YYYY-MM-DD_YYYY-MM-DD.xlsx
+- Clean files: forma_pago_<sucursal_slug>_YYYY-MM-DD_YYYY-MM-DD.csv
+- Chunk directories: YYYY-MM-DD_YYYY-MM-DD (optional organization)
+- Aggregated files: aggregated_payments_daily.csv
+
+DIRECTORY STRUCTURE CONVENTION
+-------------------------------
+The package follows an ETL naming convention:
+- a_raw/: Raw data files downloaded from POS API
+  * payments/batch/: Payment reports
+  * sales/batch/: Sales detail reports
+  * transfers/batch/: Transfer reports
+- b_clean/: Cleaned and normalized data files
+  * payments/batch/: Cleaned payment CSVs
+  * sales/batch/: Cleaned sales CSVs
+  * transfers/batch/: Cleaned transfer CSVs
+- c_processed/: Aggregated and processed datasets ready for analysis
+  * payments/: Aggregated daily payment datasets
+  * sales/: Aggregated sales datasets
+  * forecasts/: Forecast outputs
+
+Within each stage, data is organized by type (payments, sales, transfers) and optionally by batch.
+
+TESTING
+-------
+The repository includes smoke tests for all main modules:
+- tests/test_etl_smoke.py: Tests ETL API imports and config creation
+- tests/test_forecasting_smoke.py: Tests forecasting API with synthetic data
+- tests/test_qa_smoke.py: Tests QA API with minimal test data
+
+Run tests with:
+```bash
+pytest tests/
+```
+
+For development, install with dev dependencies:
+```bash
+pip install -e .[dev]
+```
+
+This includes pytest, mypy, ruff, and black for code quality checks.
+
+EXAMPLES
+--------
+The repository includes runnable example scripts in examples/ directory:
+
+1. payments_full_etl.py: Full ETL workflow using build_payments_dataset()
+2. payments_forecast.py: Forecasting workflow using run_payments_forecast()
+3. sales_week_by_group.py: Advanced sales detail ETL using low-level APIs
+
+All examples are self-contained and include comments indicating what needs to be modified.
+
+DOCUMENTATION
+-------------
+- README.md: Comprehensive user guide with examples
+- docs/: mkdocs-based documentation site
+  * user-guide/: Installation, concepts, configuration, examples, quickstart
+  * api-reference/: ETL, forecasting, QA, exceptions
+- Inline code documentation: Comprehensive docstrings throughout
+
+INSTALLATION
+------------
+Production install:
+```bash
+pip install pos-core-etl
+```
+
+Development install:
+```bash
+git clone https://github.com/ToxicFyre/pos-pipeline-core-etl.git
+cd pos-pipeline-core-etl
+pip install -e .[dev]
+```
+
+NOTES FOR PACKAGING AS INDEPENDENT PYTHON PACKAGE
+-------------------------------------------------
+To turn this into an independent Python package:
+
+1. Installation:
+   - Already configured: pip install -e . (development)
+   - Can be published to PyPI: pip install pos-core-etl (production)
+
+2. External Requirements:
+   - Access to POS HTTP API (endpoints, credentials via environment variables)
+   - sucursales.json configuration file
+   - Data directory structure (or configure custom paths via PaymentsETLConfig)
+
+3. Integration:
+   - The package is designed to be imported and used programmatically
+   - All core functionality is available via Python APIs
+   - No CLI required (though CLI entry points could be added)
+
+4. Customization:
+   - All paths are configurable via PaymentsETLConfig
+   - All forecasting parameters are configurable via ForecastConfig
+   - QA level is configurable per run
+   - Branch selection is configurable per run
+
+5. API Stability:
+   - Public APIs (documented in API Reference) are considered stable
+   - Internal APIs may change between minor versions
+   - Follows semantic versioning
+
+6. Dependencies:
+   - All dependencies are specified in pyproject.toml
+   - No optional dependencies required for core functionality
+   - Dev dependencies available via [dev] extra
+
+7. Testing:
+   - Smoke tests included
+   - Can be extended with more comprehensive tests
+   - Test framework (pytest) included in dev dependencies
+
+This package is production-ready and can be used as a library in other projects that 
+need POS data processing, forecasting, and quality assurance capabilities. It is 
+designed to be flexible, configurable, and easy to integrate into existing workflows.

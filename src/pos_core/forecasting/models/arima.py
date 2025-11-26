@@ -15,8 +15,8 @@ import numpy as np
 import pandas as pd
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 
-from pos_forecasting.config import FORECAST_DAYS, SEASONAL_PERIOD
-from pos_forecasting.models.base import ForecastModel
+from pos_core.forecasting.config import FORECAST_DAYS, SEASONAL_PERIOD
+from pos_core.forecasting.models.base import ForecastModel
 
 
 class LogARIMAModel(ForecastModel):

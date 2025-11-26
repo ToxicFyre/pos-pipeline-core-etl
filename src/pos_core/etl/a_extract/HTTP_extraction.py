@@ -34,13 +34,20 @@ from __future__ import annotations
 import argparse, base64, dataclasses, json, logging, os, re, sys
 from datetime import date, datetime
 from pathlib import Path
-from typing import Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import requests
 from bs4 import BeautifulSoup  # pip install requests bs4
 from urllib.parse import urlparse
 
-from pos_etl.utils import slugify
+from pos_core.etl.utils import slugify
+from pos_core.etl.branch_config import load_branch_segments_from_json
+from pos_core.etl.utils import (
+    discover_existing_intervals,
+    iter_chunks,
+    parse_date,
+    subtract_intervals,
+)
 
 # ------------------------- Config -------------------------
 DEFAULT_BASE = os.environ.get("WS_BASE")
@@ -686,6 +693,170 @@ def export_transfers_issued(
         return fname, r.content
 
     raise SystemExit(f"Inventory export returned unexpected content-type {ct}. Body starts: {(r.text or '')[:300]}")
+
+# ------------------------- Payments ETL Function -------------------------
+
+logger = logging.getLogger(__name__)
+
+
+def download_payments_reports(
+    start_date: str,
+    end_date: str,
+    output_dir: Path | str,
+    sucursales_json: Path | str,
+    branches: Optional[List[str]] = None,
+    chunk_size_days: int = 180,
+    base_url: Optional[str] = None,
+    user: Optional[str] = None,
+    password: Optional[str] = None,
+) -> None:
+    """Download payments reports for all branches within a date range.
+
+    Downloads missing payment reports from the POS HTTP API, respecting branch
+    code windows and skipping already-downloaded date ranges. Handles chunking
+    large date ranges into smaller HTTP requests.
+
+    Args:
+        start_date: Start date in YYYY-MM-DD format (inclusive).
+        end_date: End date in YYYY-MM-DD format (inclusive).
+        output_dir: Directory to save downloaded Excel files. Will be created if it doesn't exist.
+        sucursales_json: Path to sucursales.json configuration file containing branch definitions.
+        branches: Optional list of branch names to process. If None, processes all branches.
+        chunk_size_days: Maximum number of days per HTTP request chunk (default: 180).
+        base_url: Optional base URL for POS API. If None, uses DEFAULT_BASE from environment.
+        user: Optional username for authentication. If None, uses WS_USER from environment.
+        password: Optional password for authentication. If None, uses WS_PASS from environment.
+
+    Raises:
+        FileNotFoundError: If sucursales_json doesn't exist.
+        ValueError: If start_date or end_date is invalid.
+
+    Examples:
+        >>> from pathlib import Path
+        >>> download_payments_reports(
+        ...     "2023-01-01",
+        ...     "2023-12-31",
+        ...     Path("data/a_raw/payments/batch"),
+        ...     Path("utils/sucursales.json"),
+        ...     chunk_size_days=90
+        ... )
+    """
+    # Convert string paths to Path
+    if isinstance(output_dir, str):
+        output_dir = Path(output_dir)
+    if isinstance(sucursales_json, str):
+        sucursales_json = Path(sucursales_json)
+
+    if not sucursales_json.exists():
+        raise FileNotFoundError(f"Sucursales JSON file not found: {sucursales_json}")
+
+    # Parse dates
+    try:
+        global_start = parse_date(start_date)
+        global_end = parse_date(end_date)
+    except ValueError as e:
+        raise ValueError(f"Invalid date format. Expected YYYY-MM-DD: {e}")
+
+    if global_start > global_end:
+        raise ValueError(f"Start date {start_date} is after end date {end_date}")
+
+    # Use base_url from parameter or fall back to DEFAULT_BASE
+    if base_url is None:
+        base_url = DEFAULT_BASE
+        if base_url is None:
+            raise ValueError(
+                "base_url must be provided or WS_BASE environment variable must be set"
+            )
+    base_url = base_url.rstrip("/")
+
+    # Get user/password from parameters or environment
+    if user is None:
+        user = os.environ.get("WS_USER")
+    if password is None:
+        password = os.environ.get("WS_PASS")
+
+    # Load branch segments
+    branch_segments = load_branch_segments_from_json(sucursales_json)
+
+    # Filter branches if specified
+    if branches is not None:
+        branch_segments = {
+            name: windows
+            for name, windows in branch_segments.items()
+            if name in branches
+        }
+        if not branch_segments:
+            logger.warning(f"No matching branches found in filter: {branches}")
+
+    # Discover existing intervals
+    existing_by_code = discover_existing_intervals(output_dir)
+    logger.info(f"Found existing intervals for {len(existing_by_code)} branch code(s)")
+
+    # Create session and authenticate
+    s = make_session()
+    login_if_needed(s, base_url, user, password)
+
+    # Download missing chunks
+    from datetime import timedelta
+
+    for branch_name, windows in branch_segments.items():
+        logger.info(f"Processing branch: {branch_name}")
+        for seg in windows:
+            # Calculate intersection of code window with requested date range
+            seg_start = max(global_start, seg.valid_from)
+            seg_end = min(global_end, seg.valid_to or global_end)
+            if seg_start > seg_end:
+                continue
+
+            code = seg.code
+            # Get already-downloaded intervals for this code
+            already = existing_by_code.get(code, [])
+            # Find gaps: date ranges that need to be downloaded
+            missing_ranges = subtract_intervals((seg_start, seg_end), already)
+
+            if not missing_ranges:
+                logger.debug(
+                    f"  code={code} window {seg_start}..{seg_end}: "
+                    "already fully covered, skipping."
+                )
+                continue
+
+            code_root = output_dir / branch_name / code
+            code_root.mkdir(parents=True, exist_ok=True)
+
+            logger.info(f"  code={code} window {seg_start}..{seg_end}")
+            logger.debug(f"    existing: {already or 'none'}")
+            logger.debug(f"    missing ranges: {missing_ranges}")
+
+            for mr_start, mr_end in missing_ranges:
+                chunks = iter_chunks(mr_start, mr_end, chunk_size_days)
+                for chunk_start, chunk_end in chunks:
+                    chunk_dir = code_root / f"{chunk_start}_{chunk_end}"
+                    chunk_dir.mkdir(parents=True, exist_ok=True)
+
+                    logger.info(
+                        f"    downloading {chunk_start}..{chunk_end} -> {chunk_dir}"
+                    )
+                    # POS API treats end date as exclusive, so we add 1 day
+                    # to ensure we get data for the full chunk_end date
+                    api_end_date = chunk_end + timedelta(days=1)
+
+                    # Export the report
+                    suggested, blob = export_sales_report(
+                        s=s,
+                        base_url=base_url,
+                        report="Payments",
+                        subsidiary_id=code,
+                        start=chunk_start,
+                        end=api_end_date,
+                    )
+
+                    # Save file
+                    out_name = build_out_name("Payments", branch_name, chunk_start, chunk_end, suggested)
+                    out_path = chunk_dir / out_name
+                    out_path.write_bytes(blob)
+                    logger.debug(f"Saved {out_path} ({len(blob)} bytes)")
+
 
 # ------------------------- CLI -------------------------
 @dataclasses.dataclass

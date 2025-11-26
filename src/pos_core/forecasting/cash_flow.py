@@ -11,7 +11,7 @@ from typing import Dict, List
 
 import pandas as pd
 
-from pos_forecasting.deposit_schedule import (
+from pos_core.forecasting.deposit_schedule import (
     calculate_cash_deposit,
     calculate_card_deposits,
 )

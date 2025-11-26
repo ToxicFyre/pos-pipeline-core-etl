@@ -1,7 +1,7 @@
 """Data loading and preparation utilities."""
 
-from pos_forecasting.data.loaders import load_payments_data
-from pos_forecasting.data.preparation import (
+from pos_core.forecasting.data.loaders import load_payments_data
+from pos_core.forecasting.data.preparation import (
     build_daily_series,
     calculate_ingreso_total,
 )

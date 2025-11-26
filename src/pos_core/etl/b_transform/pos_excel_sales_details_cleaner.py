@@ -38,7 +38,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple
 
-from pos_etl.utils import slugify
+from pos_core.etl.utils import slugify
 
 from .ws_cleaning_utils import (
     strip_invisibles,

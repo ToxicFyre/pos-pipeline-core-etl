@@ -135,7 +135,7 @@ from typing import Iterable, List, Optional, Set
 import pandas as pd
 import requests
 
-from pos_etl.b_transform.pos_cleaning_utils import normalize_spanish_name
+from pos_core.etl.b_transform.pos_cleaning_utils import normalize_spanish_name
 
 
 # ------------------------------------------------------------
@@ -479,6 +479,81 @@ def iter_csv_files(root: Path, recursive: bool) -> Iterable[Path]:
 def write_csv(df: pd.DataFrame, out_path: Path) -> None:
     out_path.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(out_path, index=False, encoding="utf-8-sig", quoting=csv.QUOTE_MINIMAL)
+
+
+logger = logging.getLogger(__name__)
+
+
+def aggregate_payments_daily(
+    clean_dir: Path | str,
+    output_path: Path | str,
+) -> pd.DataFrame:
+    """Aggregate cleaned payments CSVs to a daily-level dataset.
+
+    Reads all clean CSV files from clean_dir (recursively), aggregates them
+    to a daily level per sucursal, and writes the result to output_path.
+    Returns the aggregated DataFrame.
+
+    Args:
+        clean_dir: Directory containing cleaned payment CSV files.
+        output_path: Path where the aggregated CSV will be written.
+
+    Returns:
+        DataFrame containing aggregated payments data (one row per sucursal + fecha).
+
+    Raises:
+        FileNotFoundError: If clean_dir doesn't exist.
+        ValueError: If no CSV files are found in clean_dir.
+
+    Examples:
+        >>> from pathlib import Path
+        >>> df = aggregate_payments_daily(
+        ...     Path("data/b_clean/payments/batch"),
+        ...     Path("data/c_processed/payments/aggregated_payments_daily.csv")
+        ... )
+        >>> len(df)
+        365
+    """
+    # Convert string paths to Path
+    if isinstance(clean_dir, str):
+        clean_dir = Path(clean_dir)
+    if isinstance(output_path, str):
+        output_path = Path(output_path)
+
+    if not clean_dir.exists():
+        raise FileNotFoundError(f"Clean directory not found: {clean_dir}")
+    if not clean_dir.is_dir():
+        raise ValueError(f"Clean path is not a directory: {clean_dir}")
+
+    logger.info(f"Aggregating payments from {clean_dir} -> {output_path}")
+
+    # Collect all CSV files
+    dfs: List[pd.DataFrame] = []
+    any_found = False
+
+    for csv_path in iter_csv_files(clean_dir, recursive=True):
+        any_found = True
+        logger.debug(f"Reading {csv_path}")
+        dfs.append(read_clean_csv(csv_path))
+
+    if not any_found:
+        raise ValueError(
+            f"No .csv files found in {clean_dir}. "
+            "Run the cleaning step first to generate clean CSV files."
+        )
+
+    logger.info(f"Found {len(dfs)} CSV file(s) to aggregate")
+
+    # Aggregate
+    result = aggregate_payments(dfs)
+
+    # Write output
+    write_csv(result, output_path)
+    logger.info(
+        f"Wrote aggregated payments to {output_path} ({len(result)} rows, {len(result.columns)} cols)"
+    )
+
+    return result
 
 
 @dataclass

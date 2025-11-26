@@ -57,9 +57,9 @@ from typing import Iterable, List, Optional, Tuple
 import pandas as pd
 
 # Reuse your existing utils from the other cleaner
-from pos_etl.utils import get_raw_file_date_range, slugify
+from pos_core.etl.utils import get_raw_file_date_range, slugify
 
-from .ws_cleaning_utils import (
+from .pos_cleaning_utils import (
     strip_invisibles,
     neutralize as neutralize_formula_injection,
     to_date,
@@ -741,6 +741,81 @@ def parse_args() -> Args:
         verbose=a.verbose,
         sucursal=a.sucursal,
     )
+
+
+logger = logging.getLogger(__name__)
+
+
+def clean_payments_directory(
+    input_dir: Path | str,
+    output_dir: Path | str,
+    recursive: bool = True,
+) -> None:
+    """Clean all payments Excel files in a directory and write normalized CSVs.
+
+    Reads all .xlsx files from input_dir (recursively if recursive=True),
+    processes them using the payments cleaner logic, and writes normalized
+    CSV files to output_dir. Handles sucursal inference from directory
+    structure.
+
+    Args:
+        input_dir: Directory containing raw payment Excel files.
+        output_dir: Directory to write cleaned CSV files. Will be created if it doesn't exist.
+        recursive: If True, traverse subdirectories recursively (default: True).
+
+    Raises:
+        FileNotFoundError: If input_dir doesn't exist.
+        ValueError: If input_dir is not a directory.
+
+    Examples:
+        >>> from pathlib import Path
+        >>> clean_payments_directory(
+        ...     Path("data/a_raw/payments/batch"),
+        ...     Path("data/b_clean/payments/batch"),
+        ...     recursive=True
+        ... )
+    """
+    # Convert string paths to Path
+    if isinstance(input_dir, str):
+        input_dir = Path(input_dir)
+    if isinstance(output_dir, str):
+        output_dir = Path(output_dir)
+
+    if not input_dir.exists():
+        raise FileNotFoundError(f"Input directory not found: {input_dir}")
+    if not input_dir.is_dir():
+        raise ValueError(f"Input path is not a directory: {input_dir}")
+
+    # Create output directory
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    root = input_dir.resolve()
+    any_found = False
+
+    logger.info(f"Cleaning payments files from {input_dir} -> {output_dir} (recursive={recursive})")
+
+    for xlsx_file in iter_xlsx_files(root, recursive, verbose=False):
+        # Skip Excel temp/lock files like "~$Payments_....xlsx"
+        if xlsx_file.name.startswith("~$"):
+            logging.info("Skipping temp Excel file: %s", xlsx_file)
+            continue
+
+        any_found = True
+
+        try:
+            # Infer branch from first directory under input_dir
+            rel = xlsx_file.resolve().relative_to(root)
+            branch_dir = rel.parts[0] if len(rel.parts) > 1 else None
+            hint = normalize_branch_name(branch_dir)
+
+            logger.debug(f"Processing {xlsx_file.name} (sucursal_hint={hint})")
+            run_single(xlsx_file, output_dir, sucursal_hint=hint, verbose=False)
+        except Exception as e:
+            logger.error(f"Failed to process {xlsx_file}: {e}", exc_info=True)
+            raise
+
+    if not any_found:
+        logger.warning(f"No .xlsx files found under {input_dir}")
 
 
 def iter_xlsx_files(root: Path, recursive: bool, verbose: bool = False) -> Iterable[Path]:

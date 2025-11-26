@@ -7,7 +7,7 @@ from typing import Optional
 
 import pandas as pd
 
-from pos_etl import config
+from pos_core.etl import config
 
 
 def load_payments_data(csv_path: Optional[Path] = None) -> pd.DataFrame:

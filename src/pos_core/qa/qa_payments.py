@@ -63,7 +63,7 @@ from typing import List, Optional, Tuple
 import numpy as np
 import pandas as pd
 
-from pos_etl.config import PROC_PAYMENTS_DIR
+from pos_core.etl.config import PROC_PAYMENTS_DIR
 
 
 REQUIRED_COLUMNS = [
@@ -185,6 +185,279 @@ def load_payments(path: Path) -> pd.DataFrame:
     df["weekday"] = df["fecha"].dt.day_name()
 
     return df
+
+
+def prepare_payments_df(df: pd.DataFrame) -> pd.DataFrame:
+    """Prepare a payments DataFrame for QA checks.
+
+    Parses dates, enforces numeric types, and computes helper fields including
+    total revenue (excluding tips) and year-month grouping.
+
+    Args:
+        df: DataFrame with payment data. Must have required columns.
+
+    Returns:
+        DataFrame with prepared data. Includes computed columns:
+        'total_sin_propinas', 'year_month', and 'weekday'.
+
+    Examples:
+        >>> df = pd.DataFrame({
+        ...     'fecha': ['2023-01-01', '2023-01-02'],
+        ...     'ingreso_efectivo': [100, 200],
+        ...     'num_tickets': [10, 20]
+        ... })
+        >>> prepared = prepare_payments_df(df)
+        >>> 'total_sin_propinas' in prepared.columns
+        True
+    """
+    # Parse fecha if it's not already datetime
+    if not pd.api.types.is_datetime64_any_dtype(df["fecha"]):
+        df["fecha"] = pd.to_datetime(df["fecha"], format="%Y-%m-%d", errors="raise")
+
+    # Enforce dtypes for numeric columns
+    for col in MONEY_COLUMNS + [TICKET_COLUMN]:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+
+    # Compute helper fields
+    payment_cols = [
+        "ingreso_efectivo",
+        "ingreso_credito",
+        "ingreso_debito",
+        "ingreso_amex",
+        "ingreso_ubereats",
+        "ingreso_rappi",
+        "ingreso_transferencia",
+        "ingreso_SubsidioTEC",
+        "ingreso_otros",
+    ]
+    available_cols = [col for col in payment_cols if col in df.columns]
+    if available_cols:
+        df[TOTAL_NO_TIPS_COLUMN] = df[available_cols].sum(axis=1)
+    else:
+        df[TOTAL_NO_TIPS_COLUMN] = 0.0
+
+    df["year_month"] = df["fecha"].dt.to_period("M").astype(str)
+    df["weekday"] = df["fecha"].dt.day_name()
+
+    return df
+
+
+# --------------------------------------------------------------------------- #
+# Detection helpers (used by API)
+# --------------------------------------------------------------------------- #
+
+
+def detect_missing_days(df: pd.DataFrame) -> Optional[pd.DataFrame]:
+    """Detect missing days per sucursal.
+
+    For each sucursal, builds a full date range from min(fecha) to max(fecha)
+    and identifies missing dates.
+
+    Args:
+        df: DataFrame with 'sucursal' and 'fecha' columns.
+
+    Returns:
+        DataFrame with columns: sucursal, fecha (missing dates), or None if no missing days.
+
+    Examples:
+        >>> df = pd.DataFrame({
+        ...     'sucursal': ['A', 'A', 'A'],
+        ...     'fecha': pd.to_datetime(['2023-01-01', '2023-01-03', '2023-01-05'])
+        ... })
+        >>> missing = detect_missing_days(df)
+        >>> len(missing)
+        2
+    """
+    if df.empty or "sucursal" not in df.columns or "fecha" not in df.columns:
+        return None
+
+    missing_rows = []
+    for sucursal in df["sucursal"].unique():
+        sucursal_df = df[df["sucursal"] == sucursal].copy()
+        if sucursal_df.empty:
+            continue
+
+        min_date = sucursal_df["fecha"].min()
+        max_date = sucursal_df["fecha"].max()
+        date_range = pd.date_range(start=min_date, end=max_date, freq="D")
+        existing_dates = set(sucursal_df["fecha"].dt.date)
+
+        for date in date_range:
+            if date.date() not in existing_dates:
+                missing_rows.append({"sucursal": sucursal, "fecha": date.date()})
+
+    if not missing_rows:
+        return None
+
+    return pd.DataFrame(missing_rows)
+
+
+def detect_duplicate_days(df: pd.DataFrame) -> Optional[pd.DataFrame]:
+    """Detect duplicate (sucursal, fecha) rows.
+
+    Finds all rows where the (sucursal, fecha) combination appears more than once.
+
+    Args:
+        df: DataFrame with 'sucursal' and 'fecha' columns.
+
+    Returns:
+        DataFrame with all duplicate rows, or None if no duplicates found.
+
+    Examples:
+        >>> df = pd.DataFrame({
+        ...     'sucursal': ['A', 'A', 'B'],
+        ...     'fecha': pd.to_datetime(['2023-01-01', '2023-01-01', '2023-01-01'])
+        ... })
+        >>> duplicates = detect_duplicate_days(df)
+        >>> len(duplicates)
+        2
+    """
+    if df.empty:
+        return None
+
+    dup_mask = df.duplicated(subset=["sucursal", "fecha"], keep=False)
+    if not dup_mask.any():
+        return None
+
+    return df[dup_mask].copy()
+
+
+def detect_zscore_anomalies(
+    df: pd.DataFrame, window: int = 60, threshold: float = 4.0
+) -> Optional[pd.DataFrame]:
+    """Detect z-score anomalies in payment methods.
+
+    For each sucursal and each payment method column, computes rolling mean and
+    std over a window, then flags values where |z_score| >= threshold.
+
+    Args:
+        df: DataFrame with 'sucursal', 'fecha', and payment method columns.
+        window: Rolling window size in days (default: 60).
+        threshold: Z-score threshold for flagging anomalies (default: 4.0).
+
+    Returns:
+        DataFrame with columns: sucursal, fecha, method, value, z_score,
+        or None if no anomalies found.
+
+    Examples:
+        >>> df = pd.DataFrame({
+        ...     'sucursal': ['A'] * 100,
+        ...     'fecha': pd.date_range('2023-01-01', periods=100),
+        ...     'ingreso_efectivo': np.random.normal(1000, 100, 100)
+        ... })
+        >>> anomalies = detect_zscore_anomalies(df, window=30, threshold=3.0)
+    """
+    if df.empty:
+        return None
+
+    payment_methods = [
+        col
+        for col in MONEY_COLUMNS
+        if col != "propinas" and col in df.columns
+    ]
+
+    if not payment_methods:
+        return None
+
+    anomalies = []
+    for sucursal in df["sucursal"].unique():
+        sucursal_df = df[df["sucursal"] == sucursal].copy()
+        if sucursal_df.empty:
+            continue
+
+        # Sort by fecha
+        sucursal_df = sucursal_df.sort_values("fecha").reset_index(drop=True)
+
+        for method in payment_methods:
+            if method not in sucursal_df.columns:
+                continue
+
+            values = sucursal_df[method].values
+            dates = sucursal_df["fecha"].values
+
+            # Compute rolling mean and std
+            rolling_mean = pd.Series(values).rolling(window=window, min_periods=1).mean()
+            rolling_std = pd.Series(values).rolling(window=window, min_periods=1).std()
+
+            # Compute z-scores
+            rolling_std_safe = rolling_std.replace(0, np.nan)
+            z_scores = (values - rolling_mean) / rolling_std_safe
+
+            # Flag anomalies (filter out NaN values)
+            z_scores_array = z_scores.values
+            valid_mask = ~np.isnan(z_scores_array)
+            anomaly_mask = valid_mask & (np.abs(z_scores_array) >= threshold)
+            anomaly_indices = np.where(anomaly_mask)[0]
+
+            for idx in anomaly_indices:
+                anomalies.append(
+                    {
+                        "sucursal": sucursal,
+                        "fecha": pd.Timestamp(dates[idx]).date(),
+                        "method": method,
+                        "value": float(values[idx]),
+                        "z_score": float(z_scores_array[idx]),
+                    }
+                )
+
+    if not anomalies:
+        return None
+
+    return pd.DataFrame(anomalies)
+
+
+def detect_zero_method_flags(df: pd.DataFrame) -> Optional[pd.DataFrame]:
+    """Detect rows with tickets > 0 but certain payment methods are zero.
+
+    Flags rows where num_tickets > 0 but payment methods like credito or debito
+    are exactly zero, which may indicate data issues.
+
+    Args:
+        df: DataFrame with 'num_tickets' and payment method columns.
+
+    Returns:
+        DataFrame with flagged rows (all original columns), or None if no flags found.
+
+    Examples:
+        >>> df = pd.DataFrame({
+        ...     'num_tickets': [10, 5, 0],
+        ...     'ingreso_credito': [0, 100, 0],
+        ...     'ingreso_debito': [0, 50, 0]
+        ... })
+        >>> flags = detect_zero_method_flags(df)
+    """
+    if df.empty or TICKET_COLUMN not in df.columns:
+        return None
+
+    # Check for rows with tickets > 0
+    has_tickets = df[TICKET_COLUMN] > 0
+    if not has_tickets.any():
+        return None
+
+    # Payment methods that should typically be non-zero if there are tickets
+    suspicious_methods = [
+        "ingreso_credito",
+        "ingreso_debito",
+    ]
+
+    # Check which methods exist in the DataFrame
+    available_methods = [m for m in suspicious_methods if m in df.columns]
+
+    if not available_methods:
+        return None
+
+    # Find rows where tickets > 0 but all suspicious methods are zero
+    flags = []
+    for idx, row in df[has_tickets].iterrows():
+        all_zero = all(row[method] == 0.0 for method in available_methods)
+        if all_zero:
+            flags.append(idx)
+
+    if not flags:
+        return None
+
+    return df.loc[flags].copy()
 
 
 # --------------------------------------------------------------------------- #
