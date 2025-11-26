@@ -1,0 +1,155 @@
+Payments QA Module - README
+===========================
+
+Purpose
+-------
+This module runs automated checks on the aggregated payments data produced by your ETL
+(one row per sucursal + fecha). The goal is to flag structural errors, missing/duplicate
+days, and suspicious values before the data is used for finance, dashboards, or models.
+
+Where QA fits
+-------------
+Typical flow:
+
+[1] Download raw POS reports
+[2] Clean file-level noise (headers, junk rows, formats)
+[3] Aggregate to branch+date (ingreso_* cols, propinas, num_tickets)
+[4] Run QA on aggregated CSV (this module)
+[5] Publish "trusted" dataset
+
+The QA module reads data only. It writes summary + detail reports, but it does not modify
+the input file.
+
+Expected input
+--------------
+The main input is an aggregated CSV like:
+
+    sucursal,fecha,ingreso_efectivo,ingreso_credito,ingreso_debito,ingreso_amex,ingreso_ubereats,ingreso_rappi,ingreso_transferencia,ingreso_SubsidioTEC,ingreso_otros,propinas,num_tickets
+    Carreta,2022-11-01,7419.5,6821.0,14071.0,2839.0,0.0,0.0,0.0,1700.0,10.0,0.0,265
+
+Columns:
+
+- sucursal: branch name (string)
+- fecha: date (YYYY-MM-DD)
+- ingreso_efectivo / credito / debito / amex / ubereats / rappi /
+  transferencia / SubsidioTEC / otros: numeric incomes by method
+- propinas: total tips
+- num_tickets: integer count of tickets
+
+Validation levels (mental model)
+--------------------------------
+Checks are grouped by level:
+
+[Level 0] Schema validation
+[Level 1] Row-count parity vs POS detail       (planned)
+[Level 2] Amount parity vs POS detail          (planned)
+[Level 3] Missing / duplicate days per branch
+[Level 4] Statistical anomalies (z-score)
+[Level 5] Cash / transfer vs bank reconciliation   (planned)
+[Level 6] Random branch-month human review
+
+Current code implements Level 0, Level 3, Level 4, plus a "zero payment-method" rule.
+Levels 1, 2, and 5 will plug in once the POS and bank schemas are fixed.
+
+Level 0 – Schema validation
+---------------------------
+Question: "Does this file match the contract?"
+
+Checks:
+- All expected columns present, no unknown extras.
+- Types: sucursal string-like, fecha parsable as date, ingresos/propinas numeric,
+  num_tickets integer-like.
+- No nulls in sucursal or fecha.
+
+If Level 0 fails, do not trust the file. Fix ETL or the source.
+
+Level 3 – Missing and duplicate days
+------------------------------------
+Question: "Is the branch calendar clean?"
+
+Per sucursal:
+
+- Duplicate rows: same (sucursal, fecha) appears more than once.
+  -> usually due to overlapping download intervals / double counting.
+
+- Missing days: build a full daily range from min(fecha) to max(fecha) and identify
+  gaps. Also warns if a branch has fewer days than a configured minimum.
+
+Outputs:
+- duplicate_days.csv
+- missing_days.csv
+- Summary entries: errors for duplicates, warnings for missing days and short histories.
+
+Level 4 – Statistical anomalies (z-score)
+-----------------------------------------
+Question: "Does any payment method look wildly off compared to its own history?"
+
+Per sucursal and per ingreso_* column:
+
+- Sort by fecha.
+- Compute rolling mean and std over N days (e.g. 60).
+- Compute z-score = (value - mean) / std.
+- Flag days where |z| >= threshold (e.g. 4.0).
+
+This tends to highlight missing chunks, duplicated days, and decimal/format issues.
+
+Outputs:
+- zscore_anomalies.csv with sucursal, fecha, method, value, z_score.
+- Warning in summary with count of anomalies.
+
+Zero payment-method rule
+------------------------
+Question: "Do we ever see tickets but no card payments at all?"
+
+Config can mark some payment columns as "suspicious if always zero":
+
+- For rows with num_tickets > 0 and those methods exactly 0, the module writes
+  zero_method_flags.csv and adds a warning.
+
+This is meant as a pattern-break detector, not a hard error. It helps you see days
+where, for example, debit or credit unexpectedly disappeared for a busy branch.
+
+Planned levels – parity and bank checks
+---------------------------------------
+Level 1 – compare num_tickets vs POS detail per sucursal+fecha.
+Level 2 – compare payment-method sums vs POS detail within a small tolerance.
+Level 5 – compare cash and transfer columns vs bank movements (deposits / SPEIs).
+
+These follow the same philosophy: group-by sucursal+fecha, compare totals, and log
+differences.
+
+Random branch-month human review (Level 6)
+------------------------------------------
+A helper picks a random (sucursal, year-month) weighted by number of days and exports
+that subset as CSV for manual comparison with the original POS report. Running this
+once per week gives rotating deep checks with low effort.
+
+How to run
+----------
+From project root:
+
+    python -m src.qa.run_payments_qa \
+      --config src/config/qa_payments.yml \
+      --out-dir qa_output/2025-11-15
+
+Outputs in the chosen directory:
+
+- summary.txt       – human-readable errors and warnings
+- summary.json      – same, in machine-friendly form
+- missing_days.csv  – present if gaps exist
+- duplicate_days.csv
+- zero_method_flags.csv
+- zscore_anomalies.csv
+
+Interpreting results
+--------------------
+Simple policy:
+
+- Any Level 0 errors or duplicate_days -> do not publish; fix ETL or intervals.
+- Missing days and anomalies -> investigate; acceptable or not depends on use case
+  (forecasts and audits are more strict than high-level dashboards).
+- Repeated "known" warnings can be handled via config tweaks or documented as
+  expected quirks.
+
+Over time this QA layer acts as a gatekeeper for POS-derived financial data and
+gives you a clear map of where problems live when something looks off.
