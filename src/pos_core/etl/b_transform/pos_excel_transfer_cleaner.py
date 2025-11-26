@@ -38,8 +38,10 @@ DANGEROUS_PREFIXES = ("=", "+", "@", "-")
 
 # ---------- small helpers ----------
 
+
 def remove_accents(s: str) -> str:
     return "".join(c for c in unicodedata.normalize("NFD", s) if unicodedata.category(c) != "Mn")
+
 
 # Robust numeric parsing
 CURRENCY_RE = re.compile(r"[^\d,.\-\(\)\s]")
@@ -47,10 +49,28 @@ CURRENCY_RE = re.compile(r"[^\d,.\-\(\)\s]")
 
 # ---------- header detection ----------
 KNOWN_HEADER_TOKENS = {
-    "orden","sucursal_origen","almacen_origen","sucursal_destino","almacen_destino",
-    "descripcion","fecha","estatus","emisor","receptor","costo","costo_con_margen","ieps",
-    "iva","costo_total_con_margen","cantidad","departamento","clave","producto","presentacion",
+    "orden",
+    "sucursal_origen",
+    "almacen_origen",
+    "sucursal_destino",
+    "almacen_destino",
+    "descripcion",
+    "fecha",
+    "estatus",
+    "emisor",
+    "receptor",
+    "costo",
+    "costo_con_margen",
+    "ieps",
+    "iva",
+    "costo_total_con_margen",
+    "cantidad",
+    "departamento",
+    "clave",
+    "producto",
+    "presentacion",
 }
+
 
 def detect_header_row(df_no_header: pd.DataFrame, scan: int = 40) -> int:
     """Detect header row by matching known column tokens.
@@ -74,6 +94,7 @@ def detect_header_row(df_no_header: pd.DataFrame, scan: int = 40) -> int:
         if score > best_score:
             best_row, best_score = i, score
     return best_row
+
 
 # ---------- core ----------
 def clean_to_minimal_csv(input_path: Path, output_csv: Path) -> Path:
@@ -107,7 +128,11 @@ def clean_to_minimal_csv(input_path: Path, output_csv: Path) -> Path:
 
     df_raw = xls.parse(sheet_name=sheet_name, header=header_row, dtype=object)
     df_raw = df_raw.dropna(axis=1, how="all")
-    if df_raw.columns.size and str(df_raw.columns[0]).startswith("Unnamed") and df_raw.iloc[:,0].isna().all():
+    if (
+        df_raw.columns.size
+        and str(df_raw.columns[0]).startswith("Unnamed")
+        and df_raw.iloc[:, 0].isna().all()
+    ):
         df_raw = df_raw.iloc[:, 1:]
     df_raw = df_raw.dropna(axis=0, how="all")
     if "Orden" in df_raw.columns:
@@ -133,26 +158,39 @@ def clean_to_minimal_csv(input_path: Path, output_csv: Path) -> Path:
         "clave": pick("clave"),
         "producto": pick("producto"),
         "presentacion": pick("presentacion"),
-        "costo_ext": pick("costo.1","costo"),
-        "iva_unit": pick("iva.1","iva_1"),
-        "ieps_unit": pick("ieps.1","ieps_1"),
+        "costo_ext": pick("costo.1", "costo"),
+        "iva_unit": pick("iva.1", "iva_1"),
+        "ieps_unit": pick("ieps.1", "ieps_1"),
     }
 
-    required = ["orden","almacen_origen","sucursal_destino","almacen_destino","fecha","estatus",
-                "cantidad","departamento","clave","producto","presentacion"]
+    required = [
+        "orden",
+        "almacen_origen",
+        "sucursal_destino",
+        "almacen_destino",
+        "fecha",
+        "estatus",
+        "cantidad",
+        "departamento",
+        "clave",
+        "producto",
+        "presentacion",
+    ]
     missing = [k for k in required if col_map[k] is None]
     if missing:
-        raise RuntimeError(f"Missing required columns: {missing}. Available: {df_raw.columns.tolist()}")
+        raise RuntimeError(
+            f"Missing required columns: {missing}. Available: {list(df_raw.columns)}"
+        )
 
     df = pd.DataFrame({k: df_raw[v] if v is not None else None for k, v in col_map.items()})
 
     df["cantidad"] = df["cantidad"].map(to_float)
-    for c in ("costo_ext","iva_unit","ieps_unit"):
+    for c in ("costo_ext", "iva_unit", "ieps_unit"):
         if c in df.columns:
             df[c] = df[c].map(to_float)
 
     df["ieps_total"] = df["cantidad"] * df["ieps_unit"] if "ieps_unit" in df.columns else np.nan
-    df["iva_total"]  = df["cantidad"] * df["iva_unit"]  if "iva_unit"  in df.columns else np.nan
+    df["iva_total"] = df["cantidad"] * df["iva_unit"] if "iva_unit" in df.columns else np.nan
 
     def safe_unit_cost(row: pd.Series) -> Union[float, np.floating]:
         qty = row.get("cantidad")
@@ -160,29 +198,42 @@ def clean_to_minimal_csv(input_path: Path, output_csv: Path) -> Path:
         if qty is None or pd.isna(qty) or qty == 0 or costo is None or pd.isna(costo):
             return np.nan
         return float(costo) / float(qty)
+
     df["costo_unitario_calc"] = df.apply(safe_unit_cost, axis=1)
 
-    for c in ("orden","almacen_origen","sucursal_destino","almacen_destino","estatus","departamento","clave","producto","presentacion"):
+    for c in (
+        "orden",
+        "almacen_origen",
+        "sucursal_destino",
+        "almacen_destino",
+        "estatus",
+        "departamento",
+        "clave",
+        "producto",
+        "presentacion",
+    ):
         if c in df.columns:
             df[c] = df[c].map(neutralize)
 
-    minimal = pd.DataFrame({
-        "Orden": df["orden"],
-        "Almacén origen": df["almacen_origen"],
-        "Sucursal destino": df["sucursal_destino"],
-        "Almacén destino": df["almacen_destino"],
-        "Fecha": df["fecha"],
-        "Estatus": df["estatus"],
-        "Cantidad": df["cantidad"],
-        "Departamento": df["departamento"],
-        "Clave": df["clave"],
-        "Producto": df["producto"],
-        "Presentación": df["presentacion"],
-        "Costo": df["costo_ext"],
-        "IEPS": df["ieps_total"],
-        "IVA": df["iva_total"],
-        "Costo unitario": df["costo_unitario_calc"]
-    })
+    minimal = pd.DataFrame(
+        {
+            "Orden": df["orden"],
+            "Almacén origen": df["almacen_origen"],
+            "Sucursal destino": df["sucursal_destino"],
+            "Almacén destino": df["almacen_destino"],
+            "Fecha": df["fecha"],
+            "Estatus": df["estatus"],
+            "Cantidad": df["cantidad"],
+            "Departamento": df["departamento"],
+            "Clave": df["clave"],
+            "Producto": df["producto"],
+            "Presentación": df["presentacion"],
+            "Costo": df["costo_ext"],
+            "IEPS": df["ieps_total"],
+            "IVA": df["iva_total"],
+            "Costo unitario": df["costo_unitario_calc"],
+        }
+    )
 
     # Neutralize Excel formula injection on ALL object columns
     obj_cols = df.select_dtypes(include=["object"]).columns
@@ -195,17 +246,24 @@ def clean_to_minimal_csv(input_path: Path, output_csv: Path) -> Path:
     minimal.to_csv(output_csv, index=False, encoding="utf-8-sig", quoting=csv.QUOTE_MINIMAL)
     return output_csv
 
+
 def main() -> None:
     import argparse
+
     p = argparse.ArgumentParser(description="Clean CEDIS transfers Excel to ONE minimal CSV")
     p.add_argument("input", type=str, help="Path to TransfersIssued_CEDIS_*.xlsx")
     p.add_argument("--output", type=str, default="", help="Output CSV path (optional)")
     args = p.parse_args()
 
     input_path = Path(args.input)
-    out_csv = Path(args.output) if args.output else input_path.with_name(f"{input_path.stem}_minimal_final.csv")
+    out_csv = (
+        Path(args.output)
+        if args.output
+        else input_path.with_name(f"{input_path.stem}_minimal_final.csv")
+    )
     res = clean_to_minimal_csv(input_path, out_csv)
     print(f"Wrote {res}")
+
 
 if __name__ == "__main__":
     main()

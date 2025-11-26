@@ -61,6 +61,7 @@ ZW = "".join(chr(c) for c in (0x200B, 0x200C, 0x200D, 0xFEFF))
 
 logger = logging.getLogger(__name__)
 
+
 # --------------------------- header detection ---------------------------
 def find_sheet_case_insensitive(xls: pd.ExcelFile, target: str) -> str:
     """Find a sheet by name using case-insensitive matching.
@@ -85,6 +86,7 @@ def find_sheet_case_insensitive(xls: pd.ExcelFile, target: str) -> str:
         if t in n.lower():
             return n
     raise ValueError(f"Sheet like '{target}' not found. Available: {xls.sheet_names}")
+
 
 def detect_header_row(
     df_no_header: pd.DataFrame,
@@ -111,6 +113,7 @@ def detect_header_row(
             return i
     return 0  # fallback
 
+
 def parse_sucursal_from_top(df_no_header: pd.DataFrame) -> Optional[str]:
     """Extract branch name from the top rows of the Excel sheet.
 
@@ -131,6 +134,7 @@ def parse_sucursal_from_top(df_no_header: pd.DataFrame) -> Optional[str]:
     m = re.search(r"Sucursal\s*:\s*([A-Za-z0-9\-\._\s]+)", flat, re.IGNORECASE)
     return m.group(1).strip() if m else None
 
+
 # --------------------------- normalization map ---------------------------
 # Spanish header -> normalized snake_case
 HEADER_MAP: Dict[str, str] = {
@@ -139,57 +143,42 @@ HEADER_MAP: Dict[str, str] = {
     "Hora de cierre": "closing_time",
     "Hora de captura": "captured_time",
     "Semana": "week_number",
-
     "Movimiento PDV": "pdv_txn_id",
     "Folio PDV": "pdv_txn_id",
     "Folio": "pdv_txn_id",
-
     "Orden": "order_id",
     "Tipo de Orden": "order_type",
     "Tipo de orden": "order_type",
     "Subtipo de Orden": "order_subtype",
     "Subtipo de orden": "order_subtype",
-
     "Mesa": "table_number",
     "No. Mesa": "table_number",
     "Comensales": "party_size",
     "No. Personas": "party_size",
-
     "Mesero": "server",
     "TPV": "terminal",
-
     "TPV Captura": "capture_terminal",
     "Terminal de captura": "capture_terminal",
-
     "Acción": "action",
-
     "Clave": "item_key",
     "Producto": "item",
     "Platillo / Artículo": "item",
-
     "Modificador": "modifier",
-
     "Tipo Grupo": "group_type",
     "Tipo de grupo": "group_type",
     "Grupo": "group",
     "Descripción": "description",
-
     "¿Es modificador?": "is_modifier",
     "Es modificador": "is_modifier",
-
     "Cantidad": "quantity",
-
     "Precio unitario": "unit_price",
     "Precio con modificadores": "unit_price_with_mods",
     "Precio unitario con modificador": "unit_price_with_mods",
-
     "Costo actual": "cost_actual",
     "Costo real": "cost_actual",
     "Costo con modificadores": "cost_with_mods",
     "Costo ideal": "cost_ideal",
-
     "Descuento": "discount",
-
     "Subtotal": "subtotal",
     "IVA": "iva",
     "IEPS": "ieps",
@@ -242,6 +231,7 @@ EXPECTED_AMOUNT_COLS = [
     "total_anulacion",
 ]
 
+
 # --------------------------- transform core ---------------------------
 def normalize_headers(cols: List[str]) -> List[str]:
     """Normalize column headers to snake_case and handle duplicates.
@@ -272,7 +262,6 @@ def normalize_headers(cols: List[str]) -> List[str]:
         # Then normalize whitespace and case
         s = re.sub(r"\s+", " ", s, flags=re.U)
         return s.strip().lower()
-
 
     cmp_vals = [cmp_norm(c) for c in cleaned]
 
@@ -393,6 +382,7 @@ def transform_detalle_ventas(xlsx_in: Path) -> pd.DataFrame:
 
     # is_modifier to boole-ish
     if "is_modifier" in df.columns:
+
         def _coerce_bool(val: Any) -> Union[bool, np.floating]:
             if pd.isna(val):
                 return np.nan
@@ -465,6 +455,7 @@ def transform_detalle_ventas(xlsx_in: Path) -> pd.DataFrame:
     rest = [c for c in df.columns if c not in front]
     return df[front + rest]
 
+
 # --------------------------- CLI ---------------------------
 @dataclass
 class Args:
@@ -474,10 +465,9 @@ class Args:
     recursive: bool
     quiet: bool
 
+
 def parse_args() -> Args:
-    p = argparse.ArgumentParser(
-        description="Clean POS 'Detalle de Ventas' Excel into CSV"
-    )
+    p = argparse.ArgumentParser(description="Clean POS 'Detalle de Ventas' Excel into CSV")
     g = p.add_mutually_exclusive_group(required=True)
     g.add_argument("--input", type=Path, help="Single .xlsx file")
     g.add_argument("--input-dir", type=Path, help="Folder with .xlsx files")
@@ -498,6 +488,7 @@ def parse_args() -> Args:
         quiet=a.quiet,
     )
 
+
 def output_name_for(xlsx_path: Path, df: pd.DataFrame) -> Path:
     suc = (df["sucursal"].iloc[0] if "sucursal" in df.columns and len(df) else "") or "unknown"
     # Try to include a date span if present (best effort)
@@ -512,10 +503,12 @@ def output_name_for(xlsx_path: Path, df: pd.DataFrame) -> Path:
         base = f"detail_{slugify(suc)}.csv"
     return Path(base)
 
+
 def write_csv(df: pd.DataFrame, out_path: Path) -> None:
     out_path.parent.mkdir(parents=True, exist_ok=True)
     # safe CSV writer; avoid excel danger by ensuring text was neutralized already
     df.to_csv(out_path, index=False, encoding="utf-8", quoting=csv.QUOTE_MINIMAL)
+
 
 def run_single(xlsx: Path, outdir: Path) -> Path:
     logger.info("Processing %s", xlsx)
@@ -523,16 +516,16 @@ def run_single(xlsx: Path, outdir: Path) -> Path:
     out_name = output_name_for(xlsx, df)
     out_path = outdir / out_name
     write_csv(df, out_path)
-    logger.info(
-        "Wrote %s (%d rows, %d cols)", out_path, len(df), len(df.columns)
-    )
+    logger.info("Wrote %s (%d rows, %d cols)", out_path, len(df), len(df.columns))
     return out_path
+
 
 def iter_xlsx_files(root: Path, recursive: bool) -> Iterable[Path]:
     if recursive:
         yield from (p for p in root.rglob("*.xlsx") if p.is_file())
     else:
         yield from (p for p in root.glob("*.xlsx") if p.is_file())
+
 
 def main() -> None:
     args = parse_args()
@@ -560,6 +553,7 @@ def main() -> None:
 
     if not any_found:
         logger.warning("No .xlsx files found under %s", args.input_dir)
+
 
 if __name__ == "__main__":
     try:

@@ -11,4 +11,3 @@ FORECAST_DAYS = 7
 
 # Seasonal period for time series models (7 = weekly seasonality)
 SEASONAL_PERIOD = 7
-

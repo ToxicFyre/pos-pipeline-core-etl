@@ -27,9 +27,7 @@ from typing import Dict, Iterable, List, Optional, Tuple
 # Regex patterns for parsing date ranges from file paths and names
 
 # Chunk directory pattern: YYYY-MM-DD_YYYY-MM-DD
-CHUNK_DIR_RE = re.compile(
-    r"^(?P<start>\d{4}-\d{2}-\d{2})_(?P<end>\d{4}-\d{2}-\d{2})$"
-)
+CHUNK_DIR_RE = re.compile(r"^(?P<start>\d{4}-\d{2}-\d{2})_(?P<end>\d{4}-\d{2}-\d{2})$")
 
 # Raw payment file pattern: Payments_<label>_YYYY-MM-DD_YYYY-MM-DD.xlsx
 FILE_DATE_RE = re.compile(
@@ -90,9 +88,7 @@ def format_duration(seconds: float) -> str:
         return f"{secs:.1f}s"
 
 
-def iter_chunks(
-    start: date, end: date, max_days: int = 180
-) -> Iterable[Tuple[date, date]]:
+def iter_chunks(start: date, end: date, max_days: int = 180) -> Iterable[Tuple[date, date]]:
     """Yield date chunks covering a range in windows of at most max_days.
 
     Splits a date range into non-overlapping chunks, each containing at most
@@ -109,7 +105,8 @@ def iter_chunks(
     Examples:
         >>> from datetime import date
         >>> list(iter_chunks(date(2023, 1, 1), date(2023, 1, 5), max_days=2))
-        [(date(2023, 1, 1), date(2023, 1, 2)), (date(2023, 1, 3), date(2023, 1, 4)), (date(2023, 1, 5), date(2023, 1, 5))]
+        [(date(2023, 1, 1), date(2023, 1, 2)), (date(2023, 1, 3), date(2023, 1, 4)),
+         (date(2023, 1, 5), date(2023, 1, 5))]
     """
     cur = start
     step = timedelta(days=max_days)
@@ -121,9 +118,7 @@ def iter_chunks(
         cur = chunk_end + timedelta(days=1)
 
 
-def merge_intervals(
-    intervals: List[Tuple[date, date]]
-) -> List[Tuple[date, date]]:
+def merge_intervals(intervals: List[Tuple[date, date]]) -> List[Tuple[date, date]]:
     """Merge overlapping or contiguous date intervals.
 
     Takes a list of date intervals and merges any that overlap or are
@@ -182,7 +177,8 @@ def subtract_intervals(
         >>> covered = [(date(2023, 1, 5), date(2023, 1, 10)),
         ...            (date(2023, 1, 20), date(2023, 1, 25))]
         >>> subtract_intervals(target, covered)
-        [(date(2023, 1, 1), date(2023, 1, 4)), (date(2023, 1, 11), date(2023, 1, 19)), (date(2023, 1, 26), date(2023, 1, 31))]
+        [(date(2023, 1, 1), date(2023, 1, 4)), (date(2023, 1, 11), date(2023, 1, 19)),
+         (date(2023, 1, 26), date(2023, 1, 31))]
     """
     ts, te = target
     if not covered:
@@ -283,11 +279,12 @@ def discover_existing_intervals(
 
     for path in raw_payments_root.rglob("Payments_*.xlsx"):
         # Example path parts:
-        #   payments / Kavia / 6161 / 2022-11-01_2023-04-29 / Payments_kavia_2022-11-01_2023-04-29.xlsx
+        #   payments / Kavia / 6161 / 2022-11-01_2023-04-29 /
+        #   Payments_kavia_2022-11-01_2023-04-29.xlsx
         try:
-            chunk_dir = path.parent                      # 2022-11-01_2023-04-29
-            code_dir = chunk_dir.parent                  # 6161
-            code = code_dir.name                         # "6161"
+            chunk_dir = path.parent  # 2022-11-01_2023-04-29
+            code_dir = chunk_dir.parent  # 6161
+            code = code_dir.name  # "6161"
         except (AttributeError, IndexError):
             # Unexpected layout, skip
             continue
@@ -372,7 +369,9 @@ def get_raw_file_date_range(raw_file: Path) -> Optional[Tuple[date, date]]:
 
     Examples:
         >>> from pathlib import Path
-        >>> get_raw_file_date_range(Path("data/a_raw/payments/Kavia/6161/2023-01-01_2023-01-31/Payments_kavia_2023-01-01_2023-01-31.xlsx"))
+        >>> get_raw_file_date_range(
+        ...     Path("data/a_raw/payments/Kavia/6161/2023-01-01_2023-01-31/"
+        ...          "Payments_kavia_2023-01-01_2023-01-31.xlsx"))
         (date(2023, 1, 1), date(2023, 1, 31))
     """
     # Try chunk directory first
@@ -426,4 +425,3 @@ def slugify(value: str) -> str:
     value = re.sub(r"[^\w\s-]", "", value, flags=re.U)
     value = re.sub(r"[-\s]+", "-", value, flags=re.U).strip("-_")
     return value or "unknown"
-

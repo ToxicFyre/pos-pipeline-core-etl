@@ -13,9 +13,8 @@ This example uses the high-level build_payments_dataset() API, which is the
 recommended way to process payments data.
 """
 
-from pathlib import Path
 from datetime import date, timedelta
-import pandas as pd
+from pathlib import Path
 
 from pos_core.etl import PaymentsETLConfig, build_payments_dataset
 
@@ -30,7 +29,7 @@ sucursales_json = Path("utils/sucursales.json")
 config = PaymentsETLConfig.from_data_root(
     data_root=data_root,
     sucursales_json=sucursales_json,
-    chunk_size_days=180  # Process in 6-month chunks
+    chunk_size_days=180,  # Process in 6-month chunks
 )
 
 # Run the complete ETL pipeline
@@ -43,16 +42,16 @@ payments_df = build_payments_dataset(
     start_date=start_date.strftime("%Y-%m-%d"),
     end_date=end_date.strftime("%Y-%m-%d"),
     config=config,
-    branches=None  # Process all branches (or specify: ["Banana", "Queen"])
+    branches=None,  # Process all branches (or specify: ["Banana", "Queen"])
 )
 
 # The resulting DataFrame has one row per sucursal per day
-print(f"\nETL Complete!")
+print("\nETL Complete!")
 print(f"Total rows: {len(payments_df)}")
 print(f"Date range: {payments_df['fecha'].min()} to {payments_df['fecha'].max()}")
 print(f"Branches: {payments_df['sucursal'].nunique()}")
 print(f"\nColumns: {list(payments_df.columns)}")
-print(f"\nFirst few rows:")
+print("\nFirst few rows:")
 print(payments_df.head())
 
 # Save to CSV for future use
@@ -63,16 +62,15 @@ print(f"\nSaved to: {output_path}")
 
 # Example: Filter for a specific branch
 if len(payments_df) > 0:
-    sample_branch = payments_df['sucursal'].iloc[0]
-    branch_payments = payments_df[payments_df['sucursal'] == sample_branch]
+    sample_branch = payments_df["sucursal"].iloc[0]
+    branch_payments = payments_df[payments_df["sucursal"] == sample_branch]
     print(f"\n{sample_branch} payments: {len(branch_payments)} days")
 
 # Example: Get summary statistics
-summary = payments_df.groupby('sucursal').agg({
-    'ingreso_total': ['sum', 'mean', 'min', 'max'],
-    'fecha': ['min', 'max', 'count']
-})
-print(f"\nSummary by branch:")
+summary = payments_df.groupby("sucursal").agg(
+    {"ingreso_total": ["sum", "mean", "min", "max"], "fecha": ["min", "max", "count"]}
+)
+print("\nSummary by branch:")
 print(summary)
 
 print("\nThe resulting DataFrame contains columns such as:")
@@ -83,4 +81,3 @@ print("- ingreso_credito: Credit card income")
 print("- ingreso_debito: Debit card income")
 print("- ingreso_total: Total income")
 print("- Additional payment method columns (AMEX, UberEats, Rappi, etc.)")
-

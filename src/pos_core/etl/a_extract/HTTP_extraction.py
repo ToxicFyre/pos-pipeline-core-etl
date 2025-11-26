@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# ruff: noqa: N999  # Module name kept as HTTP_extraction for backward compatibility
 """POS exporter — Sales (Detail/Consolidated) + Inventory ▸ Transfers ▸ Issued
 
 Implements the "Aplicar" handover you recorded: runs the batch of default POSTs,
@@ -41,11 +42,13 @@ import re
 import sys
 from datetime import date
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
 import requests
 from bs4 import BeautifulSoup  # pip install requests bs4
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 from pos_core.etl.branch_config import load_branch_segments_from_json
 from pos_core.etl.utils import (
@@ -78,12 +81,30 @@ SUCURSAL_DICT_FALLBACK = {
 
 # "Aplicar" endpoints captured from your test notebook
 APLICAR_ENDPOINTS = [
-    "GetConsolidatedSales","CancelSalesDetail","CourtesiesDetail","SalesByHours",
-    "SalesByGroup","SalesByGroupType","SalesByArea","SalesBySaucer","SalesByUser",
-    "SalesByTypeOfOrder","DiscountsDetail","PersonsByHour","PersonsByDay","PersonsByDayName",
-    "SalesByPaymentType","SalesByModifiers","SalesByTerminal","MegaPointsReport","TipByUser",
-    "Promotions","ChargePaymentMethod","SaleNullificationDetail"
+    "GetConsolidatedSales",
+    "CancelSalesDetail",
+    "CourtesiesDetail",
+    "SalesByHours",
+    "SalesByGroup",
+    "SalesByGroupType",
+    "SalesByArea",
+    "SalesBySaucer",
+    "SalesByUser",
+    "SalesByTypeOfOrder",
+    "DiscountsDetail",
+    "PersonsByHour",
+    "PersonsByDay",
+    "PersonsByDayName",
+    "SalesByPaymentType",
+    "SalesByModifiers",
+    "SalesByTerminal",
+    "MegaPointsReport",
+    "TipByUser",
+    "Promotions",
+    "ChargePaymentMethod",
+    "SaleNullificationDetail",
 ]
+
 
 # ------------------------- Helpers -------------------------
 def load_sucursal_map() -> Dict[str, str]:
@@ -161,6 +182,7 @@ def ensure_ok(resp: requests.Response, msg: str) -> None:
     if not (200 <= resp.status_code < 300):
         raise SystemExit(f"{msg}. HTTP {resp.status_code} — {resp.text[:400]}")
 
+
 def get_csrf_from_html(html: str) -> Optional[str]:
     """Extract CSRF token from HTML page.
 
@@ -190,6 +212,7 @@ def get_csrf_from_html(html: str) -> Optional[str]:
         if "VerificationToken" in nm and tag.get("value"):
             return tag.get("value")
     return None
+
 
 def require_csrf_token(
     token: Optional[str],
@@ -252,11 +275,15 @@ def require_csrf_token(
         f"HTML title={title}. Body start: {snippet}"
     )
 
+
 # --- HTTP resiliency ---
 DEFAULT_TIMEOUT = float(os.environ.get("WS_TIMEOUT", "60"))
 DEFAULT_RETRIES = int(os.environ.get("WS_RETRIES", "3"))
 
-def make_session(timeout: float = DEFAULT_TIMEOUT, retries: int = DEFAULT_RETRIES) -> requests.Session:
+
+def make_session(
+    timeout: float = DEFAULT_TIMEOUT, retries: int = DEFAULT_RETRIES
+) -> requests.Session:
     """Create a requests Session with retry logic and default timeout.
 
     Configures the session with:
@@ -280,7 +307,7 @@ def make_session(timeout: float = DEFAULT_TIMEOUT, retries: int = DEFAULT_RETRIE
         connect=retries,
         read=retries,
         status=retries,
-        backoff_factor=0.8,                 # 0.8, 1.6, 3.2, ...
+        backoff_factor=0.8,  # 0.8, 1.6, 3.2, ...
         status_forcelist=(429, 500, 502, 503, 504),
         allowed_methods=frozenset({"GET", "POST", "HEAD", "OPTIONS"}),
         raise_on_status=False,
@@ -290,11 +317,14 @@ def make_session(timeout: float = DEFAULT_TIMEOUT, retries: int = DEFAULT_RETRIE
     s.mount("https://", adapter)
     # Default timeouts via a wrapper
     orig_request = s.request
-    def timed_request(method: str, url: str, **kwargs: object) -> requests.Response:
+
+    def timed_request(method: str, url: str, **kwargs: Any) -> requests.Response:
         kwargs.setdefault("timeout", timeout)
         return orig_request(method, url, **kwargs)
+
     s.request = timed_request  # type: ignore
     return s
+
 
 def choose_user_field(fields: Dict[str, str]) -> Optional[str]:
     """Identify the username field name from form fields.
@@ -311,6 +341,7 @@ def choose_user_field(fields: Dict[str, str]) -> Optional[str]:
         if cand in fields:
             return cand
     return None
+
 
 def choose_password_field(fields: Dict[str, str], html: str) -> Optional[str]:
     """Identify the password field name from form fields or HTML.
@@ -335,6 +366,7 @@ def choose_password_field(fields: Dict[str, str], html: str) -> Optional[str]:
         return pwd["name"]
     return None
 
+
 def _origin_for(base_url: str) -> str:
     """Extract origin (scheme + netloc) from a URL.
 
@@ -347,7 +379,10 @@ def _origin_for(base_url: str) -> str:
     p = urlparse(base_url)
     return f"{p.scheme}://{p.netloc}"
 
-def login_if_needed(s: requests.Session, base_url: str, user: Optional[str], pwd: Optional[str]) -> None:
+
+def login_if_needed(
+    s: requests.Session, base_url: str, user: Optional[str], pwd: Optional[str]
+) -> None:
     """Authenticate with POS if login is required.
 
     Attempts to access a protected page. If redirected to login, automatically
@@ -394,7 +429,9 @@ def login_if_needed(s: requests.Session, base_url: str, user: Optional[str], pwd
         user_field = choose_user_field(fields) or "UserName"
         pw_field = choose_password_field(fields, r.text) or "Password"
         if user_field not in fields or pw_field not in fields:
-            raise SystemExit(f"Could not identify user/password fields. Found: {list(fields.keys())}")
+            raise SystemExit(
+                f"Could not identify user/password fields. Found: {list(fields.keys())}"
+            )
 
         fields[user_field] = user
         fields[pw_field] = pwd
@@ -411,10 +448,13 @@ def login_if_needed(s: requests.Session, base_url: str, user: Optional[str], pwd
             logging.info("Login succeeded")
             return
         aspxauth = [c for c in s.cookies if c.name.upper().startswith(".ASPXAUTH")]
-        raise SystemExit("Login failed: still redirected to login. "
-                         f"Auth cookie present: {bool(aspxauth)}; final URL checked: {test.url}")
+        raise SystemExit(
+            "Login failed: still redirected to login. "
+            f"Auth cookie present: {bool(aspxauth)}; final URL checked: {test.url}"
+        )
     else:
         logging.info("No login required.")
+
 
 # ------------------------- Warm-up helpers -------------------------
 def _set_subsidiary_cookie(s: requests.Session, base_url: str, subsidiary_id: str) -> None:
@@ -436,8 +476,16 @@ def _set_subsidiary_cookie(s: requests.Session, base_url: str, subsidiary_id: st
     except (AttributeError, ValueError, TypeError):
         pass
 
-def aplicar_warmup(s: requests.Session, base_url: str, report_page_url: str, token: str,
-                   subsidiary_id: str, start: date, end: date) -> None:
+
+def aplicar_warmup(
+    s: requests.Session,
+    base_url: str,
+    report_page_url: str,
+    token: str,
+    subsidiary_id: str,
+    start: date,
+    end: date,
+) -> None:
     """Execute the "Aplicar" warm-up sequence before exporting reports.
 
     POS requires a series of AJAX POST requests to various endpoints
@@ -457,12 +505,15 @@ def aplicar_warmup(s: requests.Session, base_url: str, report_page_url: str, tok
         end: End date for the report.
 
     Raises:
-        SystemExit: If token is missing/empty, authentication fails (401), or CSRF/policy blocks (400/403).
+        SystemExit: If token is missing/empty, authentication fails (401),
+            or CSRF/policy blocks (400/403).
     """
     if not token or not token.strip():
-        raise SystemExit("CSRF token is required for aplicar_warmup() but was None or empty. "
-                        "The pipeline cannot proceed without a valid CSRF token. "
-                        "Ensure require_csrf_token() is called before this function.")
+        raise SystemExit(
+            "CSRF token is required for aplicar_warmup() but was None or empty. "
+            "The pipeline cannot proceed without a valid CSRF token. "
+            "Ensure require_csrf_token() is called before this function."
+        )
 
     ajax_headers = {
         "Origin": _origin_for(base_url),
@@ -472,12 +523,16 @@ def aplicar_warmup(s: requests.Session, base_url: str, report_page_url: str, tok
         "Accept": "*/*",
         "RequestVerificationToken": token,
     }
-    params = {"subsidiaryId": str(subsidiary_id), "startDate": start.strftime("%Y-%m-%d"), "endDate": end.strftime("%Y-%m-%d")}
-    body   = dict(params)
+    params = {
+        "subsidiaryId": str(subsidiary_id),
+        "startDate": start.strftime("%Y-%m-%d"),
+        "endDate": end.strftime("%Y-%m-%d"),
+    }
+    body = dict(params)
     body["__RequestVerificationToken"] = token
 
     # quick self-test then full batch; errors are raised for 400/401/403, others logged
-    def post_endpoint(name: str):
+    def post_endpoint(name: str) -> None:
         url = f"{base_url}/Reports/{name}"
         r = s.post(url, params=params, data=body, headers=ajax_headers)
         if r.status_code == 401:
@@ -491,6 +546,7 @@ def aplicar_warmup(s: requests.Session, base_url: str, report_page_url: str, tok
     post_endpoint(APLICAR_ENDPOINTS[0])
     for ep in APLICAR_ENDPOINTS:
         post_endpoint(ep)
+
 
 # ------------------------- Exporters -------------------------
 def export_sales_report(
@@ -528,7 +584,9 @@ def export_sales_report(
     report = report.capitalize()
     endpoint = REPORT_ENDPOINTS.get(report)
     if not endpoint:
-        raise SystemExit(f"Unknown sales report '{report}'. Choose from: {', '.join(REPORT_ENDPOINTS)}")
+        raise SystemExit(
+            f"Unknown sales report '{report}'. Choose from: {', '.join(REPORT_ENDPOINTS)}"
+        )
 
     # 0) Set SubsidiaryId cookie up-front (matches your note + notebook)
     _set_subsidiary_cookie(s, base_url, subsidiary_id)
@@ -551,8 +609,12 @@ def export_sales_report(
 
     # 3) Export call: params in QS, same params in body, token in body, browser-like headers
     export_url = f"{base_url}/Reports/{endpoint}"
-    params = {"subsidiaryId": str(subsidiary_id), "startDate": start.strftime("%Y-%m-%d"), "endDate": end.strftime("%Y-%m-%d")}
-    body   = dict(params)
+    params = {
+        "subsidiaryId": str(subsidiary_id),
+        "startDate": start.strftime("%Y-%m-%d"),
+        "endDate": end.strftime("%Y-%m-%d"),
+    }
+    body = dict(params)
     headers = {
         "Origin": _origin_for(base_url),
         "Referer": report_page,
@@ -563,7 +625,9 @@ def export_sales_report(
     }
     body["__RequestVerificationToken"] = token
 
-    r = s.post(export_url, params=params, data=body, headers=headers, allow_redirects=True, timeout=120)
+    r = s.post(
+        export_url, params=params, data=body, headers=headers, allow_redirects=True, timeout=120
+    )
     if r.status_code == 401:
         raise SystemExit("401 Unauthorized on export — auth expired or CSRF missing.")
     ensure_ok(r, f"Export failed for {report} {subsidiary_id} {start}..{end}")
@@ -579,12 +643,15 @@ def export_sales_report(
         return fname, content
 
     cd = r.headers.get("Content-Disposition") or ""
-    if ("application/vnd" in ct or "application/octet-stream" in ct or "attachment" in cd.lower()):
+    if "application/vnd" in ct or "application/octet-stream" in ct or "attachment" in cd.lower():
         fname = _content_disposition_filename(cd) or f"{report}_{start}_{end}.xlsx"
         return fname, r.content
 
     # If it came back HTML, show the title/first bytes to help debug
-    raise SystemExit(f"Export returned unexpected content-type {ct}. Body starts: {(r.text or '')[:300]}")
+    raise SystemExit(
+        f"Export returned unexpected content-type {ct}. Body starts: {(r.text or '')[:300]}"
+    )
+
 
 def _content_disposition_filename(h: Optional[str]) -> Optional[str]:
     """Extract filename from Content-Disposition header.
@@ -599,6 +666,7 @@ def _content_disposition_filename(h: Optional[str]) -> Optional[str]:
         return None
     m = re.search(r'filename\\*?=(?:UTF-8\\\'\\\')?"?([^";]+)"?', h)
     return m.group(1) if m else None
+
 
 def export_transfers_issued(
     s: requests.Session,
@@ -663,9 +731,11 @@ def export_transfers_issued(
     r = s.post(url, data=form, headers=headers, allow_redirects=True, timeout=120)
     if r.status_code == 401:
         aspxauth = [c for c in s.cookies if c.name.upper().startswith(".ASPXAUTH")]
-        raise SystemExit("ExportTransfersIssued returned 401 (unauthorized). "
-                         f"Auth cookie present: {bool(aspxauth)}. "
-                         "Likely the login didn't stick or the CSRF token is missing.")
+        raise SystemExit(
+            "ExportTransfersIssued returned 401 (unauthorized). "
+            f"Auth cookie present: {bool(aspxauth)}. "
+            "Likely the login didn't stick or the CSRF token is missing."
+        )
     ensure_ok(r, "ExportTransfersIssued failed")
 
     # Response is usually JSON with fileBase64, but accept attachment too
@@ -678,11 +748,15 @@ def export_transfers_issued(
         return fname, base64.b64decode(j["fileBase64"])
 
     cd = r.headers.get("Content-Disposition") or ""
-    if ("application/vnd" in ct or "application/octet-stream" in ct or "attachment" in cd.lower()):
+    if "application/vnd" in ct or "application/octet-stream" in ct or "attachment" in cd.lower():
         fname = _content_disposition_filename(cd) or f"TransfersIssued_{start}_{end}.xlsx"
         return fname, r.content
 
-    raise SystemExit(f"Inventory export returned unexpected content-type {ct}. Body starts: {(r.text or '')[:300]}")
+    raise SystemExit(
+        f"Inventory export returned unexpected content-type {ct}. "
+        f"Body starts: {(r.text or '')[:300]}"
+    )
+
 
 # ------------------------- Payments ETL Function -------------------------
 
@@ -771,9 +845,7 @@ def download_payments_reports(
     # Filter branches if specified
     if branches is not None:
         branch_segments = {
-            name: windows
-            for name, windows in branch_segments.items()
-            if name in branches
+            name: windows for name, windows in branch_segments.items() if name in branches
         }
         if not branch_segments:
             logger.warning(f"No matching branches found in filter: {branches}")
@@ -824,9 +896,7 @@ def download_payments_reports(
                     chunk_dir = code_root / f"{chunk_start}_{chunk_end}"
                     chunk_dir.mkdir(parents=True, exist_ok=True)
 
-                    logger.info(
-                        f"    downloading {chunk_start}..{chunk_end} -> {chunk_dir}"
-                    )
+                    logger.info(f"    downloading {chunk_start}..{chunk_end} -> {chunk_dir}")
                     # POS API treats end date as exclusive, so we add 1 day
                     # to ensure we get data for the full chunk_end date
                     api_end_date = chunk_end + timedelta(days=1)
@@ -842,7 +912,9 @@ def download_payments_reports(
                     )
 
                     # Save file
-                    out_name = build_out_name("Payments", branch_name, chunk_start, chunk_end, suggested)
+                    out_name = build_out_name(
+                        "Payments", branch_name, chunk_start, chunk_end, suggested
+                    )
                     out_path = chunk_dir / out_name
                     out_path.write_bytes(blob)
                     logger.debug(f"Saved {out_path} ({len(blob)} bytes)")
@@ -862,6 +934,7 @@ class Args:
     password: Optional[str]
     verbose: bool
 
+
 def build_out_name(kind: str, sucursal_name: str, start: date, end: date, _suggested: str) -> str:
     """Build output filename for downloaded report.
 
@@ -880,7 +953,10 @@ def build_out_name(kind: str, sucursal_name: str, start: date, end: date, _sugge
     base = f"{kind}_{slugify(sucursal_name)}_{start.isoformat()}_{end.isoformat()}"
     return base + ".xlsx"
 
-def choose_sucursal_id(suc_map: Dict[str, str], name: Optional[str], explicit_id: Optional[str]) -> Tuple[str, str]:
+
+def choose_sucursal_id(
+    suc_map: Dict[str, str], name: Optional[str], explicit_id: Optional[str]
+) -> Tuple[str, str]:
     """Resolve sucursal ID and friendly name from arguments.
 
     Determines the numeric ID and friendly name to use based on provided
@@ -915,9 +991,12 @@ def choose_sucursal_id(suc_map: Dict[str, str], name: Optional[str], explicit_id
     k, v = next(iter(suc_map.items()))
     return v, k
 
+
 def parse_args() -> Args:
     p = argparse.ArgumentParser(description="POS report exporter")
-    p.add_argument("--report", required=True, choices=["Detail", "Consolidated", "TransfersIssued", "Payments"])
+    p.add_argument(
+        "--report", required=True, choices=["Detail", "Consolidated", "TransfersIssued", "Payments"]
+    )
     p.add_argument("--base", default=DEFAULT_BASE)
     g = p.add_mutually_exclusive_group()
     g.add_argument("--sucursal", help="Sucursal name (e.g., 'CEDIS')")
@@ -941,6 +1020,7 @@ def parse_args() -> Args:
         password=args.password,
         verbose=args.verbose,
     )
+
 
 def main() -> None:
     """Main entry point for HTTP extraction command-line tool.
@@ -992,6 +1072,7 @@ def main() -> None:
     out_path = args.outdir / out_name
     out_path.write_bytes(blob)
     logging.info("Saved %s (%d bytes)", out_path, len(blob))
+
 
 if __name__ == "__main__":
     try:

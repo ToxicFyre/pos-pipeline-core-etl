@@ -167,7 +167,7 @@ def normalize_headers(cols: List[str]) -> List[str]:
             else:
                 logical = "ticket_tip"
         else:
-            logical = HEADER_MAP.get(c0, c0)
+            logical = HEADER_MAP.get(c0, c0) if c0 is not None else ""
 
         # snake_case
         logical = re.sub(r"[^\w]+", "_", logical).strip("_").lower()
@@ -267,8 +267,6 @@ def normalize_branch_name(raw: Optional[str]) -> str:
     return base
 
 
-
-
 def transform_detalle_por_forma_pago(
     xlsx_in: Path,
     sucursal_hint: Optional[str] = None,
@@ -339,11 +337,17 @@ def transform_detalle_por_forma_pago(
 
             # Extract the block B6:L? -> raw_elim.iloc[elim_header_row:, 1:12]
             elim_df = raw_elim_full.iloc[elim_header_row:, 1:12].copy()
-            logging.debug("Extracted block: %d rows, %d columns (before header processing)", len(elim_df), len(elim_df.columns))
+            logging.debug(
+                "Extracted block: %d rows, %d columns (before header processing)",
+                len(elim_df),
+                len(elim_df.columns),
+            )
             elim_df.columns = elim_df.iloc[0]
             elim_df = elim_df.drop(elim_df.index[0])  # drop header row
             elim_df = elim_df.dropna(how="all").reset_index(drop=True)
-            logging.debug("Extracted %d elimination records (after dropping empty rows)", len(elim_df))
+            logging.debug(
+                "Extracted %d elimination records (after dropping empty rows)", len(elim_df)
+            )
 
             # Normalize columns
             elim_df = elim_df.rename(
@@ -359,7 +363,9 @@ def transform_detalle_por_forma_pago(
                 col_lower = normalize_spanish_name(str(col))
                 if "forma" in col_lower and "pago" in col_lower:
                     payment_method_col = col
-                    logging.debug("Found payment method column: '%s' (normalized: '%s')", col, col_lower)
+                    logging.debug(
+                        "Found payment method column: '%s' (normalized: '%s')", col, col_lower
+                    )
                     break
 
             # Keep only needed columns (but preserve payment method for logging if available)
@@ -400,26 +406,40 @@ def transform_detalle_por_forma_pago(
                     payment_info = ""
                     if payment_method_col and payment_method_col in row:
                         payment_info = f", Forma de pago={row[payment_method_col]}"
-                    logging.debug("    Row %d: Fecha=%s, Orden=%s%s",
-                                idx, row["Fecha de operación"], row["Orden"], payment_info)
+                    logging.debug(
+                        "    Row %d: Fecha=%s, Orden=%s%s",
+                        idx,
+                        row["Fecha de operación"],
+                        row["Orden"],
+                        payment_info,
+                    )
 
             # Show value counts for debugging
             if rows_before_dedup > 0:
                 logging.debug("Sample of first 5 records before deduplication:")
                 for idx, row in elim_df.head(5).iterrows():
-                    logging.debug("    Row %d: Fecha=%s (type=%s), Orden=%s (type=%s)",
-                                idx, row["Fecha de operación"], type(row["Fecha de operación"]).__name__,
-                                row["Orden"], type(row["Orden"]).__name__)
+                    logging.debug(
+                        "    Row %d: Fecha=%s (type=%s), Orden=%s (type=%s)",
+                        idx,
+                        row["Fecha de operación"],
+                        type(row["Fecha de operación"]).__name__,
+                        row["Orden"],
+                        type(row["Orden"]).__name__,
+                    )
 
             # Deduplicate possible multi-payment eliminations
-            # Remove payment method column if we kept it for logging (we only need date + order for merge)
+            # Remove payment method column if we kept it for logging
+            # (we only need date + order for merge)
             if payment_method_col and payment_method_col in elim_df.columns:
                 elim_df = elim_df.drop(columns=[payment_method_col])
 
             elim_df = elim_df.drop_duplicates(subset=["Fecha de operación", "Orden"])
             rows_after_dedup = len(elim_df)
-            logging.debug("After deduplication: %d unique elimination records (removed %d duplicates)",
-                         rows_after_dedup, rows_before_dedup - rows_after_dedup)
+            logging.debug(
+                "After deduplication: %d unique elimination records (removed %d duplicates)",
+                rows_after_dedup,
+                rows_before_dedup - rows_after_dedup,
+            )
 
         except Exception as e:
             logging.warning(
@@ -454,9 +474,7 @@ def transform_detalle_por_forma_pago(
         # Drop footer junk where the *first original column* is empty
         logging.debug("Filtering footer rows...")
         first_col = df.columns[0]
-        mask_first = df[first_col].map(
-            lambda x: strip_invisibles(str(x)) if not pd.isna(x) else ""
-        )
+        mask_first = df[first_col].map(lambda x: strip_invisibles(str(x)) if not pd.isna(x) else "")
         df = df[mask_first != ""]
         df = df.reset_index(drop=True)
         logging.debug("After filtering footer: %d rows", len(df))
@@ -480,11 +498,7 @@ def transform_detalle_por_forma_pago(
             df[col] = (
                 df[col]
                 .map(lambda x: strip_invisibles(x) if not pd.isna(x) else x)
-                .map(
-                    lambda x: neutralize_formula_injection(x)
-                    if isinstance(x, str)
-                    else x
-                )
+                .map(lambda x: neutralize_formula_injection(x) if isinstance(x, str) else x)
             )
         logging.debug("Finished cleaning text columns")
 
@@ -516,7 +530,8 @@ def transform_detalle_por_forma_pago(
                 df["operating_date"].map(to_date), errors="coerce"
             ).dt.date
 
-        # Filter by chunk date range if available (prevents duplicates from overlapping API responses)
+        # Filter by chunk date range if available
+        # (prevents duplicates from overlapping API responses)
         chunk_range = get_raw_file_date_range(xlsx_in)
         if chunk_range:
             chunk_start, chunk_end = chunk_range
@@ -560,16 +575,24 @@ def transform_detalle_por_forma_pago(
         # Attach elimination_present boolean to df (payments)
         # ------------------------------------------------------------------
         if not elim_df.empty and {"operating_date", "order_index"} <= set(df.columns):
-            logging.debug("Merging elimination data (%d elim records, %d payment records)...",
-                         len(elim_df), len(df))
+            logging.debug(
+                "Merging elimination data (%d elim records, %d payment records)...",
+                len(elim_df),
+                len(df),
+            )
 
             # Log sample of main payments table before merge (to see if duplicates already exist)
             if "operating_date" in df.columns and "order_index" in df.columns:
                 logging.debug("  - Sample of main payments table (first 10 rows):")
                 for idx, row in df.head(10).iterrows():
                     payment_method = row.get("payment_method", "N/A")
-                    logging.debug("    Row %d: Fecha=%s, Orden=%s, Forma de pago=%s",
-                                idx, row.get("operating_date"), row.get("order_index"), payment_method)
+                    logging.debug(
+                        "    Row %d: Fecha=%s, Orden=%s, Forma de pago=%s",
+                        idx,
+                        row.get("operating_date"),
+                        row.get("order_index"),
+                        payment_method,
+                    )
             elim_df["elimination_present"] = True
 
             # Normalize key types before merging (both sides as ints/None)
@@ -592,7 +615,9 @@ def transform_detalle_por_forma_pago(
             if len(key_elim) > 0:
                 logging.debug("  - Sample elimination keys (first 5):")
                 for idx, row in key_elim.head(5).iterrows():
-                    logging.debug("    Date=%s, Order=%s", row["operating_date"], row["order_index"])
+                    logging.debug(
+                        "    Date=%s, Order=%s", row["operating_date"], row["order_index"]
+                    )
 
             df = df.merge(
                 key_elim[["operating_date", "order_index", "elimination_present"]],
@@ -611,9 +636,13 @@ def transform_detalle_por_forma_pago(
                 marked = df[df["elimination_present"]].head(10)
                 logging.debug("  - Sample marked payments (first 10):")
                 for idx, row in marked.iterrows():
-                    logging.debug("    Row %d: Fecha=%s, Orden=%s, Forma de pago=%s",
-                                idx, row.get("operating_date"), row.get("order_index"),
-                                row.get("payment_method", "N/A"))
+                    logging.debug(
+                        "    Row %d: Fecha=%s, Orden=%s, Forma de pago=%s",
+                        idx,
+                        row.get("operating_date"),
+                        row.get("order_index"),
+                        row.get("payment_method", "N/A"),
+                    )
 
         else:
             logging.debug("No elimination data to merge (elim_df empty or missing columns)")
@@ -705,15 +734,11 @@ class Args:
 
 
 def parse_args() -> Args:
-    p = argparse.ArgumentParser(
-        description="Clean POS 'Detalle por forma de pago' Excel into CSV"
-    )
+    p = argparse.ArgumentParser(description="Clean POS 'Detalle por forma de pago' Excel into CSV")
     g = p.add_mutually_exclusive_group(required=True)
     g.add_argument("--input", type=Path, help="Single .xlsx file")
     g.add_argument("--input-dir", type=Path, help="Folder with .xlsx files")
-    p.add_argument(
-        "--outdir", type=Path, default=Path.cwd(), help="Where to write CSVs"
-    )
+    p.add_argument("--outdir", type=Path, default=Path.cwd(), help="Where to write CSVs")
     p.add_argument(
         "--recursive",
         action="store_true",
@@ -833,13 +858,17 @@ def iter_xlsx_files(root: Path, recursive: bool, verbose: bool = False) -> Itera
         yield from files
 
 
-def run_single(xlsx: Path, outdir: Path, sucursal_hint: Optional[str], verbose: bool = False) -> Path:
+def run_single(
+    xlsx: Path, outdir: Path, sucursal_hint: Optional[str], verbose: bool = False
+) -> Path:
     logging.info("Processing %s (sucursal_hint=%r)", xlsx, sucursal_hint)
 
     try:
         df = transform_detalle_por_forma_pago(xlsx, sucursal_hint=sucursal_hint, verbose=verbose)
 
-        logging.debug("Transform completed, DataFrame shape: %d rows, %d cols", len(df), len(df.columns))
+        logging.debug(
+            "Transform completed, DataFrame shape: %d rows, %d cols", len(df), len(df.columns)
+        )
         if df.empty:
             logging.warning("No data found in %s (after cleaning)", xlsx)
         logging.debug("Generating output filename...")

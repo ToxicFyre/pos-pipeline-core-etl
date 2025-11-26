@@ -25,7 +25,8 @@ Basic:
     python aggregate_sales_details_by_ticket.py --input-dir ./b_clean/sales -o ./sales_by_ticket.csv
 
 With recursion:
-    python aggregate_sales_details_by_ticket.py --input-dir ./b_clean/sales --recursive -o ./sales_by_ticket.csv
+    python aggregate_sales_details_by_ticket.py \
+        --input-dir ./b_clean/sales --recursive -o ./sales_by_ticket.csv
 
 Single file:
     python aggregate_sales_details_by_ticket.py -i detail.csv -o sales_by_ticket.csv
@@ -55,6 +56,7 @@ from typing import List, Optional, Sequence
 import pandas as pd
 
 logger = logging.getLogger(__name__)
+
 
 # ---------- helpers ----------
 def _read_any(paths: Sequence[str]) -> pd.DataFrame:
@@ -88,6 +90,7 @@ def _sanitize_group_name(group: str) -> str:
     s = s.replace("-", "_").replace(".", "_")
     # Remove any remaining non-alphanumeric except underscore
     import re
+
     s = re.sub(r"[^\w]", "_", s)
     # Collapse multiple underscores
     s = re.sub(r"_+", "_", s).strip("_")
@@ -241,7 +244,9 @@ def aggregate_by_ticket(
                     combo_unique = df.groupby(groupby_cols).size()
                     duplicates = combo_unique[combo_unique > 1]
                     if len(duplicates) > 0:
-                        logger.warning(f"  Found {len(duplicates)} order_id combinations with multiple rows")
+                        logger.warning(
+                            f"  Found {len(duplicates)} order_id combinations with multiple rows"
+                        )
                         if verbose:
                             logger.debug(f"  Sample duplicates:\n{duplicates.head(10)}")
 
@@ -251,10 +256,16 @@ def aggregate_by_ticket(
         logger.info(f"Aggregating by: {groupby_cols + [group_col]}")
         logger.info(f"  Using columns: subtotal={subtotal_col}, total={total_col}")
 
-    ticket_groups = df.groupby(groupby_cols + [group_col], dropna=False).agg({
-        subtotal_col: "sum",
-        total_col: "sum",
-    }).reset_index()
+    ticket_groups = (
+        df.groupby(groupby_cols + [group_col], dropna=False)
+        .agg(
+            {
+                subtotal_col: "sum",
+                total_col: "sum",
+            }
+        )
+        .reset_index()
+    )
 
     if verbose:
         logger.info(f"After grouping: {len(ticket_groups)} ticket-group combinations")
@@ -265,7 +276,7 @@ def aggregate_by_ticket(
     if len(ticket_groups) == 0:
         # No groups found - create empty pivots with just the index
         # Get unique tickets from the original df
-        unique_tickets = df.groupby(groupby_cols).size().reset_index(name='_count')
+        unique_tickets = df.groupby(groupby_cols).size().reset_index(name="_count")
         unique_tickets = unique_tickets[groupby_cols]
         if len(groupby_cols) == 1:
             subtotal_pivot = pd.DataFrame(index=unique_tickets[groupby_cols[0]].values)
@@ -279,15 +290,11 @@ def aggregate_by_ticket(
             columns=group_col,
             values=subtotal_col,
             aggfunc="sum",
-            fill_value=0.0
+            fill_value=0.0,
         )
 
         total_pivot = ticket_groups.pivot_table(
-            index=groupby_cols,
-            columns=group_col,
-            values=total_col,
-            aggfunc="sum",
-            fill_value=0.0
+            index=groupby_cols, columns=group_col, values=total_col, aggfunc="sum", fill_value=0.0
         )
 
         # Rename columns to {GROUP}_subtotal and {GROUP}_total
@@ -299,11 +306,16 @@ def aggregate_by_ticket(
                 sanitized = _sanitize_group_name(orig_group)
                 logger.debug(f"  Sanitized: '{sanitized}' (len={len(sanitized)})")
 
-        subtotal_cols = {col: f"{_sanitize_group_name(col)}_subtotal" for col in subtotal_pivot.columns}
+        subtotal_cols = {
+            col: f"{_sanitize_group_name(col)}_subtotal" for col in subtotal_pivot.columns
+        }
         total_cols = {col: f"{_sanitize_group_name(col)}_total" for col in total_pivot.columns}
 
         if verbose:
-            logger.info(f"Renaming {len(subtotal_cols)} subtotal columns and {len(total_cols)} total columns")
+            logger.info(
+                f"Renaming {len(subtotal_cols)} subtotal columns and "
+                f"{len(total_cols)} total columns"
+            )
             logger.debug("Sample column mappings (first 5):")
             for orig, new in list(subtotal_cols.items())[:5]:
                 logger.debug(f"  '{orig}' -> '{new}'")
@@ -344,8 +356,8 @@ def aggregate_by_ticket(
         ticket_metadata = df.groupby(groupby_cols).agg(fields_to_agg).reset_index()
     else:
         # If no fields to aggregate, just get unique groupby combinations
-        ticket_metadata = df.groupby(groupby_cols).size().reset_index(name='_count')
-        ticket_metadata = ticket_metadata.drop(columns=['_count'])
+        ticket_metadata = df.groupby(groupby_cols).size().reset_index(name="_count")
+        ticket_metadata = ticket_metadata.drop(columns=["_count"])
 
     if verbose:
         logger.info(f"Ticket metadata: {len(ticket_metadata)} tickets")
@@ -357,15 +369,20 @@ def aggregate_by_ticket(
 
     if verbose:
         logger.info(f"Ticket aggregation: {len(ticket_agg_reset)} tickets")
-        logger.info(f"  Group columns created: {len([c for c in ticket_agg_reset.columns if c.endswith('_subtotal')])} subtotals, "
-                   f"{len([c for c in ticket_agg_reset.columns if c.endswith('_total')])} totals")
+        subtotal_count = len([c for c in ticket_agg_reset.columns if c.endswith("_subtotal")])
+        total_count = len([c for c in ticket_agg_reset.columns if c.endswith("_total")])
+        logger.info(f"  Group columns created: {subtotal_count} subtotals, {total_count} totals")
         logger.debug(f"  Ticket agg columns: {list(ticket_agg_reset.columns)[:15]}...")
         logger.debug(f"  Merging on: {groupby_cols}")
 
     # Merge on groupby columns, but avoid duplicate columns
-    # ticket_metadata already has the groupby columns, and ticket_agg_reset will have them from reset_index()
-    # Use suffixes to handle any conflicts, but there shouldn't be any since we're merging on the same columns
-    result = ticket_metadata.merge(ticket_agg_reset, on=groupby_cols, how="left", suffixes=("", "_agg"))
+    # ticket_metadata already has the groupby columns, and ticket_agg_reset will have
+    # them from reset_index()
+    # Use suffixes to handle any conflicts, but there shouldn't be any since we're
+    # merging on the same columns
+    result = ticket_metadata.merge(
+        ticket_agg_reset, on=groupby_cols, how="left", suffixes=("", "_agg")
+    )
 
     if verbose:
         logger.info(f"After merge: {len(result)} tickets, {len(result.columns)} columns")
@@ -376,11 +393,14 @@ def aggregate_by_ticket(
     result = result.loc[:, ~result.columns.duplicated()]
 
     if verbose and result.columns.duplicated().any():
-        logger.warning(f"Found duplicate columns after merge: {result.columns[result.columns.duplicated()].tolist()}")
+        dup_cols = result.columns[result.columns.duplicated()].tolist()
+        logger.warning(f"Found duplicate columns after merge: {dup_cols}")
 
     # Calculate total ticket cost (sum of all total_item values)
     # This is the sum of all {GROUP}_total columns (exclude total_ticket_cost itself)
-    total_cols_list = [col for col in result.columns if col.endswith("_total") and col != "total_ticket_cost"]
+    total_cols_list = [
+        col for col in result.columns if col.endswith("_total") and col != "total_ticket_cost"
+    ]
     if total_cols_list:
         # Fill NaN values with 0 before summing to avoid issues
         result["total_ticket_cost"] = result[total_cols_list].fillna(0.0).sum(axis=1)
@@ -418,44 +438,34 @@ def aggregate_by_ticket(
 def _build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="aggregate-sales-by-ticket",
-        description="Aggregate POS sales details (item-wise) into ticket-wise CSV with group columns."
+        description=(
+            "Aggregate POS sales details (item-wise) into ticket-wise CSV " "with group columns."
+        ),
     )
-    p.add_argument(
-        "-i", "--input",
-        nargs="+",
-        default=None,
-        help="Input CSV file(s) or glob(s)."
-    )
+    p.add_argument("-i", "--input", nargs="+", default=None, help="Input CSV file(s) or glob(s).")
     p.add_argument(
         "--input-dir",
         default=None,
-        help="Directory containing input CSVs. If set, all files matching --pattern are included."
+        help="Directory containing input CSVs. If set, all files matching --pattern are included.",
     )
     p.add_argument(
         "--recursive",
         action="store_true",
-        help="When using --input-dir, search subdirectories recursively."
+        help="When using --input-dir, search subdirectories recursively.",
     )
     p.add_argument(
         "--pattern",
         default="*.csv",
-        help="Glob pattern for files under --input-dir (default: *.csv)."
+        help="Glob pattern for files under --input-dir (default: *.csv).",
     )
+    p.add_argument("-o", "--output", required=True, help="Output CSV path.")
+    p.add_argument("--quiet", action="store_true", help="Less logging output.")
     p.add_argument(
-        "-o", "--output",
-        required=True,
-        help="Output CSV path."
-    )
-    p.add_argument(
-        "--quiet",
-        action="store_true",
-        help="Less logging output."
-    )
-    p.add_argument(
-        "--verbose", "--debug",
+        "--verbose",
+        "--debug",
         action="store_true",
         dest="verbose",
-        help="Verbose/debug logging output with detailed troubleshooting information."
+        help="Verbose/debug logging output with detailed troubleshooting information.",
     )
     return p
 
@@ -492,4 +502,3 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

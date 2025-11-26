@@ -23,9 +23,7 @@ def is_holiday_or_adjacent(d: date, holidays: set[date]) -> bool:
         True if date is a holiday or adjacent to a holiday
     """
     return (
-        d in holidays
-        or (d - timedelta(days=1)) in holidays
-        or (d + timedelta(days=1)) in holidays
+        d in holidays or (d - timedelta(days=1)) in holidays or (d + timedelta(days=1)) in holidays
     )
 
 
@@ -150,4 +148,3 @@ def calculate_card_deposits(
         debit_total += get_value_fn(needed_date, "ingreso_debito")
 
     return credit_total, debit_total
-

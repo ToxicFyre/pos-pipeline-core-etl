@@ -114,6 +114,7 @@ class QAResult:
         >>> result.message
         'Found duplicate rows'
     """
+
     level: str  # "ERROR" or "WARN"
     message: str
 
@@ -121,6 +122,7 @@ class QAResult:
 # --------------------------------------------------------------------------- #
 # Loading
 # --------------------------------------------------------------------------- #
+
 
 def load_payments(path: Path) -> pd.DataFrame:
     """Load and preprocess aggregated payments CSV file.
@@ -350,11 +352,7 @@ def detect_zscore_anomalies(
     if df.empty:
         return None
 
-    payment_methods = [
-        col
-        for col in MONEY_COLUMNS
-        if col != "propinas" and col in df.columns
-    ]
+    payment_methods = [col for col in MONEY_COLUMNS if col != "propinas" and col in df.columns]
 
     if not payment_methods:
         return None
@@ -462,6 +460,7 @@ def detect_zero_method_flags(df: pd.DataFrame) -> Optional[pd.DataFrame]:
 # --------------------------------------------------------------------------- #
 # QA checks
 # --------------------------------------------------------------------------- #
+
 
 def check_duplicates(df: pd.DataFrame) -> List[QAResult]:
     """Check for duplicate rows by sucursal and fecha.
@@ -682,7 +681,7 @@ def check_per_sucursal_ranges(df: pd.DataFrame) -> List[QAResult]:
         QAResult(
             "WARN",
             "Per-sucursal summary (rows, date range, total revenue, total tickets, avg ticket):\n"
-            + group.to_string(index=False)
+            + group.to_string(index=False),
         )
     )
 
@@ -693,7 +692,10 @@ def check_per_sucursal_ranges(df: pd.DataFrame) -> List[QAResult]:
 # Monthly sales table with elimination percentages
 # --------------------------------------------------------------------------- #
 
-def generate_monthly_sales_table(df: pd.DataFrame, output_dir: Path) -> Tuple[List[QAResult], Optional[Path]]:
+
+def generate_monthly_sales_table(
+    df: pd.DataFrame, output_dir: Path
+) -> Tuple[List[QAResult], Optional[Path]]:
     """Generate a monthly sales table with elimination percentages and save to CSV.
 
     Creates a CSV file with:
@@ -733,20 +735,31 @@ def generate_monthly_sales_table(df: pd.DataFrame, output_dir: Path) -> Tuple[Li
     # Aggregate by sucursal and month
     if has_eliminations and has_tickets_with_elim:
         # For percentage, compute from aggregated ticket counts
-        df_monthly = df.groupby(["sucursal", "year_month"]).agg(
-            total_sin_propinas=("total_sin_propinas", "sum"),
-            total_tickets=("num_tickets", "sum"),
-            tickets_with_eliminations=("tickets_with_eliminations", "sum"),
-        ).reset_index()
+        df_monthly = (
+            df.groupby(["sucursal", "year_month"])
+            .agg(
+                total_sin_propinas=("total_sin_propinas", "sum"),
+                total_tickets=("num_tickets", "sum"),
+                tickets_with_eliminations=("tickets_with_eliminations", "sum"),
+            )
+            .reset_index()
+        )
 
         # Calculate percentage: (sum of tickets_with_eliminations / sum of total_tickets) * 100
         df_monthly["pct_eliminations"] = (
-            df_monthly["tickets_with_eliminations"] / df_monthly["total_tickets"] * 100
-        ).fillna(0.0).replace([float('inf'), -float('inf')], 0.0).round(2)
+            (df_monthly["tickets_with_eliminations"] / df_monthly["total_tickets"] * 100)
+            .fillna(0.0)
+            .replace([float("inf"), -float("inf")], 0.0)
+            .round(2)
+        )
     else:
-        df_monthly = df.groupby(["sucursal", "year_month"]).agg(
-            total_sin_propinas=("total_sin_propinas", "sum"),
-        ).reset_index()
+        df_monthly = (
+            df.groupby(["sucursal", "year_month"])
+            .agg(
+                total_sin_propinas=("total_sin_propinas", "sum"),
+            )
+            .reset_index()
+        )
         df_monthly["pct_eliminations"] = None
         has_eliminations = False  # Don't show elimination section if we can't compute it
 
@@ -786,26 +799,17 @@ def generate_monthly_sales_table(df: pd.DataFrame, output_dir: Path) -> Tuple[Li
 
     try:
         csv_df.to_csv(csv_path, index=False, encoding="utf-8-sig")
-        out.append(
-            QAResult(
-                "WARN",
-                f"Monthly sales table saved to: {csv_path}"
-            )
-        )
+        out.append(QAResult("WARN", f"Monthly sales table saved to: {csv_path}"))
         return out, csv_path
     except OSError as e:
-        out.append(
-            QAResult(
-                "ERROR",
-                f"Failed to write monthly sales table CSV: {e}"
-            )
-        )
+        out.append(QAResult("ERROR", f"Failed to write monthly sales table CSV: {e}"))
         return out, None
 
 
 # --------------------------------------------------------------------------- #
 # Sampling random months for manual QA
 # --------------------------------------------------------------------------- #
+
 
 def sample_months(
     df: pd.DataFrame,
@@ -884,11 +888,7 @@ def sample_months(
         total_tickets = mdf[TICKET_COLUMN].sum()
 
         # Average ticket
-        avg_ticket = (
-            total_sin_propinas / total_tickets
-            if total_tickets > 0
-            else np.nan
-        )
+        avg_ticket = total_sin_propinas / total_tickets if total_tickets > 0 else np.nan
         avg_ticket_str = f"{avg_ticket:.2f}" if not np.isnan(avg_ticket) else "NA"
 
         # Elimination data
@@ -896,9 +896,7 @@ def sample_months(
         if has_eliminations:
             total_tickets_with_elim = mdf["tickets_with_eliminations"].sum()
             pct_eliminations = (
-                (total_tickets_with_elim / total_tickets * 100)
-                if total_tickets > 0
-                else 0.0
+                (total_tickets_with_elim / total_tickets * 100) if total_tickets > 0 else 0.0
             )
             elim_info = (
                 f"Tickets with eliminations: {int(total_tickets_with_elim)}\n"
@@ -941,14 +939,16 @@ def sample_months(
             f"  subsidio TEC    : {monthly_forms['ingreso_SubsidioTEC']:.2f}\n"
             f"  otros           : {monthly_forms['ingreso_otros']:.2f}\n"
             f"First 5 rows:\n"
-            + mdf.sort_values("fecha").head(5)[
+            + mdf.sort_values("fecha")
+            .head(5)[
                 [
                     "fecha",
                     TOTAL_NO_TIPS_COLUMN,
                     "propinas",
                     TICKET_COLUMN,
                 ]
-            ].to_string(index=False)
+            ]
+            .to_string(index=False)
         )
 
     out.append(QAResult("WARN", "\n".join(lines)))
@@ -958,6 +958,7 @@ def sample_months(
 # --------------------------------------------------------------------------- #
 # Main
 # --------------------------------------------------------------------------- #
+
 
 def run_qa(
     file_name: str,
@@ -983,7 +984,8 @@ def run_qa(
         seed: Random seed for reproducible sampling.
 
     Returns:
-        Tuple of (list of QAResult objects, path to loaded CSV file, path to monthly sales CSV or None).
+        Tuple of (list of QAResult objects, path to loaded CSV file,
+            path to monthly sales CSV or None).
 
     Examples:
         >>> results, input_path, sales_csv_path = run_qa(
@@ -1036,16 +1038,11 @@ def main(argv: Optional[List[str]] = None) -> None:
         $ python -m pos_qa.qa_payments --sucursal Carreta --sample-months 5
         $ python -m pos_qa.qa_payments --file my_payments.csv --sample-months 0
     """
-    parser = argparse.ArgumentParser(
-        description="QA checks for aggregated daily payments (POS)."
-    )
+    parser = argparse.ArgumentParser(description="QA checks for aggregated daily payments (POS).")
     parser.add_argument(
         "--file",
         default="aggregated_payments_daily.csv",
-        help=(
-            "CSV file name inside PROC_PAYMENTS_DIR. "
-            "Default: aggregated_payments_daily.csv"
-        ),
+        help=("CSV file name inside PROC_PAYMENTS_DIR. " "Default: aggregated_payments_daily.csv"),
     )
     parser.add_argument(
         "--sucursal",

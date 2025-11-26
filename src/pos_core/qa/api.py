@@ -36,7 +36,8 @@ class PaymentsQAResult:
         missing_days: DataFrame with missing days per sucursal, or None if none found.
         duplicate_days: DataFrame with duplicate (sucursal, fecha) rows, or None if none found.
         zscore_anomalies: DataFrame with z-score anomalies, or None if none found.
-        zero_method_flags: DataFrame with rows where tickets > 0 but payment methods are zero, or None if none found.
+        zero_method_flags: DataFrame with rows where tickets > 0 but payment methods
+            are zero, or None if none found.
     """
 
     summary: dict
@@ -141,14 +142,11 @@ def run_payments_qa(
         "max_fecha": df["fecha"].max().isoformat() if not df.empty else None,
         "has_missing_days": missing_days_df is not None and not missing_days_df.empty,
         "has_duplicates": duplicate_days_df is not None and not duplicate_days_df.empty,
-        "has_zscore_anomalies": zscore_anomalies_df is not None
-        and not zscore_anomalies_df.empty,
+        "has_zscore_anomalies": zscore_anomalies_df is not None and not zscore_anomalies_df.empty,
         "has_zero_method_flags": zero_method_flags_df is not None
         and not zero_method_flags_df.empty,
         "missing_days_count": len(missing_days_df) if missing_days_df is not None else 0,
-        "duplicate_days_count": len(duplicate_days_df)
-        if duplicate_days_df is not None
-        else 0,
+        "duplicate_days_count": len(duplicate_days_df) if duplicate_days_df is not None else 0,
         "zscore_anomalies_count": len(zscore_anomalies_df)
         if zscore_anomalies_df is not None
         else 0,
@@ -172,4 +170,3 @@ def run_payments_qa(
         zscore_anomalies=zscore_anomalies_df,
         zero_method_flags=zero_method_flags_df,
     )
-

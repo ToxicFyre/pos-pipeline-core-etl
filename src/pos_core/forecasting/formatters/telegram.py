@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import pandas as pd
 
 from pos_core.forecasting.api import ForecastResult
@@ -43,7 +45,7 @@ def format_telegram_message(result: ForecastResult) -> str:
 
     # Track totals across all branches for each metric and each day
     # Structure: {metric: {date: total_value}}
-    daily_totals = {metric: {} for metric in metrics}
+    daily_totals: dict[str, dict[Any, float]] = {metric: {} for metric in metrics}
 
     # Process each branch
     for branch in branches:
@@ -92,10 +94,10 @@ def format_telegram_message(result: ForecastResult) -> str:
     lines.append("<b>TOTAL:</b>")
 
     # Get all unique dates from forecasts (sorted)
-    all_dates = set()
+    all_dates_set: set[Any] = set()
     for metric in metrics:
-        all_dates.update(daily_totals[metric].keys())
-    all_dates = sorted(all_dates)
+        all_dates_set.update(daily_totals[metric].keys())
+    all_dates = sorted(all_dates_set)
 
     for metric in metrics:
         metric_display = metric_names.get(metric, metric)
@@ -141,4 +143,3 @@ def format_telegram_message(result: ForecastResult) -> str:
             lines.append(f"  <b>Total: ${total_deposit:,.2f}</b>\n")
 
     return "\n".join(lines)
-

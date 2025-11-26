@@ -11,4 +11,3 @@ from pos_core.etl.api import (
 )
 
 __all__ = ["PaymentsPaths", "PaymentsETLConfig", "build_payments_dataset"]
-

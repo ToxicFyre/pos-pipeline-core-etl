@@ -62,9 +62,7 @@ class ForecastResult:
     metadata: Dict[str, object] = field(default_factory=dict)
 
 
-def _forecast_dict_to_dataframe(
-    forecasts: Dict[str, Dict[str, pd.Series]]
-) -> pd.DataFrame:
+def _forecast_dict_to_dataframe(forecasts: Dict[str, Dict[str, pd.Series]]) -> pd.DataFrame:
     """Convert nested forecast dictionary to a structured DataFrame.
 
     Args:
@@ -117,7 +115,9 @@ def _build_deposit_schedule_dataframe(
         return pd.DataFrame(columns=["fecha", "efectivo", "credito", "debito", "total"])
 
     forecast_dates = sorted(list(forecast_df["fecha"].dt.date.unique()))
-    last_historical_date = historical_df["fecha"].max().date() if not historical_df.empty else date.today()
+    last_historical_date = (
+        historical_df["fecha"].max().date() if not historical_df.empty else date.today()
+    )
 
     # Build daily_totals dictionary: {metric: {date: total_value}}
     daily_totals: Dict[str, Dict[date, float]] = {}
@@ -125,7 +125,9 @@ def _build_deposit_schedule_dataframe(
         daily_totals[metric] = {}
         metric_forecasts = forecast_df[forecast_df["metric"] == metric]
         for _, row in metric_forecasts.iterrows():
-            fecha_date = row["fecha"].date() if isinstance(row["fecha"], pd.Timestamp) else row["fecha"]
+            fecha_date = (
+                row["fecha"].date() if isinstance(row["fecha"], pd.Timestamp) else row["fecha"]
+            )
             valor = row["valor"]
             if fecha_date not in daily_totals[metric]:
                 daily_totals[metric][fecha_date] = 0.0
@@ -232,7 +234,10 @@ def run_payments_forecast(
     metrics = config.metrics
     horizon_days = config.horizon_days
 
-    logger.info(f"Running forecast for {len(branches)} branches, {len(metrics)} metrics, {horizon_days} days")
+    logger.info(
+        f"Running forecast for {len(branches)} branches, {len(metrics)} metrics, "
+        f"{horizon_days} days"
+    )
 
     # Get model instance
     model = LogARIMAModel()
@@ -269,9 +274,7 @@ def run_payments_forecast(
                 logger.debug(f"Training {branch} - {metric}...")
                 trained_model = model.train(series)
                 last_date = series.index[-1]
-                forecast = model.forecast(
-                    trained_model, steps=horizon_days, last_date=last_date
-                )
+                forecast = model.forecast(trained_model, steps=horizon_days, last_date=last_date)
                 forecasts[branch][metric] = forecast
                 successful_forecasts += 1
 
@@ -280,9 +283,7 @@ def run_payments_forecast(
                 failed_forecasts += 1
                 continue
 
-    logger.info(
-        f"Forecast summary: {successful_forecasts} successful, {failed_forecasts} failed"
-    )
+    logger.info(f"Forecast summary: {successful_forecasts} successful, {failed_forecasts} failed")
 
     # Check if we have any forecasts at all
     total_forecasts = sum(len(metrics) for metrics in forecasts.values())
@@ -295,9 +296,7 @@ def run_payments_forecast(
     forecast_df = _forecast_dict_to_dataframe(forecasts)
 
     # Build deposit schedule
-    deposit_schedule_df = _build_deposit_schedule_dataframe(
-        forecast_df, df, horizon_days
-    )
+    deposit_schedule_df = _build_deposit_schedule_dataframe(forecast_df, df, horizon_days)
 
     # Get last historical date for metadata
     last_historical_date = df["fecha"].max().date() if not df.empty else None
@@ -317,4 +316,3 @@ def run_payments_forecast(
     )
 
     return result
-

@@ -83,4 +83,3 @@ def calculate_cash_flow_deposits(
             cash_flow[forecast_date]["debito"] += debit_deposit
 
     return cash_flow
-

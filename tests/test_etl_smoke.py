@@ -28,4 +28,3 @@ def test_config_creation() -> None:
 def test_build_payments_dataset_is_callable() -> None:
     """Test that build_payments_dataset is callable."""
     assert callable(build_payments_dataset)
-

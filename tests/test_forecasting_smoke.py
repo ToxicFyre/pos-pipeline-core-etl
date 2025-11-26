@@ -9,9 +9,8 @@ can be run without runtime errors.
 import warnings
 
 import pandas as pd
-from statsmodels.tools.sm_exceptions import ConvergenceWarning
-
 from pos_core.forecasting import ForecastConfig, ForecastResult, run_payments_forecast
+from statsmodels.tools.sm_exceptions import ConvergenceWarning
 
 warnings.filterwarnings("ignore", category=ConvergenceWarning)
 
@@ -67,4 +66,3 @@ def test_imports_work() -> None:
     assert ForecastResult is not None
     assert run_payments_forecast is not None
     assert callable(run_payments_forecast)
-

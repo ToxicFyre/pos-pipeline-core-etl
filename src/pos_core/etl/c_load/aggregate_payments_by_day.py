@@ -35,7 +35,8 @@ Folder with many clean CSVs:
         --out ./aggregated_payments.csv
 
 Quieter logging:
-    python aggregate_payments_by_day.py --input-dir ./clean_csv --out ./aggregated_payments.csv --quiet
+    python aggregate_payments_by_day.py \
+        --input-dir ./clean_csv --out ./aggregated_payments.csv --quiet
 
 Input contract
 --------------
@@ -75,9 +76,14 @@ A single CSV with one row per (sucursal, fecha):
 - Each ingreso_* column is the sum of `ticket_total` for that day and payment bucket.
 - `propinas` is the sum of `ticket_tip` for that day (all methods).
 - `num_tickets` is the count of unique tickets (order_index) for that day.
-- `tickets_with_eliminations` is the count of unique tickets that had eliminations associated with them.
-- `pct_tickets_with_eliminations` is the percentage of tickets with eliminations (tickets_with_eliminations / num_tickets * 100), rounded to 2 decimal places. Returns 0.0 when num_tickets is 0.
-- `is_national_holiday` is True if the date is a Mexican national holiday, False otherwise. Holiday data is fetched from the Nager.Date Public Holiday API (https://date.nager.at/).
+- `tickets_with_eliminations` is the count of unique tickets that had eliminations
+  associated with them.
+- `pct_tickets_with_eliminations` is the percentage of tickets with eliminations
+  (tickets_with_eliminations / num_tickets * 100), rounded to 2 decimal places.
+  Returns 0.0 when num_tickets is 0.
+- `is_national_holiday` is True if the date is a Mexican national holiday,
+  False otherwise. Holiday data is fetched from the Nager.Date Public Holiday API
+  (https://date.nager.at/).
 
 Payment-method bucketing
 ------------------------
@@ -140,6 +146,7 @@ from pos_core.etl.b_transform.pos_cleaning_utils import normalize_spanish_name
 # ------------------------------------------------------------
 # Normalization + payment-method bucketing
 # ------------------------------------------------------------
+
 
 def bucket_for_payment_method(method: str) -> str:
     """
@@ -242,7 +249,9 @@ def fetch_mexican_holidays(year: int) -> Set[date]:
     except requests.RequestException as e:
         logging.warning(
             "Failed to fetch Mexican holidays for year %d: %s. "
-            "Holiday flag will be False for all dates.", year, e
+            "Holiday flag will be False for all dates.",
+            year,
+            e,
         )
         # Return empty set on error, so holiday flag will be False
         _HOLIDAY_CACHE[year] = set()
@@ -250,7 +259,9 @@ def fetch_mexican_holidays(year: int) -> Set[date]:
     except (KeyError, ValueError) as e:
         logging.warning(
             "Invalid response format from holidays API for year %d: %s. "
-            "Holiday flag will be False for all dates.", year, e
+            "Holiday flag will be False for all dates.",
+            year,
+            e,
         )
         _HOLIDAY_CACHE[year] = set()
         return set()
@@ -292,6 +303,7 @@ def get_all_mexican_holidays(df: pd.DataFrame) -> Set[date]:
 # Core aggregation
 # ------------------------------------------------------------
 
+
 def aggregate_payments(dfs: List[pd.DataFrame]) -> pd.DataFrame:
     """
     Main aggregation:
@@ -304,7 +316,15 @@ def aggregate_payments(dfs: List[pd.DataFrame]) -> pd.DataFrame:
     """
     if not dfs:
         return pd.DataFrame(
-            columns=["sucursal", "fecha"] + BUCKET_COLS + ["propinas", "num_tickets", "tickets_with_eliminations", "pct_tickets_with_eliminations", "is_national_holiday"]
+            columns=["sucursal", "fecha"]
+            + BUCKET_COLS
+            + [
+                "propinas",
+                "num_tickets",
+                "tickets_with_eliminations",
+                "pct_tickets_with_eliminations",
+                "is_national_holiday",
+            ]
         )
 
     df = pd.concat(dfs, ignore_index=True)
@@ -341,16 +361,16 @@ def aggregate_payments(dfs: List[pd.DataFrame]) -> pd.DataFrame:
         # Expected tips from daily total
         daily_totals = (
             sub.dropna(subset=["total_day_tips"])
-               .groupby(["sucursal", "operating_date"], as_index=False)["total_day_tips"]
-               .max()
-               .rename(columns={"total_day_tips": "expected_tips"})
+            .groupby(["sucursal", "operating_date"], as_index=False)["total_day_tips"]
+            .max()
+            .rename(columns={"total_day_tips": "expected_tips"})
         )
 
         # Actual tips from sum of ticket_tip
         daily_actual = (
             sub.groupby(["sucursal", "operating_date"], as_index=False)["ticket_tip"]
-               .sum()
-               .rename(columns={"ticket_tip": "actual_tips"})
+            .sum()
+            .rename(columns={"ticket_tip": "actual_tips"})
         )
 
         cmp = daily_actual.merge(daily_totals, on=["sucursal", "operating_date"], how="left")
@@ -368,9 +388,8 @@ def aggregate_payments(dfs: List[pd.DataFrame]) -> pd.DataFrame:
     # -------------------------------------------------------------------
 
     # Sum ticket_total per sucursal/fecha/bucket
-    agg = (
-        sub.groupby(["sucursal", "operating_date", "bucket"], as_index=False)
-           .agg(ingreso=("ticket_total", "sum"))
+    agg = sub.groupby(["sucursal", "operating_date", "bucket"], as_index=False).agg(
+        ingreso=("ticket_total", "sum")
     )
 
     # Pivot to wide table
@@ -390,22 +409,22 @@ def aggregate_payments(dfs: List[pd.DataFrame]) -> pd.DataFrame:
     # Sum tips per sucursal/fecha
     tips = (
         sub.groupby(["sucursal", "operating_date"], as_index=False)["ticket_tip"]
-           .sum()
-           .rename(columns={"ticket_tip": "propinas"})
+        .sum()
+        .rename(columns={"ticket_tip": "propinas"})
     )
 
     # Derive num_tickets
     if has_order_index:
         tickets = (
             sub.groupby(["sucursal", "operating_date"], as_index=False)["order_index"]
-               .nunique()
-               .rename(columns={"order_index": "num_tickets"})
+            .nunique()
+            .rename(columns={"order_index": "num_tickets"})
         )
     else:
         tickets = (
             sub.groupby(["sucursal", "operating_date"], as_index=False)
-               .size()
-               .rename(columns={"size": "num_tickets"})
+            .size()
+            .rename(columns={"size": "num_tickets"})
         )
 
     # Derive tickets_with_eliminations (count of unique tickets with eliminations)
@@ -434,8 +453,11 @@ def aggregate_payments(dfs: List[pd.DataFrame]) -> pd.DataFrame:
     # Calculate percentage of tickets with eliminations
     # Avoid division by zero: if num_tickets is 0, percentage is 0.0
     result["pct_tickets_with_eliminations"] = (
-        result["tickets_with_eliminations"] / result["num_tickets"] * 100
-    ).fillna(0.0).replace([float('inf'), -float('inf')], 0.0).round(2)
+        (result["tickets_with_eliminations"] / result["num_tickets"] * 100)
+        .fillna(0.0)
+        .replace([float("inf"), -float("inf")], 0.0)
+        .round(2)
+    )
 
     # Add Mexican national holiday flag
     # Fetch holidays for all years present in the dataset
@@ -450,7 +472,17 @@ def aggregate_payments(dfs: List[pd.DataFrame]) -> pd.DataFrame:
     result = result.rename(columns={"operating_date": "fecha"})
 
     # Order columns
-    final_cols = ["sucursal", "fecha"] + BUCKET_COLS + ["propinas", "num_tickets", "tickets_with_eliminations", "pct_tickets_with_eliminations", "is_national_holiday"]
+    final_cols = (
+        ["sucursal", "fecha"]
+        + BUCKET_COLS
+        + [
+            "propinas",
+            "num_tickets",
+            "tickets_with_eliminations",
+            "pct_tickets_with_eliminations",
+            "is_national_holiday",
+        ]
+    )
     result = result[final_cols].sort_values(["sucursal", "fecha"]).reset_index(drop=True)
 
     return result
@@ -459,6 +491,7 @@ def aggregate_payments(dfs: List[pd.DataFrame]) -> pd.DataFrame:
 # ------------------------------------------------------------
 # IO + CLI
 # ------------------------------------------------------------
+
 
 def read_clean_csv(path: Path) -> pd.DataFrame:
     """
@@ -541,7 +574,7 @@ def aggregate_payments_daily(
             "Run the cleaning step first to generate clean CSV files."
         )
 
-    logger.info(f"Found {len(dfs)} CSV file(s) to aggregate")
+    logger.info("Found %d CSV file(s) to aggregate", len(dfs))
 
     # Aggregate
     result = aggregate_payments(dfs)
@@ -549,7 +582,8 @@ def aggregate_payments_daily(
     # Write output
     write_csv(result, output_path)
     logger.info(
-        f"Wrote aggregated payments to {output_path} ({len(result)} rows, {len(result.columns)} cols)"
+        f"Wrote aggregated payments to {output_path} "
+        f"({len(result)} rows, {len(result.columns)} cols)"
     )
 
     return result
@@ -622,9 +656,7 @@ def main() -> None:
 
     result = aggregate_payments(dfs)
     write_csv(result, args.out)
-    logging.info(
-        "Wrote %s (%d rows, %d cols)", args.out, len(result), len(result.columns)
-    )
+    logging.info("Wrote %s (%d rows, %d cols)", args.out, len(result), len(result.columns))
 
 
 if __name__ == "__main__":

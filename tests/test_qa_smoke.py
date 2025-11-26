@@ -1,17 +1,16 @@
 """Smoke test for QA API imports and basic functionality."""
 
 import pandas as pd
-
 from pos_core.qa import PaymentsQAResult, run_payments_qa
 
 
-def test_qa_imports():
+def test_qa_imports() -> None:
     """Test that QA API can be imported."""
     assert PaymentsQAResult is not None
     assert callable(run_payments_qa)
 
 
-def test_run_payments_qa_basic():
+def test_run_payments_qa_basic() -> None:
     """Test that run_payments_qa returns a PaymentsQAResult instance."""
     # Create minimal test DataFrame
     df = pd.DataFrame(
@@ -40,4 +39,3 @@ def test_run_payments_qa_basic():
     assert "total_sucursales" in result.summary
     assert result.summary["total_rows"] == 3
     assert result.summary["total_sucursales"] == 2
-

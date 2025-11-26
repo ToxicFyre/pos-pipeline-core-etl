@@ -13,28 +13,27 @@ sales details currently require using lower-level functions directly.
 Payments is the primary public API; sales details are lower-level utilities.
 """
 
-from pathlib import Path
-from datetime import date
 import os
-import pandas as pd
+from datetime import date
+from pathlib import Path
 
 from pos_core.etl.a_extract.HTTP_extraction import (
-    make_session,
-    login_if_needed,
+    build_out_name,
     export_sales_report,
-    build_out_name
+    login_if_needed,
+    make_session,
+)
+from pos_core.etl.b_transform.pos_excel_sales_details_cleaner import (
+    output_name_for,
+    transform_detalle_ventas,
 )
 from pos_core.etl.branch_config import load_branch_segments_from_json
-from pos_core.etl.b_transform.pos_excel_sales_details_cleaner import (
-    transform_detalle_ventas,
-    output_name_for
-)
-from pos_core.etl.c_load.aggregate_sales_details_by_ticket import aggregate_by_ticket
 from pos_core.etl.c_load.aggregate_sales_details_by_group import build_category_pivot
+from pos_core.etl.c_load.aggregate_sales_details_by_ticket import aggregate_by_ticket
 
 # Define the week (Monday to Sunday)
 week_start = "2025-01-06"  # Monday - MODIFY AS NEEDED
-week_end = "2025-01-12"    # Sunday - MODIFY AS NEEDED
+week_end = "2025-01-12"  # Sunday - MODIFY AS NEEDED
 
 # Set up paths - MODIFY AS NEEDED
 data_root = Path("data")
@@ -48,12 +47,14 @@ raw_sales_dir.mkdir(parents=True, exist_ok=True)
 # Get base URL from environment (or set explicitly)
 base_url = os.environ.get("WS_BASE")
 if not base_url:
-    raise ValueError("WS_BASE environment variable must be set. "
-                     "Set it in your environment or modify this script to set base_url directly.")
+    raise ValueError(
+        "WS_BASE environment variable must be set. "
+        "Set it in your environment or modify this script to set base_url directly."
+    )
 
 # Create session and authenticate
 session = make_session()
-login_if_needed(session, base_url=base_url, user=None, password=None)
+login_if_needed(session, base_url, user=None, pwd=None)
 
 # Load branch configuration
 branch_segments = load_branch_segments_from_json(sucursales_json)
@@ -69,7 +70,7 @@ for branch_name, segments in branch_segments.items():
             continue
         if segment.valid_to and segment.valid_to < start_date:
             continue
-        
+
         try:
             # Export the report
             suggested, blob = export_sales_report(
@@ -80,7 +81,7 @@ for branch_name, segments in branch_segments.items():
                 start=start_date,
                 end=end_date,
             )
-            
+
             # Save file
             out_name = build_out_name("Detail", branch_name, start_date, end_date, suggested)
             out_path = raw_sales_dir / out_name
@@ -95,10 +96,10 @@ clean_sales_dir.mkdir(parents=True, exist_ok=True)
 for xlsx_file in raw_sales_dir.glob("*.xlsx"):
     try:
         df = transform_detalle_ventas(xlsx_file)
-        out_name = output_name_for(xlsx_file, df)
-        out_path = clean_sales_dir / out_name
+        out_name_path = output_name_for(xlsx_file, df)
+        out_path = clean_sales_dir / str(out_name_path)
         out_path.parent.mkdir(parents=True, exist_ok=True)
-        df.to_csv(out_path, index=False, encoding="utf-8")
+        df.to_csv(str(out_path), index=False, encoding="utf-8")
         print(f"Cleaned: {out_path} ({len(df)} rows)")
     except Exception as e:
         print(f"Error cleaning {xlsx_file}: {e}")
@@ -108,9 +109,7 @@ ticket_csv = data_root / "c_processed" / "sales" / f"sales_by_ticket_{week_start
 ticket_csv.parent.mkdir(parents=True, exist_ok=True)
 
 ticket_df = aggregate_by_ticket(
-    input_csv=str(clean_sales_dir / "*.csv"),
-    output_csv=str(ticket_csv),
-    recursive=True
+    input_csv=str(clean_sales_dir / "*.csv"), output_csv=str(ticket_csv), recursive=True
 )
 print(f"Aggregated by ticket: {ticket_csv} ({len(ticket_df)} tickets)")
 
@@ -118,10 +117,7 @@ print(f"Aggregated by ticket: {ticket_csv} ({len(ticket_df)} tickets)")
 group_csv = data_root / "c_processed" / "sales" / f"sales_by_group_{week_start}_{week_end}.csv"
 group_csv.parent.mkdir(parents=True, exist_ok=True)
 
-group_pivot = build_category_pivot(
-    input_csv=str(ticket_csv),
-    output_csv=str(group_csv)
-)
+group_pivot = build_category_pivot(input_csv=str(ticket_csv), output_csv=str(group_csv))
 print(f"Aggregated by group: {group_csv}")
 print(group_pivot)
 
@@ -129,4 +125,3 @@ print("\nThe final output (sales_by_group_*.csv) is a pivot table with:")
 print("- Rows: Product groups (e.g., 'CAFE Y BEBIDAS CALIENTES', 'COMIDAS', 'PIZZA', etc.)")
 print("- Columns: Sucursales (branches)")
 print("- Values: Total sales amounts for each group-branch combination")
-

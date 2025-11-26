@@ -85,4 +85,3 @@ def load_branch_segments_from_json(
         windows.sort(key=lambda w: w.valid_from)
 
     return segments
-

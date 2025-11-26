@@ -42,6 +42,7 @@ DANGEROUS_PREFIXES = ("=", "+", "@", "-")
 # Regex to strip currency symbols while preserving number separators
 _CURRENCY_RE = re.compile(r"[^\d,.\-\(\)\s]")
 
+
 def strip_invisibles(x: Any) -> Optional[str]:
     """Remove invisible and problematic whitespace characters from text.
 
@@ -67,13 +68,11 @@ def strip_invisibles(x: Any) -> Optional[str]:
     if x is None or (isinstance(x, float) and pd.isna(x)):
         return None
     s = str(x)
-    s = (s.replace("\r", "")
-           .replace("\t", " ")
-           .replace(NBSP, " ")
-           .replace(NNBSP, " "))
+    s = s.replace("\r", "").replace("\t", " ").replace(NBSP, " ").replace(NNBSP, " ")
     s = re.sub(r"[%s]" % re.escape(ZW), "", s)  # zero-width
     s = re.sub(r"\s+", " ", s).strip()
     return s
+
 
 def neutralize(text: Any) -> Any:
     """Prevent formula injection by prefixing dangerous characters.
@@ -99,6 +98,7 @@ def neutralize(text: Any) -> Any:
         return text
     s = str(text)
     return "'" + s if s.startswith(DANGEROUS_PREFIXES) else s
+
 
 def to_float(x: Any) -> Optional[float]:
     """Robustly parse numbers in various formats.
@@ -133,7 +133,7 @@ def to_float(x: Any) -> Optional[float]:
         return None
 
     neg = False
-    if s.startswith('(') and s.endswith(')'):
+    if s.startswith("(") and s.endswith(")"):
         neg, s = True, s[1:-1].strip()
 
     # strip currency and weird symbols but KEEP '.' and ','
@@ -144,8 +144,8 @@ def to_float(x: Any) -> Optional[float]:
         return None
 
     # now disambiguate separators
-    has_dot = '.' in s
-    has_com = ',' in s
+    has_dot = "." in s
+    has_com = "," in s
 
     def _finalize(num_str: str, negative: bool) -> Optional[float]:
         try:
@@ -156,37 +156,37 @@ def to_float(x: Any) -> Optional[float]:
 
     # Pattern: 1.234,56 (EU)
     if re.fullmatch(r"\d{1,3}(?:\.\d{3})+,\d{1,2}", s):
-        return _finalize(s.replace('.', '').replace(',', '.'), neg)
+        return _finalize(s.replace(".", "").replace(",", "."), neg)
 
     # Pattern: 1,234.56 (US)
     if re.fullmatch(r"\d{1,3}(?:,\d{3})+\.\d{1,2}", s):
-        return _finalize(s.replace(',', ''), neg)
+        return _finalize(s.replace(",", ""), neg)
 
     # Only one of them appears -> treat as decimal unless it matches clear thousand-grouping
     if has_com and not has_dot:
         # 1,234,567 (no decimals) -> thousands
         if re.fullmatch(r"\d{1,3}(?:,\d{3})+", s):
-            return _finalize(s.replace(',', ''), neg)
+            return _finalize(s.replace(",", ""), neg)
         # else comma is decimal
-        return _finalize(s.replace(',', '.'), neg)
+        return _finalize(s.replace(",", "."), neg)
 
     if has_dot and not has_com:
         # Assume NON-European by default: a single '.' is a decimal separator.
-        if s.count('.') == 1:
+        if s.count(".") == 1:
             return _finalize(s, neg)
         # Multiple dots -> treat as thousand separators only when pattern is clear.
         if re.fullmatch(r"\d{1,3}(?:\.\d{3})+", s):
-            return _finalize(s.replace('.', ''), neg)
+            return _finalize(s.replace(".", ""), neg)
         # Fallback: keep the dot (prefer preserving decimals over inflating by 10^3).
         return _finalize(s, neg)
-
 
     # No separators left, just digits and sign
     if re.fullmatch(r"-?\d+", s):
         return _finalize(s, neg)
 
     # Fallbacks: try replacing comma with dot
-    return _finalize(s.replace(',', '.'), neg)
+    return _finalize(s.replace(",", "."), neg)
+
 
 def to_int(val: Any) -> Union[int, float]:
     """Convert value to integer via float parsing and rounding.
@@ -204,12 +204,13 @@ def to_int(val: Any) -> Union[int, float]:
         1235
     """
     f = to_float(val)
-    if pd.isna(f):
+    if f is None or pd.isna(f):
         return np.nan
     try:
         return int(round(f))
     except Exception:
         return np.nan
+
 
 def to_date(val: Any) -> pd.Timestamp:
     """Parse date from various formats.
@@ -245,6 +246,7 @@ def to_date(val: Any) -> pd.Timestamp:
             pass
     return pd.to_datetime(s, errors="coerce")
 
+
 def remove_accents(s: str) -> str:
     """Remove accents and diacritics from string.
 
@@ -264,6 +266,7 @@ def remove_accents(s: str) -> str:
         'Jose'
     """
     return "".join(c for c in unicodedata.normalize("NFD", s) if unicodedata.category(c) != "Mn")
+
 
 def normalize_spanish_name(s: str) -> str:
     """Normalize a header or name for comparison.
@@ -287,12 +290,15 @@ def normalize_spanish_name(s: str) -> str:
         'participacion del dia'
     """
     base = strip_invisibles(s or "")
+    if base is None:
+        return ""
     # Remove accents
     base = unicodedata.normalize("NFKD", base)
     base = "".join(ch for ch in base if not unicodedata.combining(ch))
     # Collapse whitespace + lower
     base = re.sub(r"\s+", " ", base).strip().lower()
     return base
+
 
 def to_snake(s: str) -> str:
     """Convert string to snake_case.
@@ -323,6 +329,7 @@ def to_snake(s: str) -> str:
     s1 = re.sub(r"\s+", "_", s1).strip("_")
     return s1
 
+
 def uniquify(cols: Iterable[str]) -> List[str]:
     """Make column names unique by appending .1, .2, etc. to duplicates.
 
@@ -336,7 +343,7 @@ def uniquify(cols: Iterable[str]) -> List[str]:
         >>> uniquify(["col", "col", "other", "col"])
         ['col', 'col.1', 'other', 'col.2']
     """
-    seen = {}
+    seen: dict[str, int] = {}
     out = []
     for c in cols:
         n = seen.get(c, 0)

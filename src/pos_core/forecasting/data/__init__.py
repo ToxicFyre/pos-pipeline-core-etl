@@ -7,4 +7,3 @@ from pos_core.forecasting.data.preparation import (
 )
 
 __all__ = ["load_payments_data", "build_daily_series", "calculate_ingreso_total"]
-

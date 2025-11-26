@@ -25,7 +25,8 @@ class PaymentsPaths:
     Attributes:
         raw_payments: Directory for raw payment Excel files (e.g., data/a_raw/payments/batch).
         clean_payments: Directory for cleaned payment CSV files (e.g., data/b_clean/payments/batch).
-        proc_payments: Directory for processed/aggregated payment data (e.g., data/c_processed/payments).
+        proc_payments: Directory for processed/aggregated payment data
+            (e.g., data/c_processed/payments).
         sucursales_json: Path to sucursales.json configuration file.
     """
 
@@ -217,4 +218,3 @@ def build_payments_dataset(
 
     logger.info("ETL complete. Returned %d rows.", len(result_df))
     return result_df
-

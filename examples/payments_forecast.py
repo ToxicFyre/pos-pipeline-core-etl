@@ -11,8 +11,8 @@ Prerequisites:
 """
 
 from pathlib import Path
-import pandas as pd
 
+import pandas as pd
 from pos_core.forecasting import ForecastConfig, run_payments_forecast
 
 # Load the aggregated payments dataset (from Example 2 or existing file)
@@ -27,18 +27,13 @@ if not payments_file.exists():
     )
 
 payments_df = pd.read_csv(payments_file)
-payments_df['fecha'] = pd.to_datetime(payments_df['fecha'])
+payments_df["fecha"] = pd.to_datetime(payments_df["fecha"])
 
 # Configure forecast - MODIFY AS NEEDED
 forecast_config = ForecastConfig(
     horizon_days=7,  # Forecast next 7 days
-    metrics=[
-        "ingreso_efectivo",
-        "ingreso_credito",
-        "ingreso_debito",
-        "ingreso_total"
-    ],
-    branches=None  # Forecast for all branches (or specify: ["Kavia", "QIN"])
+    metrics=["ingreso_efectivo", "ingreso_credito", "ingreso_debito", "ingreso_total"],
+    branches=None,  # Forecast for all branches (or specify: ["Kavia", "QIN"])
 )
 
 # Run forecast
@@ -67,7 +62,7 @@ print("- debito: Total debit card deposits")
 print("- total: Total deposits")
 
 # Access metadata
-print(f"\nForecast Metadata:")
+print("\nForecast Metadata:")
 print(f"Branches: {result.metadata['branches']}")
 print(f"Metrics: {result.metadata['metrics']}")
 print(f"Horizon: {result.metadata['horizon_days']} days")
@@ -77,22 +72,20 @@ print(f"Failed forecasts: {result.metadata['failed_forecasts']}")
 
 # Example: Get forecast for a specific branch and metric
 if len(result.forecast) > 0:
-    sample_branch = result.forecast['sucursal'].iloc[0]
-    sample_metric = result.forecast['metric'].iloc[0]
+    sample_branch = result.forecast["sucursal"].iloc[0]
+    sample_metric = result.forecast["metric"].iloc[0]
     branch_metric_forecast = result.forecast[
-        (result.forecast['sucursal'] == sample_branch) &
-        (result.forecast['metric'] == sample_metric)
+        (result.forecast["sucursal"] == sample_branch)
+        & (result.forecast["metric"] == sample_metric)
     ]
     print(f"\n{sample_branch} {sample_metric} forecast (next 7 days):")
-    print(branch_metric_forecast[['fecha', 'valor']])
+    print(branch_metric_forecast[["fecha", "valor"]])
 
 # Example: Pivot forecast for easier viewing
 forecast_pivot = result.forecast.pivot_table(
-    index=['sucursal', 'fecha'],
-    columns='metric',
-    values='valor'
+    index=["sucursal", "fecha"], columns="metric", values="valor"
 )
-print(f"\nForecast Pivot (first 10 rows):")
+print("\nForecast Pivot (first 10 rows):")
 print(forecast_pivot.head(10))
 
 # Save results
@@ -104,4 +97,3 @@ print(f"\nSaved forecast to: {forecast_output}")
 deposit_output = data_root / "c_processed" / "forecasts" / "next_7_days_deposits.csv"
 result.deposit_schedule.to_csv(deposit_output, index=False)
 print(f"Saved deposit schedule to: {deposit_output}")
-

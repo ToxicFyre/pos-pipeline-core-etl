@@ -25,27 +25,34 @@ import argparse
 import pandas as pd
 
 # Row order for output pivot table (branch codes)
-ROW_ORDER = ['K', 'N', 'C', 'Q', 'PV', 'HZ', 'CC', 'TOTAL']
+ROW_ORDER = ["K", "N", "C", "Q", "PV", "HZ", "CC", "TOTAL"]
 
 # Column order for output pivot table (product categories)
-COL_ORDER = ['NO-PROC', 'REFRICONGE', 'TOSTADOR', 'COMIDA SALADA', 'REPO', 'PAN DULCE Y SALADA']
+COL_ORDER = ["NO-PROC", "REFRICONGE", "TOSTADOR", "COMIDA SALADA", "REPO", "PAN DULCE Y SALADA"]
 
 # Mapping from full branch names to codes
 SUC_MAP = {
-    'PANEM - HOTEL KAVIA N': 'K',
-    'PANEM - PLAZA NATIVA': 'N',
-    'PANEM - LA CARRETA N': 'C',
-    'PANEM - PLAZA QIN N': 'Q',
-    'PANEM - PUNTO VALLE': 'PV',
-    'PANEM - HOSPITAL ZAMBRANO N': 'HZ',
-    'PANEM - CREDI CLUB': 'CC',
+    "PANEM - HOTEL KAVIA N": "K",
+    "PANEM - PLAZA NATIVA": "N",
+    "PANEM - LA CARRETA N": "C",
+    "PANEM - PLAZA QIN N": "Q",
+    "PANEM - PUNTO VALLE": "PV",
+    "PANEM - HOSPITAL ZAMBRANO N": "HZ",
+    "PANEM - CREDI CLUB": "CC",
 }
 
 # Departments that map to NO-PROC category
 NO_PROC_SET = {
-    'ABARROTES','AZUCAR Y HARINA','BEBIDAS','DESECHABLE','DESECHABLES',
-    'PAPELERIA','QUIMICOS','VERDURA'
+    "ABARROTES",
+    "AZUCAR Y HARINA",
+    "BEBIDAS",
+    "DESECHABLE",
+    "DESECHABLES",
+    "PAPELERIA",
+    "QUIMICOS",
+    "VERDURA",
 }
+
 
 def normalize(s: pd.Series) -> pd.Series:
     """Normalize a pandas Series to uppercase, stripped strings.
@@ -57,6 +64,7 @@ def normalize(s: pd.Series) -> pd.Series:
         Series with values converted to uppercase, stripped strings.
     """
     return s.astype(str).str.strip().str.upper()
+
 
 def bucket_row(origen: str, depto: str) -> str | None:
     """Categorize a transfer row based on origin warehouse and department.
@@ -76,23 +84,24 @@ def bucket_row(origen: str, depto: str) -> str | None:
     Returns:
         Category name if mapped, None if unmapped.
     """
-    if origen == 'ALMACEN PRODUCTO TERMINADO':
-        if depto == 'COCINA':
-            return 'COMIDA SALADA'
-        if depto == 'REPOSTERIA':
-            return 'REPO'
-        if depto == 'PANADERIA DULCE Y SALADA':
-            return 'PAN DULCE Y SALADA'
-    elif origen == 'ALMACEN GENERAL':
+    if origen == "ALMACEN PRODUCTO TERMINADO":
+        if depto == "COCINA":
+            return "COMIDA SALADA"
+        if depto == "REPOSTERIA":
+            return "REPO"
+        if depto == "PANADERIA DULCE Y SALADA":
+            return "PAN DULCE Y SALADA"
+    elif origen == "ALMACEN GENERAL":
         if depto in NO_PROC_SET:
-            return 'NO-PROC'
-        if depto == 'REFRIGERADOS Y CONGELADOS':
-            return 'REFRICONGE'
-        if depto == 'TOSTADOR':
-            return 'TOSTADOR'
+            return "NO-PROC"
+        if depto == "REFRIGERADOS Y CONGELADOS":
+            return "REFRICONGE"
+        if depto == "TOSTADOR":
+            return "TOSTADOR"
     return None  # unmapped
 
-def build_table(csv_path: str, include_cedis: bool=False) -> tuple[pd.DataFrame, pd.DataFrame]:
+
+def build_table(csv_path: str, include_cedis: bool = False) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Build pivot table from transfer CSV data.
 
     Processes the transfer CSV file and creates a pivot table showing transfer
@@ -115,29 +124,29 @@ def build_table(csv_path: str, include_cedis: bool=False) -> tuple[pd.DataFrame,
     df = pd.read_csv(csv_path)
 
     # Normalize
-    for col in ['Almacén origen','Sucursal destino','Departamento']:
+    for col in ["Almacén origen", "Sucursal destino", "Departamento"]:
         if col not in df.columns:
             raise SystemExit(f"Missing required column: {col}")
         df[col] = normalize(df[col])
 
     # Destino -> code
-    df['SUC'] = df['Sucursal destino'].map(SUC_MAP)
+    df["SUC"] = df["Sucursal destino"].map(SUC_MAP)
     if not include_cedis:
-        df = df[df['SUC'].notna()].copy()
+        df = df[df["SUC"].notna()].copy()
 
     # Bucket
-    df['BUCKET'] = [bucket_row(o, d) for o, d in zip(df['Almacén origen'], df['Departamento'])]
+    df["BUCKET"] = [bucket_row(o, d) for o, d in zip(df["Almacén origen"], df["Departamento"])]
 
     # Unmapped report
-    unmapped = df[df['BUCKET'].isna()].copy()
+    unmapped = df[df["BUCKET"].isna()].copy()
 
     # Money (Costo already equals Cantidad * Costo unitario)
-    df['Monto'] = pd.to_numeric(df['Costo'], errors='coerce').fillna(0)
+    df["Monto"] = pd.to_numeric(df["Costo"], errors="coerce").fillna(0)
 
     # Aggregate
-    piv = (df.dropna(subset=['SUC','BUCKET'])
-             .pivot_table(index='SUC', columns='BUCKET', values='Monto',
-                          aggfunc='sum', fill_value=0.0))
+    piv = df.dropna(subset=["SUC", "BUCKET"]).pivot_table(
+        index="SUC", columns="BUCKET", values="Monto", aggfunc="sum", fill_value=0.0
+    )
 
     # Ensure all expected columns exist and in order
     for c in COL_ORDER:
@@ -146,9 +155,9 @@ def build_table(csv_path: str, include_cedis: bool=False) -> tuple[pd.DataFrame,
     piv = piv[COL_ORDER]
 
     # Totals
-    piv['TOTAL'] = piv.sum(axis=1)
+    piv["TOTAL"] = piv.sum(axis=1)
     total_row = piv.sum(numeric_only=True)
-    piv.loc['TOTAL'] = total_row
+    piv.loc["TOTAL"] = total_row
 
     # Row order
     piv = piv.reindex(ROW_ORDER)
@@ -156,7 +165,8 @@ def build_table(csv_path: str, include_cedis: bool=False) -> tuple[pd.DataFrame,
     # Round to 2 decimals
     piv = piv.round(2)
 
-    return piv, unmapped[['Almacén origen','Departamento','Sucursal destino','Costo']]
+    return piv, unmapped[["Almacén origen", "Departamento", "Sucursal destino", "Costo"]]
+
 
 def main() -> None:
     """Main entry point for transfer aggregation command-line tool.
@@ -164,9 +174,13 @@ def main() -> None:
     Parses arguments, builds the pivot table, and writes output to file
     (Excel or CSV based on extension) or prints to stdout.
     """
-    ap = argparse.ArgumentParser(description="Aggregate CEDIS transfers into the weekly sucursal table.")
+    ap = argparse.ArgumentParser(
+        description="Aggregate CEDIS transfers into the weekly sucursal table."
+    )
     ap.add_argument("csv_path", help="Path to TransfersIssued_CEDIS_*.csv")
-    ap.add_argument("-o","--output", help="Write Excel/CSV at this path (by extension)", default=None)
+    ap.add_argument(
+        "-o", "--output", help="Write Excel/CSV at this path (by extension)", default=None
+    )
     ap.add_argument("--include-cedis", action="store_true", help="Keep rows whose destino is CEDIS")
     args = ap.parse_args()
 
@@ -177,7 +191,7 @@ def main() -> None:
     print(table.to_string())
 
     if len(unmapped):
-        lost = pd.to_numeric(unmapped['Costo'], errors='coerce').fillna(0).sum()
+        lost = pd.to_numeric(unmapped["Costo"], errors="coerce").fillna(0).sum()
         print(f"\nWARNING: {len(unmapped)} unmapped rows (total ${lost:,.2f}). Top 10:")
         print(unmapped.head(10).to_string())
     else:
@@ -190,6 +204,7 @@ def main() -> None:
         else:
             table.to_csv(args.output, index=True)
         print(f"\nWrote {args.output}")
+
 
 if __name__ == "__main__":
     main()

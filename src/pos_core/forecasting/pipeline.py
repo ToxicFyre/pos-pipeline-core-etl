@@ -86,7 +86,9 @@ def main() -> None:
         print(f"\n[2/3] Generating {args.horizon}-day forecasts...")
         config = ForecastConfig(horizon_days=args.horizon)
         result = run_payments_forecast(payments_df, config=config)
-        print(f"[OK] Generated forecasts for {len(result.metadata.get('branches', []))} branches")
+        branches_list = result.metadata.get("branches", [])
+        branches_count = len(branches_list) if isinstance(branches_list, list) else 0
+        print(f"[OK] Generated forecasts for {branches_count} branches")
 
         # Format and display results
         print("\n[3/3] Formatting results...")
@@ -138,4 +140,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

@@ -7,21 +7,26 @@ centralizing date formatting logic that was previously duplicated across modules
 from datetime import date
 
 # Spanish day names (Monday through Sunday)
-SPANISH_DAYS = [
-    "Lunes", "Martes", "Miércoles", "Jueves", "Viernes",
-    "Sábado", "Domingo"
-]
+SPANISH_DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
 
 # Spanish month names (January through December)
 SPANISH_MONTHS = [
-    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+    "Enero",
+    "Febrero",
+    "Marzo",
+    "Abril",
+    "Mayo",
+    "Junio",
+    "Julio",
+    "Agosto",
+    "Septiembre",
+    "Octubre",
+    "Noviembre",
+    "Diciembre",
 ]
 
 # Spanish day name abbreviations (Monday through Sunday)
-SPANISH_DAY_ABBREVIATIONS = [
-    "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"
-]
+SPANISH_DAY_ABBREVIATIONS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
 
 
 def format_date_spanish(d: date) -> str:
@@ -47,4 +52,3 @@ def format_date_short(d: date) -> str:
     """
     day_abbrev = SPANISH_DAY_ABBREVIATIONS[d.weekday()]
     return f"{day_abbrev} {d.day}"
-

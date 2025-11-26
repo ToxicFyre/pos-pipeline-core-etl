@@ -78,9 +78,7 @@ def main() -> None:
         "--max-days-per-chunk",
         type=int,
         default=180,
-        help=(
-            "Maximum number of days per HTTP request chunk (inclusive)."
-        ),
+        help=("Maximum number of days per HTTP request chunk (inclusive)."),
     )
     parser.add_argument(
         "--verbose",

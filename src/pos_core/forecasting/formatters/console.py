@@ -23,14 +23,15 @@ def sanitize_for_console(text: str) -> str:
     """
     # Remove emojis (Unicode characters outside ASCII range)
     # This regex matches emojis and other non-ASCII characters
-    text = re.sub(r'[^\x00-\x7F]+', '', text)
+    text = re.sub(r"[^\x00-\x7F]+", "", text)
     # Remove HTML tags
-    text = re.sub(r'<[^>]+>', '', text)
+    text = re.sub(r"<[^>]+>", "", text)
     return text
 
 
 def format_forecast_for_console(result: ForecastResult) -> str:
-    """Build a human-readable string representation of the forecast and deposit schedule for console output.
+    """Build a human-readable string representation of the forecast and deposit schedule
+    for console output.
 
     Args:
         result: ForecastResult containing forecast and deposit_schedule DataFrames
@@ -123,4 +124,3 @@ def format_forecast_for_console(result: ForecastResult) -> str:
             lines.append("")
 
     return "\n".join(lines)
-
