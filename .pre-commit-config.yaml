@@ -1,10 +1,9 @@
 repos:
   # Ruff - runs on commit
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.15
+    rev: v0.6.9          # or any recent version
     hooks:
-      - id: ruff
-        args: [--fix]
+      - id: ruff         # no args -> check-only
       - id: ruff-format
 
   # mypy - runs on commit
