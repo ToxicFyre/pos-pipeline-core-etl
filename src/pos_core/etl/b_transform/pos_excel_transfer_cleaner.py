@@ -29,7 +29,7 @@ import numpy as np
 import unicodedata
 from collections import defaultdict
 from typing import Optional
-from .ws_cleaning_utils import strip_invisibles, neutralize, to_float, to_snake, uniquify
+from .pos_cleaning_utils import strip_invisibles, neutralize, to_float, to_snake, uniquify
 
 NBSP = "\u00A0"
 NNBSP = "\u202F"

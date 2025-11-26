@@ -40,7 +40,7 @@ from typing import Dict, Iterable, List, Optional, Tuple
 
 from pos_core.etl.utils import slugify
 
-from .ws_cleaning_utils import (
+from .pos_cleaning_utils import (
     strip_invisibles,
     neutralize as neutralize_formula_injection,
     to_float,
