@@ -530,8 +530,7 @@ def check_non_negative(df: pd.DataFrame) -> List[QAResult]:
             out.append(
                 QAResult(
                     "ERROR",
-                    f"Column '{col}' has {len(neg)} negative values "
-                    f"(min={neg[col].min():.2f}).",
+                    f"Column '{col}' has {len(neg)} negative values (min={neg[col].min():.2f}).",
                 )
             )
     return out
@@ -1042,7 +1041,7 @@ def main(argv: Optional[List[str]] = None) -> None:
     parser.add_argument(
         "--file",
         default="aggregated_payments_daily.csv",
-        help=("CSV file name inside PROC_PAYMENTS_DIR. " "Default: aggregated_payments_daily.csv"),
+        help=("CSV file name inside PROC_PAYMENTS_DIR. Default: aggregated_payments_daily.csv"),
     )
     parser.add_argument(
         "--sucursal",

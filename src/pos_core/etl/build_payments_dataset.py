@@ -52,8 +52,7 @@ def main() -> None:
     """
     parser = argparse.ArgumentParser(
         description=(
-            "Backfill payments dataset from POS (all branches, "
-            "skipping already-downloaded ranges)."
+            "Backfill payments dataset from POS (all branches, skipping already-downloaded ranges)."
         )
     )
     parser.add_argument(

@@ -30,6 +30,7 @@ Notes:
 - CSRF token is auto-detected.
 - For Sales, the "Aplicar" sequence is posted before the export to match the browser.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -46,7 +47,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
 import requests
-from bs4 import BeautifulSoup  # pip install requests bs4
+from bs4 import BeautifulSoup, Tag  # pip install requests bs4
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
@@ -183,6 +184,15 @@ def ensure_ok(resp: requests.Response, msg: str) -> None:
         raise SystemExit(f"{msg}. HTTP {resp.status_code} — {resp.text[:400]}")
 
 
+def _attr_to_str(attr: Any) -> str:
+    """Convert BeautifulSoup attribute value to string."""
+    if attr is None:
+        return ""
+    if isinstance(attr, list):
+        return str(attr[0]) if attr else ""
+    return str(attr)
+
+
 def get_csrf_from_html(html: str) -> Optional[str]:
     """Extract CSRF token from HTML page.
 
@@ -201,16 +211,25 @@ def get_csrf_from_html(html: str) -> Optional[str]:
     # Common names used by ASP.NET AntiForgery
     for name in ["__RequestVerificationToken", "__RequestVerificationTokenWith"]:
         tag = soup.find("input", attrs={"name": name})
-        if tag and tag.get("value"):
-            return tag.get("value")
+        if isinstance(tag, Tag):
+            value = _attr_to_str(tag.get("value"))
+            if value:
+                return value
     m = soup.find("meta", attrs={"name": "__RequestVerificationToken"})
-    if m and m.get("content"):
-        return m.get("content")
+    if isinstance(m, Tag):
+        content = _attr_to_str(m.get("content"))
+        if content:
+            return content
     # Fallback: any hidden with VerificationToken in the name
     for tag in soup.find_all("input", attrs={"type": "hidden"}):
-        nm = (tag.get("name") or "") + (tag.get("id") or "")
-        if "VerificationToken" in nm and tag.get("value"):
-            return tag.get("value")
+        if isinstance(tag, Tag):
+            name_attr = _attr_to_str(tag.get("name"))
+            id_attr = _attr_to_str(tag.get("id"))
+            nm = name_attr + id_attr
+            if "VerificationToken" in nm:
+                value = _attr_to_str(tag.get("value"))
+                if value:
+                    return value
     return None
 
 
@@ -362,8 +381,10 @@ def choose_password_field(fields: Dict[str, str], html: str) -> Optional[str]:
     # Try from input type="password"
     soup = BeautifulSoup(html, "html.parser")
     pwd = soup.find("input", attrs={"type": "password"})
-    if pwd and pwd.get("name"):
-        return pwd["name"]
+    if isinstance(pwd, Tag):
+        name_attr = _attr_to_str(pwd.get("name"))
+        if name_attr:
+            return name_attr
     return None
 
 
@@ -414,17 +435,20 @@ def login_if_needed(
         page_url = r.url
         soup = BeautifulSoup(r.text, "html.parser")
         form = soup.find("form")
-        if not form:
+        if not isinstance(form, Tag):
             raise SystemExit("Login form not found.")
-        action = form.get("action") or page_url
+        action_attr = form.get("action")
+        action = _attr_to_str(action_attr) if action_attr else page_url
         action_url = action if action.startswith("http") else f"{_origin_for(base_url)}{action}"
 
-        fields = {}
+        fields: Dict[str, str] = {}
         for inp in form.find_all("input"):
-            name = inp.get("name")
-            if not name:
-                continue
-            fields[name] = inp.get("value") or ""
+            if isinstance(inp, Tag):
+                name = _attr_to_str(inp.get("name"))
+                if not name:
+                    continue
+                value = _attr_to_str(inp.get("value"))
+                fields[name] = value
 
         user_field = choose_user_field(fields) or "UserName"
         pw_field = choose_password_field(fields, r.text) or "Password"
@@ -878,8 +902,7 @@ def download_payments_reports(
 
             if not missing_ranges:
                 logger.debug(
-                    f"  code={code} window {seg_start}..{seg_end}: "
-                    "already fully covered, skipping."
+                    f"  code={code} window {seg_start}..{seg_end}: already fully covered, skipping."
                 )
                 continue
 

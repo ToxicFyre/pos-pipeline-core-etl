@@ -439,7 +439,7 @@ def _build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="aggregate-sales-by-ticket",
         description=(
-            "Aggregate POS sales details (item-wise) into ticket-wise CSV " "with group columns."
+            "Aggregate POS sales details (item-wise) into ticket-wise CSV with group columns."
         ),
     )
     p.add_argument("-i", "--input", nargs="+", default=None, help="Input CSV file(s) or glob(s).")

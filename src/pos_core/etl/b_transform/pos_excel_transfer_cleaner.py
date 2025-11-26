@@ -32,8 +32,8 @@ import pandas as pd
 
 from .pos_cleaning_utils import neutralize, strip_invisibles, to_float, to_snake, uniquify
 
-NBSP = "\u00A0"
-NNBSP = "\u202F"
+NBSP = "\u00a0"
+NNBSP = "\u202f"
 DANGEROUS_PREFIXES = ("=", "+", "@", "-")
 
 # ---------- small helpers ----------

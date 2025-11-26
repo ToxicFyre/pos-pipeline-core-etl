@@ -91,8 +91,7 @@ def run_payments_qa(
     missing_cols = [col for col in REQUIRED_COLUMNS if col not in df.columns]
     if missing_cols:
         raise DataQualityError(
-            f"Missing required columns in payments_df: {missing_cols}. "
-            f"Required: {REQUIRED_COLUMNS}"
+            f"Missing required columns in payments_df: {missing_cols}. Required: {REQUIRED_COLUMNS}"
         )
 
     logger.info(f"Running QA checks at level {level} for {len(df)} rows")

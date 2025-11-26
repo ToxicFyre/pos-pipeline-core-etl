@@ -42,7 +42,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Union
 
-import numpy as np
 import pandas as pd
 
 from pos_core.etl.utils import slugify
@@ -56,7 +55,7 @@ from .pos_cleaning_utils import (
     to_float,
 )
 
-NBSP = "\u00A0"
+NBSP = "\u00a0"
 ZW = "".join(chr(c) for c in (0x200B, 0x200C, 0x200D, 0xFEFF))
 
 logger = logging.getLogger(__name__)
@@ -383,9 +382,9 @@ def transform_detalle_ventas(xlsx_in: Path) -> pd.DataFrame:
     # is_modifier to boole-ish
     if "is_modifier" in df.columns:
 
-        def _coerce_bool(val: Any) -> Union[bool, np.floating]:
+        def _coerce_bool(val: Any) -> Union[bool, float]:
             if pd.isna(val):
-                return np.nan
+                return float("nan")
             s = str(val).strip().lower()
             if s in {"si", "sí", "yes", "true", "1"}:
                 return True
@@ -393,9 +392,9 @@ def transform_detalle_ventas(xlsx_in: Path) -> pd.DataFrame:
                 return False
             try:
                 f = float(s)
-                return bool(int(f)) if f in (0, 1) else np.nan
+                return bool(int(f)) if f in (0, 1) else float("nan")
             except Exception:
-                return np.nan
+                return float("nan")
 
         df["is_modifier"] = df["is_modifier"].map(_coerce_bool)
 

@@ -65,6 +65,7 @@ This keeps backward compatibility with existing code that imports the constants
 and the function defined in this module.
 
 """
+
 # panem_sales_agg.py
 # Python 3.10+
 from __future__ import annotations
@@ -335,9 +336,8 @@ def build_category_pivot(
         # Check for unmapped
         unmapped_count = (melted["Grupo_Nuevo"] == "EXTRAS y MISC").sum()
         if unmapped_count > 0:
-            logger.warning(
-                f"  EXTRAS y MISC: {unmapped_count} rows ({unmapped_count/len(melted)*100:.1f}%)"
-            )
+            pct = unmapped_count / len(melted) * 100
+            logger.warning(f"  EXTRAS y MISC: {unmapped_count} rows ({pct:.1f}%)")
 
     # Aggregate by Grupo_Nuevo and sucursal
     grp_cols = ["Grupo_Nuevo"] + ([sucursal_col] if sucursal_col else [])

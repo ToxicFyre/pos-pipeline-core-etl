@@ -32,8 +32,8 @@ import numpy as np
 import pandas as pd
 
 # Unicode characters that should be stripped from text
-NBSP = "\u00A0"  # Non-breaking space
-NNBSP = "\u202F"  # Narrow non-breaking space
+NBSP = "\u00a0"  # Non-breaking space
+NNBSP = "\u202f"  # Narrow non-breaking space
 ZW = "".join(chr(c) for c in (0x200B, 0x200C, 0x200D, 0xFEFF))  # Zero-width characters
 
 # Prefixes that could trigger formula injection in spreadsheets
@@ -60,7 +60,7 @@ def strip_invisibles(x: Any) -> Optional[str]:
         Cleaned string or None if input is None/NaN.
 
     Examples:
-        >>> strip_invisibles("  Hello\u00A0World  ")
+        >>> strip_invisibles("  Hello\u00a0World  ")
         'Hello World'
         >>> strip_invisibles(None)
         None
