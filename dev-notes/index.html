@@ -10,31 +10,27 @@
       
       
       
-        <link rel="canonical" href="https://toxicfyre.github.io/pos-pipeline-core-etl/user-guide/examples/">
+        <link rel="canonical" href="https://toxicfyre.github.io/pos-pipeline-core-etl/dev-notes/">
       
       
-        <link rel="prev" href="../concepts/">
-      
-      
-        <link rel="next" href="../../api-reference/etl/">
       
       
         
       
       
-      <link rel="icon" href="../../assets/images/favicon.png">
+      <link rel="icon" href="../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.0">
     
     
       
-        <title>Examples - POS Core ETL</title>
+        <title>Development Notes - ETL API Refactor - POS Core ETL</title>
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.618322db.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.618322db.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -53,7 +49,7 @@
       
     
     
-    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -78,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#examples" class="md-skip">
+        <a href="#development-notes-etl-api-refactor" class="md-skip">
           Skip to content
         </a>
       
@@ -92,7 +88,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../.." title="POS Core ETL" class="md-header__button md-logo" aria-label="POS Core ETL" data-md-component="logo">
+    <a href=".." title="POS Core ETL" class="md-header__button md-logo" aria-label="POS Core ETL" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -112,7 +108,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Examples
+              Development Notes - ETL API Refactor
             
           </span>
         </div>
@@ -213,7 +209,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../.." class="md-tabs__link">
+      <a href=".." class="md-tabs__link">
         
   
   
@@ -230,13 +226,11 @@
   
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="../installation/" class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../user-guide/installation/" class="md-tabs__link">
           
   
   
@@ -256,7 +250,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../api-reference/etl/" class="md-tabs__link">
+        <a href="../api-reference/etl/" class="md-tabs__link">
           
   
   
@@ -292,7 +286,7 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../.." title="POS Core ETL" class="md-nav__button md-logo" aria-label="POS Core ETL" data-md-component="logo">
+    <a href=".." title="POS Core ETL" class="md-nav__button md-logo" aria-label="POS Core ETL" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -310,7 +304,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../.." class="md-nav__link">
+      <a href=".." class="md-nav__link">
         
   
   
@@ -334,31 +328,26 @@
       
   
   
-    
   
   
-  
     
     
     
     
-      
-        
-        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
         
           
-          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
             
   
   
@@ -376,7 +365,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_2">
             <span class="md-nav__icon md-icon"></span>
             
@@ -394,7 +383,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../installation/" class="md-nav__link">
+      <a href="../user-guide/installation/" class="md-nav__link">
         
   
   
@@ -422,7 +411,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../quickstart/" class="md-nav__link">
+      <a href="../user-guide/quickstart/" class="md-nav__link">
         
   
   
@@ -450,7 +439,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../configuration/" class="md-nav__link">
+      <a href="../user-guide/configuration/" class="md-nav__link">
         
   
   
@@ -478,7 +467,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../concepts/" class="md-nav__link">
+      <a href="../user-guide/concepts/" class="md-nav__link">
         
   
   
@@ -503,37 +492,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Examples
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../user-guide/examples/" class="md-nav__link">
         
   
   
@@ -549,81 +511,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#example-1-sales-detail-etl-query-api" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Example 1: Sales Detail ETL (Query API)
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#example-2-payments-etl-query-api" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Example 2: Payments ETL (Query API)
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#example-3-forecasting-query-api" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Example 3: Forecasting (Query API)
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#prerequisites" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Prerequisites
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#advanced-stage-functions" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Advanced: Stage Functions
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -695,7 +582,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api-reference/etl/" class="md-nav__link">
+      <a href="../api-reference/etl/" class="md-nav__link">
         
   
   
@@ -723,7 +610,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api-reference/forecasting/" class="md-nav__link">
+      <a href="../api-reference/forecasting/" class="md-nav__link">
         
   
   
@@ -751,7 +638,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api-reference/qa/" class="md-nav__link">
+      <a href="../api-reference/qa/" class="md-nav__link">
         
   
   
@@ -779,7 +666,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api-reference/exceptions/" class="md-nav__link">
+      <a href="../api-reference/exceptions/" class="md-nav__link">
         
   
   
@@ -824,73 +711,78 @@
 
 
 
-<h1 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h1>
-<p>This package includes runnable example scripts in the <code>examples/</code> directory.</p>
-<h2 id="example-1-sales-detail-etl-query-api">Example 1: Sales Detail ETL (Query API)<a class="headerlink" href="#example-1-sales-detail-etl-query-api" title="Permanent link">&para;</a></h2>
-<p><strong>File</strong>: <code>examples/sales_week_by_group.py</code></p>
-<p>Demonstrates the high-level query API for sales detail ETL:</p>
+<h1 id="development-notes-etl-api-refactor">Development Notes - ETL API Refactor<a class="headerlink" href="#development-notes-etl-api-refactor" title="Permanent link">&para;</a></h1>
+<h2 id="target-api">Target API<a class="headerlink" href="#target-api" title="Permanent link">&para;</a></h2>
+<p>The goal of this refactor is to create a clean, lean API that matches how we think about ETL workflows.</p>
+<h3 id="etl-configs">ETL Configs<a class="headerlink" href="#etl-configs" title="Permanent link">&para;</a></h3>
 <ul>
-<li>Uses <code>get_sales()</code> to get sales data at different aggregation levels</li>
-<li>Automatically handles ETL stages (download, clean, aggregate) only when needed</li>
-<li>Shows both ticket-level and group-level aggregation</li>
-<li>Creates a pivot table (groups × sucursales)</li>
+<li><code>SalesETLConfig</code></li>
+<li><code>PaymentsETLConfig</code></li>
 </ul>
-<p><strong>Usage</strong>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>python<span class="w"> </span>examples/sales_week_by_group.py
-</code></pre></div>
-<p><strong>Note</strong>: Modify <code>week_start</code> and <code>week_end</code> variables in the script.</p>
-<p><strong>Key Features</strong>:
-- Uses <code>refresh=True</code> for the first call to ensure fresh data
-- Uses <code>refresh=False</code> for subsequent calls to reuse existing data
-- Demonstrates the <code>level</code> parameter ("ticket" vs "group")</p>
-<h2 id="example-2-payments-etl-query-api">Example 2: Payments ETL (Query API)<a class="headerlink" href="#example-2-payments-etl-query-api" title="Permanent link">&para;</a></h2>
-<p><strong>File</strong>: <code>examples/payments_full_etl.py</code></p>
-<p>Demonstrates the high-level payments ETL API:</p>
+<h3 id="stage-commands">Stage Commands<a class="headerlink" href="#stage-commands" title="Permanent link">&para;</a></h3>
 <ul>
-<li>Uses <code>get_payments()</code> to get payments data</li>
-<li>Automatically handles downloading, cleaning, and aggregating</li>
-<li>Uses metadata to skip work that's already been done</li>
-<li>Creates daily aggregated dataset</li>
+<li><code>download_sales(...)</code>, <code>clean_sales(...)</code>, <code>aggregate_sales(...)</code></li>
+<li><code>download_payments(...)</code>, <code>clean_payments(...)</code>, <code>aggregate_payments(...)</code></li>
 </ul>
-<p><strong>Usage</strong>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>python<span class="w"> </span>examples/payments_full_etl.py
-</code></pre></div>
-<p><strong>Note</strong>: Modify date range in the script if needed.</p>
-<p><strong>Alternative</strong>: You can also use <code>build_payments_dataset()</code> for complete orchestration, or use stage functions (<code>download_payments</code>, <code>clean_payments</code>, <code>aggregate_payments</code>) for fine-grained control.</p>
-<h2 id="example-3-forecasting-query-api">Example 3: Forecasting (Query API)<a class="headerlink" href="#example-3-forecasting-query-api" title="Permanent link">&para;</a></h2>
-<p><strong>File</strong>: <code>examples/payments_forecast.py</code></p>
-<p>Demonstrates the forecasting query API:</p>
+<h3 id="query-pandas-creator">Query / Pandas Creator<a class="headerlink" href="#query-pandas-creator" title="Permanent link">&para;</a></h3>
 <ul>
-<li>Uses <code>get_payments_forecast()</code> to get forecasts</li>
-<li>Automatically gets historical data and runs the forecast</li>
-<li>Returns forecast DataFrame directly</li>
-<li>Shows how to work with forecast results</li>
+<li><code>get_sales(..., level="ticket|group|day", refresh=False)</code></li>
+<li><code>get_payments(..., refresh=False)</code></li>
+<li><code>get_payments_forecast(..., horizon_weeks=13, refresh=False)</code></li>
 </ul>
-<p><strong>Usage</strong>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>python<span class="w"> </span>examples/payments_forecast.py
-</code></pre></div>
-<p><strong>Note</strong>: The query API automatically handles getting historical data. For full control including deposit schedule and metadata, use <code>run_payments_forecast()</code> directly.</p>
-<h2 id="prerequisites">Prerequisites<a class="headerlink" href="#prerequisites" title="Permanent link">&para;</a></h2>
-<p>Before running any example:</p>
+<p>Everything we build should support this set of calls.</p>
+<h2 id="constraints">Constraints<a class="headerlink" href="#constraints" title="Permanent link">&para;</a></h2>
+<p>To keep the codebase lean and prevent overbuilding:</p>
 <ol>
-<li>Install the package: <code>pip install -e .</code></li>
-<li>Create <code>utils/sucursales.json</code> (see <a href="../configuration/">Configuration</a>)</li>
-<li>Set <code>WS_BASE</code> environment variable (for online extraction)</li>
-<li>Create data directory structure (or modify paths in scripts)</li>
+<li><strong>No new public function unless I have a real use for it right now.</strong></li>
+<li><strong>One concept → one way to do it.</strong></li>
+<li><strong>Public API uses simple types</strong>: strings, lists, DataFrames, dataclasses.</li>
+<li><strong>If it feels too clever, don't do it.</strong></li>
 </ol>
-<p>See <code>examples/README.md</code> for more details.</p>
-<h2 id="advanced-stage-functions">Advanced: Stage Functions<a class="headerlink" href="#advanced-stage-functions" title="Permanent link">&para;</a></h2>
-<p>For fine-grained control, you can use stage functions directly:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pos_core.etl</span><span class="w"> </span><span class="kn">import</span> <span class="n">PaymentsETLConfig</span><span class="p">,</span> <span class="n">download_payments</span><span class="p">,</span> <span class="n">clean_payments</span><span class="p">,</span> <span class="n">aggregate_payments</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">config</span> <span class="o">=</span> <span class="n">PaymentsETLConfig</span><span class="o">.</span><span class="n">from_root</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">),</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;utils/sucursales.json&quot;</span><span class="p">))</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="c1"># Run stages individually</span>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="n">download_payments</span><span class="p">(</span><span class="s2">&quot;2025-01-01&quot;</span><span class="p">,</span> <span class="s2">&quot;2025-01-31&quot;</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="n">clean_payments</span><span class="p">(</span><span class="s2">&quot;2025-01-01&quot;</span><span class="p">,</span> <span class="s2">&quot;2025-01-31&quot;</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
-<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="n">df</span> <span class="o">=</span> <span class="n">aggregate_payments</span><span class="p">(</span><span class="s2">&quot;2025-01-01&quot;</span><span class="p">,</span> <span class="s2">&quot;2025-01-31&quot;</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
-</code></pre></div>
-<p>This gives you control over when each stage runs, but query functions (<code>get_payments</code>, <code>get_sales</code>) are recommended for most use cases as they handle idempotence automatically.</p>
+<p>Check new code against this list before adding it.</p>
+<h2 id="current-public-api-inventory">Current Public API Inventory<a class="headerlink" href="#current-public-api-inventory" title="Permanent link">&para;</a></h2>
+<h3 id="from-pos_coreetl">From <code>pos_core.etl</code><a class="headerlink" href="#from-pos_coreetl" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>PaymentsETLConfig</code>, <code>PaymentsPaths</code></li>
+<li><code>build_payments_dataset</code></li>
+</ul>
+<h3 id="from-pos_coreforecasting">From <code>pos_core.forecasting</code><a class="headerlink" href="#from-pos_coreforecasting" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>ForecastConfig</code>, <code>ForecastResult</code></li>
+<li><code>run_payments_forecast</code></li>
+</ul>
+<h3 id="from-pos_coreqa">From <code>pos_core.qa</code><a class="headerlink" href="#from-pos_coreqa" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>PaymentsQAResult</code></li>
+<li><code>run_payments_qa</code></li>
+</ul>
+<h2 id="internal-modules">Internal Modules<a class="headerlink" href="#internal-modules" title="Permanent link">&para;</a></h2>
+<p>These are treated as internal (not re-exported from <code>__init__</code>):
+- <code>pos_core.etl.a_extract.*</code>
+- <code>pos_core.etl.b_transform.*</code>
+- <code>pos_core.etl.c_load.*</code>
+- Helper modules: <code>pos_core.etl.utils</code>, <code>pos_core.etl.branch_config</code></p>
+<h2 id="api-decisions">API Decisions<a class="headerlink" href="#api-decisions" title="Permanent link">&para;</a></h2>
+<h3 id="keep-as-is">Keep as-is<a class="headerlink" href="#keep-as-is" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>build_payments_dataset</code> - Will wrap internally later using stage functions</li>
+</ul>
+<h3 id="wrap">Wrap<a class="headerlink" href="#wrap" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Will create <code>download_payments</code>, <code>clean_payments</code>, <code>aggregate_payments</code> that call existing internals</li>
+<li>Will create <code>download_sales</code>, <code>clean_sales</code>, <code>aggregate_sales</code> that call existing internals</li>
+</ul>
+<h3 id="mark-as-internal">Mark as internal<a class="headerlink" href="#mark-as-internal" title="Permanent link">&para;</a></h3>
+<ul>
+<li>All functions in <code>a_extract</code>, <code>b_transform</code>, <code>c_load</code> are already internal (not exported)</li>
+</ul>
+<h2 id="periodic-lean-audit">Periodic Lean Audit<a class="headerlink" href="#periodic-lean-audit" title="Permanent link">&para;</a></h2>
+<p>Every few weeks, ask:</p>
+<ol>
+<li>Is there any public function nobody is using?</li>
+<li>Is there any duplicated logic between stage and query functions?</li>
+<li>Could two similar functions be merged into one with a simple parameter?</li>
+</ol>
 
 
 
@@ -940,10 +832,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "toc.integrate", "search.suggest", "search.highlight"], "search": "../../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "toc.integrate", "search.suggest", "search.highlight"], "search": "../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../../assets/javascripts/bundle.e71a0d61.min.js"></script>
+      <script src="../assets/javascripts/bundle.e71a0d61.min.js"></script>
       
     
   </body>

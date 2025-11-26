@@ -560,22 +560,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#payments-vs-sales" class="md-nav__link">
+  <a href="#api-layers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Payments vs Sales
+        API Layers
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Payments vs Sales">
+    <nav class="md-nav" aria-label="API Layers">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#payments-high-level-api" class="md-nav__link">
+  <a href="#query-functions-recommended" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Payments (High-Level API)
+        Query Functions (Recommended)
       
     </span>
   </a>
@@ -583,10 +583,71 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#sales-low-level-utilities" class="md-nav__link">
+  <a href="#stage-functions-fine-grained-control" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Sales (Low-Level Utilities)
+        Stage Functions (Fine-Grained Control)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#low-level-functions-advanced" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Low-Level Functions (Advanced)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#metadata-and-idempotence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Metadata and Idempotence
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Metadata and Idempotence">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#metadata-storage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Metadata Storage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#metadata-contents" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Metadata Contents
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#automatic-idempotence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Automatic Idempotence
       
     </span>
   </a>
@@ -898,24 +959,70 @@
 - Identify which stage each file belongs to
 - Re-run specific stages without re-processing everything
 - Debug issues at each stage</p>
-<h2 id="payments-vs-sales">Payments vs Sales<a class="headerlink" href="#payments-vs-sales" title="Permanent link">&para;</a></h2>
-<p>The package provides two levels of APIs:</p>
-<h3 id="payments-high-level-api">Payments (High-Level API)<a class="headerlink" href="#payments-high-level-api" title="Permanent link">&para;</a></h3>
-<p>The <strong>payments</strong> API is the primary public interface:</p>
+<h2 id="api-layers">API Layers<a class="headerlink" href="#api-layers" title="Permanent link">&para;</a></h2>
+<p>The package provides three levels of APIs:</p>
+<h3 id="query-functions-recommended">Query Functions (Recommended)<a class="headerlink" href="#query-functions-recommended" title="Permanent link">&para;</a></h3>
+<p>The <strong>query functions</strong> are the recommended way to get data:</p>
 <ul>
-<li><code>build_payments_dataset()</code>: Complete ETL orchestration</li>
-<li><code>run_payments_forecast()</code>: Forecasting</li>
-<li><code>run_payments_qa()</code>: Quality assurance</li>
+<li><strong><code>get_payments()</code></strong>: Get payments data, running ETL stages only if needed</li>
+<li><strong><code>get_sales()</code></strong>: Get sales data at specified level, running ETL stages only if needed</li>
+<li><strong><code>get_payments_forecast()</code></strong>: Get payments forecast, automatically handling historical data</li>
 </ul>
-<p>This is the recommended way to work with payment data.</p>
-<h3 id="sales-low-level-utilities">Sales (Low-Level Utilities)<a class="headerlink" href="#sales-low-level-utilities" title="Permanent link">&para;</a></h3>
-<p>The <strong>sales</strong> API provides lower-level utilities:</p>
+<p><strong>Key features</strong>:
+- Automatic idempotence through metadata checks
+- Only runs ETL stages when needed
+- Simple, high-level interface
+- Returns DataFrames directly</p>
+<p><strong>Example</strong>:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pos_core.etl</span><span class="w"> </span><span class="kn">import</span> <span class="n">PaymentsETLConfig</span><span class="p">,</span> <span class="n">get_payments</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">config</span> <span class="o">=</span> <span class="n">PaymentsETLConfig</span><span class="o">.</span><span class="n">from_root</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">),</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;utils/sucursales.json&quot;</span><span class="p">))</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">df</span> <span class="o">=</span> <span class="n">get_payments</span><span class="p">(</span><span class="s2">&quot;2025-01-01&quot;</span><span class="p">,</span> <span class="s2">&quot;2025-01-31&quot;</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">refresh</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</code></pre></div></p>
+<h3 id="stage-functions-fine-grained-control">Stage Functions (Fine-Grained Control)<a class="headerlink" href="#stage-functions-fine-grained-control" title="Permanent link">&para;</a></h3>
+<p><strong>Stage functions</strong> provide control over individual ETL stages:</p>
 <ul>
-<li>Direct access to extraction functions</li>
-<li>Manual cleaning and transformation</li>
-<li>Fine-grained control over the pipeline</li>
+<li><strong>Payments</strong>: <code>download_payments()</code>, <code>clean_payments()</code>, <code>aggregate_payments()</code></li>
+<li><strong>Sales</strong>: <code>download_sales()</code>, <code>clean_sales()</code>, <code>aggregate_sales()</code></li>
 </ul>
-<p>Use this when you need more control or are working with sales detail data (which doesn't have a high-level API yet).</p>
+<p><strong>Use when</strong>:
+- You need to run specific stages independently
+- You want to inspect intermediate results
+- You're building custom workflows</p>
+<p><strong>Example</strong>:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pos_core.etl</span><span class="w"> </span><span class="kn">import</span> <span class="n">PaymentsETLConfig</span><span class="p">,</span> <span class="n">download_payments</span><span class="p">,</span> <span class="n">clean_payments</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">config</span> <span class="o">=</span> <span class="n">PaymentsETLConfig</span><span class="o">.</span><span class="n">from_root</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">),</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;utils/sucursales.json&quot;</span><span class="p">))</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">download_payments</span><span class="p">(</span><span class="s2">&quot;2025-01-01&quot;</span><span class="p">,</span> <span class="s2">&quot;2025-01-31&quot;</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="n">clean_payments</span><span class="p">(</span><span class="s2">&quot;2025-01-01&quot;</span><span class="p">,</span> <span class="s2">&quot;2025-01-31&quot;</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
+</code></pre></div></p>
+<h3 id="low-level-functions-advanced">Low-Level Functions (Advanced)<a class="headerlink" href="#low-level-functions-advanced" title="Permanent link">&para;</a></h3>
+<p><strong>Low-level functions</strong> in <code>pos_core.etl.a_extract</code>, <code>pos_core.etl.b_transform</code>, and <code>pos_core.etl.c_load</code> provide direct access to extraction, transformation, and aggregation logic.</p>
+<p><strong>Use when</strong>:
+- You need to customize the ETL logic
+- You're building custom pipelines
+- You need access to internal implementation details</p>
+<p><strong>Note</strong>: These are considered internal APIs and may change between minor versions.</p>
+<h2 id="metadata-and-idempotence">Metadata and Idempotence<a class="headerlink" href="#metadata-and-idempotence" title="Permanent link">&para;</a></h2>
+<p>The ETL pipeline uses metadata files to track stage completion and enable idempotent operations.</p>
+<h3 id="metadata-storage">Metadata Storage<a class="headerlink" href="#metadata-storage" title="Permanent link">&para;</a></h3>
+<p>Metadata files are stored in <code>_meta/</code> subdirectories within each stage directory:
+- <code>a_raw/payments/_meta/2025-01-01_2025-01-31.json</code>
+- <code>b_clean/payments/_meta/2025-01-01_2025-01-31.json</code>
+- <code>c_processed/payments/_meta/2025-01-01_2025-01-31.json</code></p>
+<h3 id="metadata-contents">Metadata Contents<a class="headerlink" href="#metadata-contents" title="Permanent link">&para;</a></h3>
+<p>Each metadata file contains:
+- <code>start_date</code>, <code>end_date</code>: Date range processed
+- <code>branches</code>: List of branches processed
+- <code>cleaner_version</code>: Version identifier for the cleaner (enables re-cleaning when logic changes)
+- <code>last_run</code>: ISO timestamp of when the stage was run
+- <code>status</code>: "ok", "failed", or "partial"</p>
+<h3 id="automatic-idempotence">Automatic Idempotence<a class="headerlink" href="#automatic-idempotence" title="Permanent link">&para;</a></h3>
+<p>Query functions automatically check metadata:
+- If metadata exists and <code>status == "ok"</code> and <code>cleaner_version</code> matches, skip the stage
+- If <code>refresh=True</code>, force re-run all stages
+- If <code>refresh=False</code>, use existing data when available</p>
+<p>This makes it safe to re-run queries without duplicating work.</p>
 <h2 id="pos-system-requirements">POS System Requirements<a class="headerlink" href="#pos-system-requirements" title="Permanent link">&para;</a></h2>
 <p>This package is designed for POS systems that:</p>
 <ol>
@@ -938,6 +1045,7 @@
 <ul>
 <li><strong>Smart date range chunking</strong>: Automatically splits large date ranges into manageable chunks</li>
 <li><strong>Existing data discovery</strong>: Skips downloading files that already exist</li>
+<li><strong>Metadata-based idempotence</strong>: Tracks stage completion to avoid redundant work</li>
 <li><strong>Resumable</strong>: Can be interrupted and resumed without losing progress</li>
 </ul>
 <p>This makes it practical to process years of historical data.</p>
