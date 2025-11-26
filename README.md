@@ -642,6 +642,41 @@ The package has been tested on:
 
 7. **Debugging Extraction Issues**: Enable DEBUG logging for `pos_core.etl` to see detailed HTTP request/response information.
 
+## Development
+
+### Code Quality Checks
+
+Before committing code, ensure it passes linting and formatting checks. This project uses `ruff` for both linting and formatting.
+
+**If pre-commit hooks block your commit or push**, or if you want to run checks manually, run:
+
+```bash
+# Fix linting issues automatically
+python3 -m ruff check --fix src/ tests/
+
+# Format code
+python3 -m ruff format src/ tests/
+
+# Verify everything is fixed (run again after fixing)
+python3 -m ruff check --fix src/ tests/
+python3 -m ruff format src/ tests/
+```
+
+These commands will:
+- Automatically fix most linting issues (line length, unused imports, etc.)
+- Format code according to the project's style guide
+- Ensure your code is ready to commit
+
+**Note**: The project also uses pre-commit hooks (configured in `.pre-commit-config.yaml`) that automatically run these checks on commit. If you encounter issues during commit, run the commands above to fix them.
+
+### Type Checking
+
+The project uses `mypy` for static type checking:
+
+```bash
+python3 -m mypy src/pos_core
+```
+
 ## Testing
 
 Run the smoke tests to verify installation:
