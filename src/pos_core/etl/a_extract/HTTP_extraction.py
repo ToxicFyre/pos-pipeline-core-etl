@@ -31,21 +31,28 @@ Notes:
 """
 from __future__ import annotations
 
-import argparse, base64, dataclasses, json, logging, os, re, sys
-from datetime import date, datetime
+import argparse
+import base64
+import dataclasses
+import json
+import logging
+import os
+import re
+import sys
+from datetime import date
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+from urllib.parse import urlparse
 
 import requests
 from bs4 import BeautifulSoup  # pip install requests bs4
-from urllib.parse import urlparse
 
-from pos_core.etl.utils import slugify
 from pos_core.etl.branch_config import load_branch_segments_from_json
 from pos_core.etl.utils import (
     discover_existing_intervals,
     iter_chunks,
     parse_date,
+    slugify,
     subtract_intervals,
 )
 
@@ -140,20 +147,6 @@ def load_sucursal_map() -> Dict[str, str]:
     # Fallback to in-code mapping if file/env is missing or invalid
     return SUCURSAL_DICT_FALLBACK.copy()
 
-
-def parse_date(s: str) -> date:
-    """Parse a date string in YYYY-MM-DD format.
-
-    Args:
-        s: Date string in ISO format (YYYY-MM-DD).
-
-    Returns:
-        Parsed date object.
-
-    Raises:
-        ValueError: If the date string is not in the expected format.
-    """
-    return datetime.strptime(s, "%Y-%m-%d").date()
 
 def ensure_ok(resp: requests.Response, msg: str) -> None:
     """Check if HTTP response is successful, raise SystemExit if not.
@@ -260,9 +253,6 @@ def require_csrf_token(
     )
 
 # --- HTTP resiliency ---
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
-
 DEFAULT_TIMEOUT = float(os.environ.get("WS_TIMEOUT", "60"))
 DEFAULT_RETRIES = int(os.environ.get("WS_RETRIES", "3"))
 
@@ -300,7 +290,7 @@ def make_session(timeout: float = DEFAULT_TIMEOUT, retries: int = DEFAULT_RETRIE
     s.mount("https://", adapter)
     # Default timeouts via a wrapper
     orig_request = s.request
-    def timed_request(method, url, **kwargs):
+    def timed_request(method: str, url: str, **kwargs: object) -> requests.Response:
         kwargs.setdefault("timeout", timeout)
         return orig_request(method, url, **kwargs)
     s.request = timed_request  # type: ignore
@@ -473,7 +463,7 @@ def aplicar_warmup(s: requests.Session, base_url: str, report_page_url: str, tok
         raise SystemExit("CSRF token is required for aplicar_warmup() but was None or empty. "
                         "The pipeline cannot proceed without a valid CSRF token. "
                         "Ensure require_csrf_token() is called before this function.")
-    
+
     ajax_headers = {
         "Origin": _origin_for(base_url),
         "Referer": report_page_url,

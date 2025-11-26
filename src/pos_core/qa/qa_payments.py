@@ -65,7 +65,6 @@ import pandas as pd
 
 from pos_core.etl.config import PROC_PAYMENTS_DIR
 
-
 REQUIRED_COLUMNS = [
     "sucursal",
     "fecha",
@@ -763,11 +762,11 @@ def generate_monthly_sales_table(df: pd.DataFrame, output_dir: Path) -> Tuple[Li
 
     # Build output DataFrame for CSV
     csv_data = {"Month": sorted(sales_pivot.index)}
-    
+
     # Add sales columns
     for suc in sorted(sales_pivot.columns):
         csv_data[f"Sales_{suc}"] = [sales_pivot.loc[month, suc] for month in csv_data["Month"]]
-    
+
     # Add elimination percentage columns if available
     if has_eliminations:
         elim_pivot = df_monthly.pivot_table(
@@ -779,12 +778,12 @@ def generate_monthly_sales_table(df: pd.DataFrame, output_dir: Path) -> Tuple[Li
         )
         for suc in sorted(elim_pivot.columns):
             csv_data[f"ElimPct_{suc}"] = [elim_pivot.loc[month, suc] for month in csv_data["Month"]]
-    
+
     # Create DataFrame and save to CSV
     csv_df = pd.DataFrame(csv_data)
     output_dir.mkdir(parents=True, exist_ok=True)
     csv_path = output_dir / "monthly_sales_table.csv"
-    
+
     try:
         csv_df.to_csv(csv_path, index=False, encoding="utf-8-sig")
         out.append(
@@ -1007,11 +1006,11 @@ def run_qa(
     results.extend(check_non_negative(df))
     results.extend(check_ticket_revenue_consistency(df))
     results.extend(check_per_sucursal_ranges(df))
-    
+
     # Generate monthly sales table CSV
     monthly_results, sales_csv_path = generate_monthly_sales_table(df, PROC_PAYMENTS_DIR)
     results.extend(monthly_results)
-    
+
     results.extend(sample_months(df, sample_months_n, sucursal, seed))
 
     return results, csv_path, sales_csv_path

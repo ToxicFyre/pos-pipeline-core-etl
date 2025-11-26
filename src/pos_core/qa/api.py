@@ -10,7 +10,6 @@ import logging
 from dataclasses import dataclass
 from typing import Optional
 
-import numpy as np
 import pandas as pd
 
 from pos_core.exceptions import DataQualityError
@@ -18,11 +17,10 @@ from pos_core.qa.qa_payments import (
     MONEY_COLUMNS,
     REQUIRED_COLUMNS,
     TICKET_COLUMN,
-    TOTAL_NO_TIPS_COLUMN,
     detect_duplicate_days,
     detect_missing_days,
-    detect_zscore_anomalies,
     detect_zero_method_flags,
+    detect_zscore_anomalies,
     prepare_payments_df,
 )
 

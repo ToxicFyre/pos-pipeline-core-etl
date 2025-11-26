@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 from itertools import product
-from typing import Tuple
+from typing import Any, Tuple
 
 import numpy as np
 import pandas as pd
@@ -51,7 +51,7 @@ class LogARIMAModel(ForecastModel):
         self.D_range = D_range
         self.Q_range = Q_range
     
-    def train(self, series: pd.Series, **kwargs) -> object:
+    def train(self, series: pd.Series, **kwargs) -> Any:
         """Train log ARIMA model on a time series.
         
         Args:
@@ -128,7 +128,7 @@ class LogARIMAModel(ForecastModel):
         
         return best_model
     
-    def forecast(self, model: object, steps: int, **kwargs) -> pd.Series:
+    def forecast(self, model: Any, steps: int, **kwargs) -> pd.Series:
         """Generate forecast from a trained ARIMA model.
         
         Args:
@@ -184,7 +184,7 @@ def train_log_arima(
     P_range: Tuple[int, ...] = (0, 1),
     D_range: Tuple[int, ...] = (0, 1),
     Q_range: Tuple[int, ...] = (0, 1),
-) -> Tuple[object, pd.Series]:
+) -> Tuple[Any, pd.Series]:
     """Train log ARIMA model and generate forecast (backward compatibility function).
     
     This function provides backward compatibility with the old interface.

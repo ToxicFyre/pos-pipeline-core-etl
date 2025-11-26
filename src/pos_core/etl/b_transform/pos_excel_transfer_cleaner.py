@@ -21,15 +21,16 @@ Examples:
             --input-dir ./downloads --recursive --outdir ./csv
 """
 
-import re
 import csv
-from pathlib import Path
-import pandas as pd
-import numpy as np
+import re
 import unicodedata
-from collections import defaultdict
-from typing import Optional
-from .pos_cleaning_utils import strip_invisibles, neutralize, to_float, to_snake, uniquify
+from pathlib import Path
+from typing import Optional, Union
+
+import numpy as np
+import pandas as pd
+
+from .pos_cleaning_utils import neutralize, strip_invisibles, to_float, to_snake, uniquify
 
 NBSP = "\u00A0"
 NNBSP = "\u202F"
@@ -114,7 +115,7 @@ def clean_to_minimal_csv(input_path: Path, output_csv: Path) -> Path:
 
     df_raw.columns = uniquify([to_snake(c) for c in df_raw.columns])
 
-    def pick(*cands):
+    def pick(*cands: str) -> Optional[str]:
         for cand in cands:
             if cand and cand in df_raw.columns:
                 return cand
@@ -153,8 +154,9 @@ def clean_to_minimal_csv(input_path: Path, output_csv: Path) -> Path:
     df["ieps_total"] = df["cantidad"] * df["ieps_unit"] if "ieps_unit" in df.columns else np.nan
     df["iva_total"]  = df["cantidad"] * df["iva_unit"]  if "iva_unit"  in df.columns else np.nan
 
-    def safe_unit_cost(row):
-        qty = row.get("cantidad"); costo = row.get("costo_ext")
+    def safe_unit_cost(row: pd.Series) -> Union[float, np.floating]:
+        qty = row.get("cantidad")
+        costo = row.get("costo_ext")
         if qty is None or pd.isna(qty) or qty == 0 or costo is None or pd.isna(costo):
             return np.nan
         return float(costo) / float(qty)
@@ -193,7 +195,7 @@ def clean_to_minimal_csv(input_path: Path, output_csv: Path) -> Path:
     minimal.to_csv(output_csv, index=False, encoding="utf-8-sig", quoting=csv.QUOTE_MINIMAL)
     return output_csv
 
-def main():
+def main() -> None:
     import argparse
     p = argparse.ArgumentParser(description="Clean CEDIS transfers Excel to ONE minimal CSV")
     p.add_argument("input", type=str, help="Path to TransfersIssued_CEDIS_*.xlsx")

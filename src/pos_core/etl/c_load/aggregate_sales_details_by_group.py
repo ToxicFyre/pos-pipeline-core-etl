@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Aggregate POS sales details by consolidated category (CLI + library)
+r"""Aggregate POS sales details by consolidated category (CLI + library)
 
 Overview
 --------
@@ -65,11 +65,17 @@ and the function defined in this module.
 # panem_sales_agg.py
 # Python 3.10+
 from __future__ import annotations
-import argparse, sys, re, glob, logging
+
+import argparse
+import glob
+import logging
+import re
+import sys
+import unicodedata
 from pathlib import Path
 from typing import Dict, List, Sequence
+
 import pandas as pd
-import unicodedata
 
 logger = logging.getLogger(__name__)
 
@@ -166,17 +172,17 @@ def build_category_pivot(input_csv: str, output_csv: str, include_modifiers: boo
     include_modifiers = INCLUDE_MODIFIERS if include_modifiers is None else include_modifiers
 
     df = _read_any([input_csv])  # supports globs
-    
+
     if verbose:
         logger.info(f"Loaded DataFrame: {len(df)} rows, {len(df.columns)} columns")
         logger.debug(f"Columns: {list(df.columns)[:20]}...")
-    
+
     col = {c.lower(): c for c in df.columns}
     sucursal_col = col.get("sucursal")
 
     # Find all columns ending with _subtotal
     subtotal_cols = [c for c in df.columns if c.endswith("_subtotal")]
-    
+
     if not subtotal_cols:
         available_cols = [c for c in df.columns if "subtotal" in c.lower() or "total" in c.lower()]
         error_msg = (
@@ -188,7 +194,7 @@ def build_category_pivot(input_csv: str, output_csv: str, include_modifiers: boo
             error_msg += f"Columns containing 'subtotal' or 'total': {available_cols[:10]}...\n"
         error_msg += f"All columns: {list(df.columns)[:20]}..."
         raise ValueError(error_msg)
-    
+
     if verbose:
         logger.info(f"Found {len(subtotal_cols)} columns ending with '_subtotal'")
         logger.debug(f"Subtotal columns (first 10): {subtotal_cols[:10]}")
@@ -198,7 +204,7 @@ def build_category_pivot(input_csv: str, output_csv: str, include_modifiers: boo
     group_to_grupo_nuevo = {}
     unmapped_groups = set()
     mapping_details = []  # For verbose output
-    
+
     for col_name in subtotal_cols:
         # Remove _subtotal suffix to get group name
         # Use removesuffix to safely remove the suffix (works in Python 3.9+)
@@ -215,15 +221,15 @@ def build_category_pivot(input_csv: str, output_csv: str, include_modifiers: boo
         # This allows us to match against the original group names in CATEGORY_MAP
         group_name_with_spaces = group_name.replace("_", " ")
         normalized = _normalize_key(group_name_with_spaces)
-        
+
         # Try to find a close match in CATEGORY_MAP if exact match fails
         grupo_nuevo = CATEGORY_MAP.get(normalized, "EXTRAS y MISC")
-        
+
         if grupo_nuevo == "EXTRAS y MISC" and normalized not in CATEGORY_MAP:
             unmapped_groups.add(normalized)
-        
+
         group_to_grupo_nuevo[col_name] = grupo_nuevo
-        
+
         if verbose:
             mapping_details.append({
                 "column": col_name,
@@ -233,9 +239,9 @@ def build_category_pivot(input_csv: str, output_csv: str, include_modifiers: boo
                 "mapped_to": grupo_nuevo,
                 "is_mapped": (normalized in CATEGORY_MAP)
             })
-    
+
     if verbose:
-        logger.info(f"Group name mapping results:")
+        logger.info("Group name mapping results:")
         logger.info(f"  Total columns: {len(subtotal_cols)}")
         logger.info(f"  Mapped to categories: {len([m for m in mapping_details if m['is_mapped']])}")
         logger.info(f"  Unmapped (EXTRAS y MISC): {len(unmapped_groups)}")
@@ -243,12 +249,12 @@ def build_category_pivot(input_csv: str, output_csv: str, include_modifiers: boo
         for m in mapping_details[:10]:
             status = "✓" if m['is_mapped'] else "✗ UNMAPPED"
             logger.debug(f"  {status} '{m['column']}' -> '{m['normalized']}' -> '{m['mapped_to']}'")
-        
+
         if unmapped_groups:
             logger.warning(f"Unmapped groups (will go to EXTRAS y MISC): {sorted(unmapped_groups)}")
             logger.debug("Available CATEGORY_MAP keys (first 20):")
             logger.debug(f"  {sorted(list(CATEGORY_MAP.keys()))[:20]}")
-    
+
     # Always report all groups that were mapped to EXTRAS y MISC
     extras_misc_groups = []
     for col_name, grupo_nuevo in group_to_grupo_nuevo.items():
@@ -266,7 +272,7 @@ def build_category_pivot(input_csv: str, output_csv: str, include_modifiers: boo
                 "group_name": group_name,
                 "with_spaces": group_name_with_spaces
             })
-    
+
     if extras_misc_groups:
         logger.warning(f"Groups mapped to EXTRAS y MISC ({len(extras_misc_groups)} total):")
         for item in extras_misc_groups:
@@ -278,18 +284,18 @@ def build_category_pivot(input_csv: str, output_csv: str, include_modifiers: boo
     # Melt the dataframe to convert {GROUP}_subtotal columns into rows
     # This creates: order_id, sucursal, group_column, value
     id_vars = [c for c in df.columns if not c.endswith("_subtotal") and not c.endswith("_total")]
-    
+
     if verbose:
         logger.info(f"Melting DataFrame: {len(id_vars)} id columns, {len(subtotal_cols)} value columns")
         logger.debug(f"ID columns: {id_vars[:10]}...")
-    
+
     melted = df.melt(
         id_vars=id_vars,
         value_vars=subtotal_cols,
         var_name="_group_column",
         value_name="subtotal_value"
     )
-    
+
     if verbose:
         logger.info(f"After melting: {len(melted)} rows")
         logger.debug(f"Melted columns: {list(melted.columns)}")
@@ -297,10 +303,10 @@ def build_category_pivot(input_csv: str, output_csv: str, include_modifiers: boo
 
     # Map group columns to Grupo_Nuevo
     melted["Grupo_Nuevo"] = melted["_group_column"].map(group_to_grupo_nuevo)
-    
+
     if verbose:
         grupo_counts = melted["Grupo_Nuevo"].value_counts()
-        logger.info(f"Grupo_Nuevo distribution:")
+        logger.info("Grupo_Nuevo distribution:")
         for grupo, count in grupo_counts.items():
             logger.info(f"  {grupo}: {count} rows")
         # Check for unmapped
@@ -310,15 +316,15 @@ def build_category_pivot(input_csv: str, output_csv: str, include_modifiers: boo
 
     # Aggregate by Grupo_Nuevo and sucursal
     grp_cols = ["Grupo_Nuevo"] + ([sucursal_col] if sucursal_col else [])
-    
+
     if verbose:
         logger.info(f"Aggregating by: {grp_cols}")
         if sucursal_col:
             unique_sucursales = melted[sucursal_col].nunique()
             logger.info(f"  Found {unique_sucursales} unique sucursales")
-    
+
     agg = melted.groupby(grp_cols, dropna=False)["subtotal_value"].sum().reset_index()
-    
+
     if verbose:
         logger.info(f"After aggregation: {len(agg)} category-sucursal combinations")
         logger.debug(f"Sample aggregated data:\n{agg.head(10)}")
@@ -333,19 +339,19 @@ def build_category_pivot(input_csv: str, output_csv: str, include_modifiers: boo
         "Nativa",
         "Credi Club"  # Note: "Credi Club" not "Crediclub"
     ]
-    
+
     if sucursal_col:
         out = agg.pivot(index="Grupo_Nuevo", columns=sucursal_col, values="subtotal_value").fillna(0.0)
         if verbose:
             logger.info(f"Pivot table: {len(out)} categories × {len(out.columns)} sucursales")
             logger.debug(f"Original sucursal columns: {list(out.columns)}")
-        
+
         # Reorder columns to match preferred order (case-insensitive, partial matching)
         # Match based on keywords in the column names (e.g., "Kavia" matches "Panem - Hotel Kavia N")
         col_list = list(out.columns)
         ordered_cols = []
         matched_indices = set()
-        
+
         # Add columns in preferred order by finding matching column names
         for preferred in PREFERRED_SUCURSAL_ORDER:
             preferred_lower = preferred.lower()
@@ -359,15 +365,15 @@ def build_category_pivot(input_csv: str, output_csv: str, include_modifiers: boo
                         if verbose:
                             logger.debug(f"  Matched '{preferred}' -> '{col}'")
                         break
-        
+
         # Add any remaining columns that weren't matched
         for idx, col in enumerate(col_list):
             if idx not in matched_indices:
                 ordered_cols.append(col)
-        
+
         # Reorder the dataframe columns
         out = out[ordered_cols]
-        
+
         if verbose:
             logger.info(f"Reordered sucursal columns to: {list(out.columns)}")
     else:
@@ -377,7 +383,7 @@ def build_category_pivot(input_csv: str, output_csv: str, include_modifiers: boo
 
     extras = [r for r in out.index if r not in ROW_ORDER]
     out = out.reindex(ROW_ORDER + extras).fillna(0.0).round(2)
-    
+
     if verbose:
         logger.info(f"Final output: {len(out)} categories (ordered: {len(ROW_ORDER)} standard + {len(extras)} extras)")
         if extras:
@@ -439,7 +445,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
-    
+
     # Set up logging
     log_level = logging.DEBUG if args.verbose else logging.INFO
     logging.basicConfig(
@@ -464,7 +470,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if not subtotal_cols:
         print("ERROR: No columns ending with '_subtotal' found in input. Expected ticket-wise CSV format.", file=sys.stderr)
         return 2
-    
+
     # Extract and normalize group names from column names
     # Note: Need to convert underscores back to spaces before normalizing
     # _subtotal is 9 characters, not 10!
@@ -473,7 +479,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     else:
         group_names = [_normalize_key((col[:-9] if col.endswith('_subtotal') else col).replace("_", " ")) for col in subtotal_cols]
     unmapped = sorted(set(group_names) - set(CATEGORY_MAP.keys()))
-    
+
     if args.verbose:
         logger.info(f"Extracted {len(group_names)} group names from column names")
         logger.debug(f"Sample group names (first 10): {group_names[:10]}")

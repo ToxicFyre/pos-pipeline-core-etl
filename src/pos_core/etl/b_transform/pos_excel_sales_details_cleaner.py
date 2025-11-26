@@ -33,23 +33,28 @@ Notes:
 
 from __future__ import annotations
 
-import argparse, csv, logging, re, sys, unicodedata
+import argparse
+import csv
+import logging
+import re
+import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Union
+
+import numpy as np
+import pandas as pd
 
 from pos_core.etl.utils import slugify
 
 from .pos_cleaning_utils import (
-    strip_invisibles,
     neutralize as neutralize_formula_injection,
-    to_float,
-    to_int,
-    to_date,
 )
-
-import numpy as np
-import pandas as pd
+from .pos_cleaning_utils import (
+    strip_invisibles,
+    to_date,
+    to_float,
+)
 
 NBSP = "\u00A0"
 ZW = "".join(chr(c) for c in (0x200B, 0x200C, 0x200D, 0xFEFF))
@@ -388,7 +393,7 @@ def transform_detalle_ventas(xlsx_in: Path) -> pd.DataFrame:
 
     # is_modifier to boole-ish
     if "is_modifier" in df.columns:
-        def _coerce_bool(val):
+        def _coerce_bool(val: Any) -> Union[bool, np.floating]:
             if pd.isna(val):
                 return np.nan
             s = str(val).strip().lower()
@@ -507,7 +512,7 @@ def output_name_for(xlsx_path: Path, df: pd.DataFrame) -> Path:
         base = f"detail_{slugify(suc)}.csv"
     return Path(base)
 
-def write_csv(df: pd.DataFrame, out_path: Path):
+def write_csv(df: pd.DataFrame, out_path: Path) -> None:
     out_path.parent.mkdir(parents=True, exist_ok=True)
     # safe CSV writer; avoid excel danger by ensuring text was neutralized already
     df.to_csv(out_path, index=False, encoding="utf-8", quoting=csv.QUOTE_MINIMAL)
@@ -529,7 +534,7 @@ def iter_xlsx_files(root: Path, recursive: bool) -> Iterable[Path]:
     else:
         yield from (p for p in root.glob("*.xlsx") if p.is_file())
 
-def main():
+def main() -> None:
     args = parse_args()
     logging.basicConfig(
         level=logging.WARNING if args.quiet else logging.INFO,

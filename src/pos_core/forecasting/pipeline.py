@@ -15,7 +15,6 @@ from pos_core.forecasting.api import ForecastConfig, run_payments_forecast
 from pos_core.forecasting.data.loaders import load_payments_data
 from pos_core.forecasting.formatters.console import (
     format_forecast_for_console,
-    sanitize_for_console,
 )
 from pos_core.forecasting.formatters.telegram import format_telegram_message
 
@@ -70,7 +69,7 @@ def main() -> None:
     try:
         # Load data
         csv_path = Path(args.file) if args.file else None
-        print(f"\n[1/3] Loading payments data...")
+        print("\n[1/3] Loading payments data...")
         if csv_path:
             print(f"  Reading from: {csv_path}")
             if not csv_path.exists():

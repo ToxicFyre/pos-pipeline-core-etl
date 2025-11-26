@@ -7,6 +7,7 @@ enabling a consistent interface for different model types (ARIMA, Prophet, LSTM,
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from typing import Any
 
 import pandas as pd
 
@@ -19,7 +20,7 @@ class ForecastModel(ABC):
     """
     
     @abstractmethod
-    def train(self, series: pd.Series, **kwargs) -> object:
+    def train(self, series: pd.Series, **kwargs) -> Any:
         """Train the forecasting model on a time series.
         
         Args:
@@ -35,7 +36,7 @@ class ForecastModel(ABC):
         pass
     
     @abstractmethod
-    def forecast(self, model: object, steps: int, **kwargs) -> pd.Series:
+    def forecast(self, model: Any, steps: int, **kwargs) -> pd.Series:
         """Generate forecast from a trained model.
         
         Args:

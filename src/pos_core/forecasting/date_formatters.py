@@ -6,7 +6,6 @@ centralizing date formatting logic that was previously duplicated across modules
 
 from datetime import date
 
-
 # Spanish day names (Monday through Sunday)
 SPANISH_DAYS = [
     "Lunes", "Martes", "Miércoles", "Jueves", "Viernes",
@@ -27,10 +26,10 @@ SPANISH_DAY_ABBREVIATIONS = [
 
 def format_date_spanish(d: date) -> str:
     """Format date in Spanish format like 'Jueves 20 de Noviembre'.
-    
+
     Args:
         d: Date object to format
-        
+
     Returns:
         Formatted date string in Spanish (e.g., "Jueves 20 de Noviembre")
     """
@@ -39,10 +38,10 @@ def format_date_spanish(d: date) -> str:
 
 def format_date_short(d: date) -> str:
     """Format date in short Spanish format like 'Jue 20'.
-    
+
     Args:
         d: Date object to format
-        
+
     Returns:
         Formatted date string in short Spanish format (e.g., "Jue 20")
     """

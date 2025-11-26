@@ -22,11 +22,14 @@ Examples:
 """
 
 from __future__ import annotations
-import re, unicodedata
-from typing import Optional, Iterable
+
+import math
+import re
+import unicodedata
+from typing import Any, Iterable, List, Optional, Union
+
 import numpy as np
 import pandas as pd
-import math
 
 # Unicode characters that should be stripped from text
 NBSP = "\u00A0"  # Non-breaking space
@@ -39,7 +42,7 @@ DANGEROUS_PREFIXES = ("=", "+", "@", "-")
 # Regex to strip currency symbols while preserving number separators
 _CURRENCY_RE = re.compile(r"[^\d,.\-\(\)\s]")
 
-def strip_invisibles(x):
+def strip_invisibles(x: Any) -> Optional[str]:
     """Remove invisible and problematic whitespace characters from text.
 
     Strips:
@@ -72,7 +75,7 @@ def strip_invisibles(x):
     s = re.sub(r"\s+", " ", s).strip()
     return s
 
-def neutralize(text):
+def neutralize(text: Any) -> Any:
     """Prevent formula injection by prefixing dangerous characters.
 
     Spreadsheet applications interpret text starting with =, +, @, or -
@@ -97,7 +100,7 @@ def neutralize(text):
     s = str(text)
     return "'" + s if s.startswith(DANGEROUS_PREFIXES) else s
 
-def to_float(x):
+def to_float(x: Any) -> Optional[float]:
     """Robustly parse numbers in various formats.
 
     Handles multiple number formats commonly found in Excel exports:
@@ -144,7 +147,7 @@ def to_float(x):
     has_dot = '.' in s
     has_com = ',' in s
 
-    def _finalize(num_str, negative):
+    def _finalize(num_str: str, negative: bool) -> Optional[float]:
         try:
             v = float(num_str)
             return -v if negative else v
@@ -185,7 +188,7 @@ def to_float(x):
     # Fallbacks: try replacing comma with dot
     return _finalize(s.replace(',', '.'), neg)
 
-def to_int(val):
+def to_int(val: Any) -> Union[int, float]:
     """Convert value to integer via float parsing and rounding.
 
     Args:
@@ -208,7 +211,7 @@ def to_int(val):
     except Exception:
         return np.nan
 
-def to_date(val):
+def to_date(val: Any) -> pd.Timestamp:
     """Parse date from various formats.
 
     Attempts multiple date formats in order:
@@ -320,7 +323,7 @@ def to_snake(s: str) -> str:
     s1 = re.sub(r"\s+", "_", s1).strip("_")
     return s1
 
-def uniquify(cols: Iterable[str]):
+def uniquify(cols: Iterable[str]) -> List[str]:
     """Make column names unique by appending .1, .2, etc. to duplicates.
 
     Args:

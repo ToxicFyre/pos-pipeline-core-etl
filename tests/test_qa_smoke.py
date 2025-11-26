@@ -1,6 +1,7 @@
 """Smoke test for QA API imports and basic functionality."""
 
 import pandas as pd
+
 from pos_core.qa import PaymentsQAResult, run_payments_qa
 
 

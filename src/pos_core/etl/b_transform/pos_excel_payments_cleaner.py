@@ -48,11 +48,9 @@ import csv
 import logging
 import re
 import sys
-import unicodedata
 from dataclasses import dataclass
-from datetime import date
 from pathlib import Path
-from typing import Iterable, List, Optional, Tuple
+from typing import Any, Iterable, List, Optional
 
 import pandas as pd
 
@@ -60,11 +58,13 @@ import pandas as pd
 from pos_core.etl.utils import get_raw_file_date_range, slugify
 
 from .pos_cleaning_utils import (
-    strip_invisibles,
     neutralize as neutralize_formula_injection,
+)
+from .pos_cleaning_utils import (
+    normalize_spanish_name,
+    strip_invisibles,
     to_date,
     to_float,
-    normalize_spanish_name,
 )
 
 # --------------------------------------------------------------------
@@ -100,7 +100,7 @@ def detect_header_row(
     return 0
 
 
-def _to_int_or_none(x):
+def _to_int_or_none(x: Any) -> Optional[int]:
     """
     Safely convert to int, or return None if blank/non-numeric.
     Used for order_index / Orden keys to avoid merge dtype issues.
@@ -279,12 +279,12 @@ def transform_detalle_por_forma_pago(
     """
     # Log immediately at function entry - this helps catch hangs before any operations
     logging.info("Processing file: %s (sucursal_hint=%r)", xlsx_in, sucursal_hint)
-    
+
     if verbose:
         logging.debug("Opening Excel file: %s", xlsx_in)
-    
+
     xls = pd.ExcelFile(xlsx_in)
-    
+
     if verbose:
         logging.debug("ExcelFile opened successfully: %s", xlsx_in.name)
     try:
@@ -352,7 +352,7 @@ def transform_detalle_por_forma_pago(
 
             # Log available columns before filtering (for debugging)
             logging.debug("Available columns in elim_df: %s", list(elim_df.columns))
-            
+
             # Check if "Forma de pago" or similar payment method column exists
             payment_method_col = None
             for col in elim_df.columns:
@@ -361,12 +361,12 @@ def transform_detalle_por_forma_pago(
                     payment_method_col = col
                     logging.debug("Found payment method column: '%s' (normalized: '%s')", col, col_lower)
                     break
-            
+
             # Keep only needed columns (but preserve payment method for logging if available)
             cols_to_keep = ["Fecha de operación", "Orden"]
             if payment_method_col:
                 cols_to_keep.append(payment_method_col)
-            
+
             elim_df = elim_df[cols_to_keep].dropna(how="all")
             logging.debug("After filtering, %d elimination records remain", len(elim_df))
 
@@ -381,18 +381,18 @@ def transform_detalle_por_forma_pago(
             # Log details before deduplication for debugging
             rows_before_dedup = len(elim_df)
             logging.debug("Before deduplication: %d records", rows_before_dedup)
-            
+
             # Check for None/NaT values that might cause issues
             null_dates = elim_df["Fecha de operación"].isna().sum()
             null_orders = elim_df["Orden"].isna().sum()
             logging.debug("  - Records with null dates: %d", null_dates)
             logging.debug("  - Records with null orders: %d", null_orders)
-            
+
             # Check for actual duplicates
             duplicate_mask = elim_df.duplicated(subset=["Fecha de operación", "Orden"], keep=False)
             duplicate_count = duplicate_mask.sum()
             logging.debug("  - Records that are duplicates: %d", duplicate_count)
-            
+
             if duplicate_count > 0:
                 logging.debug("Sample duplicate records (first 10):")
                 duplicates = elim_df[duplicate_mask].head(10)
@@ -400,14 +400,14 @@ def transform_detalle_por_forma_pago(
                     payment_info = ""
                     if payment_method_col and payment_method_col in row:
                         payment_info = f", Forma de pago={row[payment_method_col]}"
-                    logging.debug("    Row %d: Fecha=%s, Orden=%s%s", 
+                    logging.debug("    Row %d: Fecha=%s, Orden=%s%s",
                                 idx, row["Fecha de operación"], row["Orden"], payment_info)
-            
+
             # Show value counts for debugging
             if rows_before_dedup > 0:
                 logging.debug("Sample of first 5 records before deduplication:")
                 for idx, row in elim_df.head(5).iterrows():
-                    logging.debug("    Row %d: Fecha=%s (type=%s), Orden=%s (type=%s)", 
+                    logging.debug("    Row %d: Fecha=%s (type=%s), Orden=%s (type=%s)",
                                 idx, row["Fecha de operación"], type(row["Fecha de operación"]).__name__,
                                 row["Orden"], type(row["Orden"]).__name__)
 
@@ -415,10 +415,10 @@ def transform_detalle_por_forma_pago(
             # Remove payment method column if we kept it for logging (we only need date + order for merge)
             if payment_method_col and payment_method_col in elim_df.columns:
                 elim_df = elim_df.drop(columns=[payment_method_col])
-            
+
             elim_df = elim_df.drop_duplicates(subset=["Fecha de operación", "Orden"])
             rows_after_dedup = len(elim_df)
-            logging.debug("After deduplication: %d unique elimination records (removed %d duplicates)", 
+            logging.debug("After deduplication: %d unique elimination records (removed %d duplicates)",
                          rows_after_dedup, rows_before_dedup - rows_after_dedup)
 
         except Exception as e:
@@ -529,7 +529,7 @@ def transform_detalle_por_forma_pago(
                 )
                 elim_df = elim_df[elim_mask].copy()
                 logging.debug("Filtered elim_df to %d rows", len(elim_df))
-            
+
             # Filter main df if it has operating_date column
             if "operating_date" in df.columns:
                 mask = df["operating_date"].notna() & (
@@ -560,15 +560,15 @@ def transform_detalle_por_forma_pago(
         # Attach elimination_present boolean to df (payments)
         # ------------------------------------------------------------------
         if not elim_df.empty and {"operating_date", "order_index"} <= set(df.columns):
-            logging.debug("Merging elimination data (%d elim records, %d payment records)...", 
+            logging.debug("Merging elimination data (%d elim records, %d payment records)...",
                          len(elim_df), len(df))
-            
+
             # Log sample of main payments table before merge (to see if duplicates already exist)
             if "operating_date" in df.columns and "order_index" in df.columns:
                 logging.debug("  - Sample of main payments table (first 10 rows):")
                 for idx, row in df.head(10).iterrows():
                     payment_method = row.get("payment_method", "N/A")
-                    logging.debug("    Row %d: Fecha=%s, Orden=%s, Forma de pago=%s", 
+                    logging.debug("    Row %d: Fecha=%s, Orden=%s, Forma de pago=%s",
                                 idx, row.get("operating_date"), row.get("order_index"), payment_method)
             elim_df["elimination_present"] = True
 
@@ -587,13 +587,13 @@ def transform_detalle_por_forma_pago(
             logging.debug("Performing merge on operating_date and order_index...")
             logging.debug("  - Main payments table before merge: %d rows", len(df))
             logging.debug("  - Elimination table (unique date+order): %d rows", len(key_elim))
-            
+
             # Log sample of what will be marked as eliminated
             if len(key_elim) > 0:
                 logging.debug("  - Sample elimination keys (first 5):")
                 for idx, row in key_elim.head(5).iterrows():
                     logging.debug("    Date=%s, Order=%s", row["operating_date"], row["order_index"])
-            
+
             df = df.merge(
                 key_elim[["operating_date", "order_index", "elimination_present"]],
                 on=["operating_date", "order_index"],
@@ -602,7 +602,7 @@ def transform_detalle_por_forma_pago(
             # Ensure boolean type before filling to avoid FutureWarning
             df["elimination_present"] = df["elimination_present"].astype("boolean").fillna(False)
             logging.debug("Merge complete: %d rows in result", len(df))
-            
+
             # Log details about marked payments
             n_marked = df["elimination_present"].sum()
             if n_marked > 0:
@@ -611,8 +611,8 @@ def transform_detalle_por_forma_pago(
                 marked = df[df["elimination_present"]].head(10)
                 logging.debug("  - Sample marked payments (first 10):")
                 for idx, row in marked.iterrows():
-                    logging.debug("    Row %d: Fecha=%s, Orden=%s, Forma de pago=%s", 
-                                idx, row.get("operating_date"), row.get("order_index"), 
+                    logging.debug("    Row %d: Fecha=%s, Orden=%s, Forma de pago=%s",
+                                idx, row.get("operating_date"), row.get("order_index"),
                                 row.get("payment_method", "N/A"))
 
         else:
@@ -835,10 +835,10 @@ def iter_xlsx_files(root: Path, recursive: bool, verbose: bool = False) -> Itera
 
 def run_single(xlsx: Path, outdir: Path, sucursal_hint: Optional[str], verbose: bool = False) -> Path:
     logging.info("Processing %s (sucursal_hint=%r)", xlsx, sucursal_hint)
-    
+
     try:
         df = transform_detalle_por_forma_pago(xlsx, sucursal_hint=sucursal_hint, verbose=verbose)
-        
+
         logging.debug("Transform completed, DataFrame shape: %d rows, %d cols", len(df), len(df.columns))
         if df.empty:
             logging.warning("No data found in %s (after cleaning)", xlsx)
@@ -880,35 +880,35 @@ def main() -> None:
 
     root = args.input_dir.resolve()
     any_found = False
-    
+
     if args.verbose:
         logging.debug("Starting to iterate files in: %s", root)
-    
+
     for x in iter_xlsx_files(root, args.recursive, verbose=args.verbose):
         any_found = True
-        
+
         if args.verbose:
             logging.debug("Found file: %s", x)
-        
+
         try:
             # infer branch from first directory under input_dir if no explicit sucursal
             if args.verbose:
                 logging.debug("Resolving relative path for: %s", x)
             rel = x.resolve().relative_to(root)
-            
+
             if args.verbose:
                 logging.debug("Relative path: %s", rel)
             branch_dir = rel.parts[0] if len(rel.parts) > 1 else None
-            
+
             if args.verbose:
                 logging.debug("Branch dir: %s", branch_dir)
             hint = args.sucursal or normalize_branch_name(branch_dir)
-            
+
             if args.verbose:
                 logging.debug("Sucursal hint: %s, about to call run_single", hint)
-            
+
             run_single(x, args.outdir, sucursal_hint=hint, verbose=args.verbose)
-            
+
             if args.verbose:
                 logging.debug("run_single completed for: %s", x.name)
         except Exception as e:

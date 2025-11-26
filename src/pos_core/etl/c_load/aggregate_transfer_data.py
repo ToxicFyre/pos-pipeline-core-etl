@@ -21,7 +21,7 @@ Examples:
 
 #!/usr/bin/env python3
 import argparse
-import sys
+
 import pandas as pd
 
 # Row order for output pivot table (branch codes)

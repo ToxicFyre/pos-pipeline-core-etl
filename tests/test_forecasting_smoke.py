@@ -4,15 +4,14 @@ This test verifies that the forecasting API can be imported and basic forecastin
 can be run without runtime errors.
 """
 
-from pathlib import Path
-
-import pandas as pd
-
-from pos_core.forecasting import ForecastConfig, ForecastResult, run_payments_forecast
 
 # at the top of tests/test_forecasting_smoke.py
 import warnings
+
+import pandas as pd
 from statsmodels.tools.sm_exceptions import ConvergenceWarning
+
+from pos_core.forecasting import ForecastConfig, ForecastResult, run_payments_forecast
 
 warnings.filterwarnings("ignore", category=ConvergenceWarning)
 

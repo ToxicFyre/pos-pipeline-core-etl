@@ -137,7 +137,6 @@ import requests
 
 from pos_core.etl.b_transform.pos_cleaning_utils import normalize_spanish_name
 
-
 # ------------------------------------------------------------
 # Normalization + payment-method bucketing
 # ------------------------------------------------------------
@@ -207,13 +206,13 @@ def fetch_mexican_holidays(year: int) -> Set[date]:
     """
     Fetch Mexican national holidays for a given year using the Nager.Date API.
     Uses caching to avoid redundant API calls.
-    
+
     Args:
         year: The year to fetch holidays for
-        
+
     Returns:
         A set of date objects representing Mexican national holidays
-        
+
     Raises:
         requests.RequestException: If the API request fails
         ValueError: If the API response is invalid
@@ -221,25 +220,25 @@ def fetch_mexican_holidays(year: int) -> Set[date]:
     # Check cache first
     if year in _HOLIDAY_CACHE:
         return _HOLIDAY_CACHE[year]
-    
+
     url = f"https://date.nager.at/api/v3/PublicHolidays/{year}/MX"
     try:
         response = requests.get(url, timeout=10)
         response.raise_for_status()
         holidays_data = response.json()
-        
+
         # Extract dates from the response
         holiday_dates = set()
         for holiday in holidays_data:
             # API returns dates in 'YYYY-MM-DD' format
             holiday_date = date.fromisoformat(holiday["date"])
             holiday_dates.add(holiday_date)
-        
+
         # Cache the result
         _HOLIDAY_CACHE[year] = holiday_dates
         logging.info("Fetched %d Mexican holidays for year %d", len(holiday_dates), year)
         return holiday_dates
-        
+
     except requests.RequestException as e:
         logging.warning(
             "Failed to fetch Mexican holidays for year %d: %s. "
@@ -260,32 +259,32 @@ def fetch_mexican_holidays(year: int) -> Set[date]:
 def get_all_mexican_holidays(df: pd.DataFrame) -> Set[date]:
     """
     Fetch Mexican holidays for all years present in the dataframe.
-    
+
     Args:
         df: DataFrame with 'operating_date' column
-        
+
     Returns:
         A set of all holiday dates across all years in the dataframe
     """
     if "operating_date" not in df.columns:
         return set()
-    
+
     # Convert to datetime if needed
     dates = pd.to_datetime(df["operating_date"], errors="coerce")
     dates = dates.dropna()
-    
+
     if dates.empty:
         return set()
-    
+
     # Get unique years
     years = dates.dt.year.unique()
-    
+
     # Fetch holidays for all years and combine
     all_holidays = set()
     for year in years:
         holidays = fetch_mexican_holidays(int(year))
         all_holidays.update(holidays)
-    
+
     return all_holidays
 
 

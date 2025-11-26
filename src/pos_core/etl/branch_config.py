@@ -15,7 +15,6 @@ from typing import Dict, List, Optional
 
 from pos_core.etl.utils import parse_date
 
-
 EXCLUDED_BRANCHES = {"CEDIS"}
 
 

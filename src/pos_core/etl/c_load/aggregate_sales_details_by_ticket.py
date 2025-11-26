@@ -46,12 +46,11 @@ Exit codes:
 from __future__ import annotations
 
 import argparse
-import csv
 import glob
 import logging
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence
+from typing import List, Optional, Sequence
 
 import pandas as pd
 
@@ -142,17 +141,17 @@ def aggregate_by_ticket(
 
     # Read all CSVs
     df = _read_any(file_specs)
-    
+
     if verbose:
         logger.info(f"Loaded DataFrame: {len(df)} rows, {len(df.columns)} columns")
         logger.info(f"Columns: {list(df.columns)[:10]}...")
 
     # Normalize column names (case-insensitive lookup)
     col_map = {c.lower(): c for c in df.columns}
-    
+
     if verbose:
         logger.debug(f"Column mapping (first 10): {dict(list(col_map.items())[:10])}")
-    
+
     # Required columns
     order_id_col = col_map.get("order_id")
     group_col = col_map.get("group")
@@ -182,7 +181,7 @@ def aggregate_by_ticket(
         "server",
         "terminal",
     ]
-    
+
     # Special handling fields
     closing_time_col = col_map.get("closing_time")
     captured_time_col = col_map.get("captured_time")
@@ -200,7 +199,7 @@ def aggregate_by_ticket(
     # Get all unique groups to create columns for
     unique_groups = sorted(df[group_col].dropna().unique())
     logger.info(f"Found {len(unique_groups)} unique groups: {unique_groups[:10]}...")
-    
+
     if verbose:
         logger.info(f"All unique groups ({len(unique_groups)}): {unique_groups}")
         logger.info(f"Group value counts (top 10):\n{df[group_col].value_counts().head(10)}")
@@ -212,7 +211,7 @@ def aggregate_by_ticket(
     pdv_txn_id_col = col_map.get("pdv_txn_id")
     sucursal_col = col_map.get("sucursal")
     date_col = col_map.get("operating_date")
-    
+
     if pdv_txn_id_col and pdv_txn_id_col in df.columns and df[pdv_txn_id_col].notna().any():
         # Use pdv_txn_id if available (it's globally unique)
         logger.info("Using pdv_txn_id for grouping (globally unique)")
@@ -251,12 +250,12 @@ def aggregate_by_ticket(
     if verbose:
         logger.info(f"Aggregating by: {groupby_cols + [group_col]}")
         logger.info(f"  Using columns: subtotal={subtotal_col}, total={total_col}")
-    
+
     ticket_groups = df.groupby(groupby_cols + [group_col], dropna=False).agg({
         subtotal_col: "sum",
         total_col: "sum",
     }).reset_index()
-    
+
     if verbose:
         logger.info(f"After grouping: {len(ticket_groups)} ticket-group combinations")
         logger.debug(f"Sample ticket_groups:\n{ticket_groups.head(10)}")
@@ -282,7 +281,7 @@ def aggregate_by_ticket(
             aggfunc="sum",
             fill_value=0.0
         )
-        
+
         total_pivot = ticket_groups.pivot_table(
             index=groupby_cols,
             columns=group_col,
@@ -294,21 +293,21 @@ def aggregate_by_ticket(
         # Rename columns to {GROUP}_subtotal and {GROUP}_total
         # Note: The pivot table columns are the original group values from the data
         if verbose:
-            logger.debug(f"Original group values (pivot columns) before sanitization:")
+            logger.debug("Original group values (pivot columns) before sanitization:")
             for orig_group in list(subtotal_pivot.columns)[:10]:
                 logger.debug(f"  Original: '{orig_group}' (len={len(str(orig_group))})")
                 sanitized = _sanitize_group_name(orig_group)
                 logger.debug(f"  Sanitized: '{sanitized}' (len={len(sanitized)})")
-        
+
         subtotal_cols = {col: f"{_sanitize_group_name(col)}_subtotal" for col in subtotal_pivot.columns}
         total_cols = {col: f"{_sanitize_group_name(col)}_total" for col in total_pivot.columns}
-        
+
         if verbose:
             logger.info(f"Renaming {len(subtotal_cols)} subtotal columns and {len(total_cols)} total columns")
-            logger.debug(f"Sample column mappings (first 5):")
+            logger.debug("Sample column mappings (first 5):")
             for orig, new in list(subtotal_cols.items())[:5]:
                 logger.debug(f"  '{orig}' -> '{new}'")
-        
+
         subtotal_pivot = subtotal_pivot.rename(columns=subtotal_cols)
         total_pivot = total_pivot.rename(columns=total_cols)
 
@@ -324,15 +323,15 @@ def aggregate_by_ticket(
     # and will be included in the result via reset_index()
     groupby_cols_set = set(groupby_cols)
     fields_to_agg = {
-        col_map.get(field): "first" 
-        for field in ticket_fields 
+        col_map.get(field): "first"
+        for field in ticket_fields
         if col_map.get(field) and col_map.get(field) not in groupby_cols_set
     }
     if closing_time_col and closing_time_col not in groupby_cols_set:
         fields_to_agg[closing_time_col] = "max"
     if captured_time_col and captured_time_col not in groupby_cols_set:
         fields_to_agg[captured_time_col] = "min"
-    
+
     # Handle case where all fields are in groupby_cols (empty aggregation dict)
     if verbose:
         logger.info(f"Aggregating ticket metadata with {len(fields_to_agg)} fields")
@@ -340,14 +339,14 @@ def aggregate_by_ticket(
             logger.debug(f"Fields to aggregate: {list(fields_to_agg.keys())}")
         else:
             logger.warning("No fields to aggregate (all are in groupby_cols)")
-    
+
     if fields_to_agg:
         ticket_metadata = df.groupby(groupby_cols).agg(fields_to_agg).reset_index()
     else:
         # If no fields to aggregate, just get unique groupby combinations
         ticket_metadata = df.groupby(groupby_cols).size().reset_index(name='_count')
         ticket_metadata = ticket_metadata.drop(columns=['_count'])
-    
+
     if verbose:
         logger.info(f"Ticket metadata: {len(ticket_metadata)} tickets")
         logger.debug(f"Ticket metadata columns: {list(ticket_metadata.columns)}")
@@ -355,27 +354,27 @@ def aggregate_by_ticket(
     # Reset index on ticket_agg and merge with metadata
     # The index contains the groupby columns, so reset_index() will add them as columns
     ticket_agg_reset = ticket_agg.reset_index()
-    
+
     if verbose:
         logger.info(f"Ticket aggregation: {len(ticket_agg_reset)} tickets")
         logger.info(f"  Group columns created: {len([c for c in ticket_agg_reset.columns if c.endswith('_subtotal')])} subtotals, "
                    f"{len([c for c in ticket_agg_reset.columns if c.endswith('_total')])} totals")
         logger.debug(f"  Ticket agg columns: {list(ticket_agg_reset.columns)[:15]}...")
         logger.debug(f"  Merging on: {groupby_cols}")
-    
+
     # Merge on groupby columns, but avoid duplicate columns
     # ticket_metadata already has the groupby columns, and ticket_agg_reset will have them from reset_index()
     # Use suffixes to handle any conflicts, but there shouldn't be any since we're merging on the same columns
     result = ticket_metadata.merge(ticket_agg_reset, on=groupby_cols, how="left", suffixes=("", "_agg"))
-    
+
     if verbose:
         logger.info(f"After merge: {len(result)} tickets, {len(result.columns)} columns")
         if len(result) != len(ticket_metadata):
             logger.warning(f"Merge changed row count: {len(ticket_metadata)} -> {len(result)}")
-    
+
     # Drop any duplicate columns created by the merge (shouldn't happen, but just in case)
     result = result.loc[:, ~result.columns.duplicated()]
-    
+
     if verbose and result.columns.duplicated().any():
         logger.warning(f"Found duplicate columns after merge: {result.columns[result.columns.duplicated()].tolist()}")
 
@@ -394,11 +393,11 @@ def aggregate_by_ticket(
         metadata_cols.append(closing_time_col)
     if captured_time_col and captured_time_col in result.columns:
         metadata_cols.append(captured_time_col)
-    
+
     # Sort group columns: subtotals first, then totals, both alphabetically
     group_subtotal_cols = sorted([c for c in result.columns if c.endswith("_subtotal")])
     group_total_cols = sorted([c for c in result.columns if c.endswith("_total")])
-    
+
     final_cols = metadata_cols + group_subtotal_cols + group_total_cols + ["total_ticket_cost"]
     # Add any remaining columns
     remaining_cols = [c for c in result.columns if c not in final_cols]
