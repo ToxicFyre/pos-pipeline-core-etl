@@ -60,11 +60,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- (Future features will be listed here)
+- **Query Functions**: High-level query functions for intelligent data access
+  - `get_sales()` - Retrieve sales data with automatic ETL stage execution based on metadata
+  - `get_payments()` - Retrieve payments data with automatic ETL stage execution based on metadata
+  - `get_payments_forecast()` - Generate payments forecasts with automatic data preparation
+  - All query functions support metadata-aware stage execution (only runs missing/outdated stages)
+  - Support for `refresh` parameter to force re-running all ETL stages
+  - Support for multiple aggregation levels in sales queries (ticket, group, day)
+
+- **Configuration API**: Enhanced configuration with explicit path management
+  - `PaymentsETLConfig.from_data_root()` - Factory method to create config from data root path
+  - `PaymentsETLConfig.from_root()` - Alias for consistency with SalesETLConfig
+  - `PaymentsPaths` dataclass for centralized path configuration
+  - Support for configurable `data_root` instead of hardcoded directories
+
+- **Branch Configuration Utilities**: New module for branch code window management
+  - `CodeWindow` dataclass for representing time windows when branch codes are valid
+  - `load_branch_segments_from_json()` - Load branch code windows from configuration files
+  - Separated into `branch_config.py` to avoid circular import issues
 
 ### Changed
 
-- (Future changes will be listed here)
+- **ETL API**: Refactored payments ETL to use explicit configuration objects
+  - `build_payments_dataset()` now accepts `PaymentsETLConfig` instead of hardcoded paths
+  - All ETL stages now use configurable paths from `PaymentsETLConfig.paths`
+  - Improved error handling with explicit exceptions for missing files and invalid configurations
+  - Query functions automatically manage ETL stage execution based on metadata
 
 ### Deprecated
 
