@@ -28,8 +28,14 @@ Successfully implemented a naive forecasting model that predicts future values b
 
 #### `/workspace/examples/naive_forecast_example.py` (NEW)
 - Demonstration script showing how to use the naive model
+- **Automatically downloads data using ETL pipeline if not present**
+- Falls back to synthetic data if configuration is missing
 - Includes comparison between ARIMA and naive models
 - Shows practical usage patterns
+- Prerequisites:
+  - Set `WS_BASE` environment variable (for downloading data)
+  - Create `utils/sucursales.json` with branch configuration
+  - Or manually place CSV at `data/c_processed/payments/aggregated_payments_daily.csv`
 
 ### 2. Files Modified
 
