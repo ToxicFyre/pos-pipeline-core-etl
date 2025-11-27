@@ -7,18 +7,22 @@ from previous weeks, while skipping holidays and their adjacent days.
 This provides a simple baseline forecast alternative to ARIMA models.
 
 Prerequisites:
-- Have aggregated payments data (output from ETL pipeline)
-- Data should include 'is_national_holiday' column if available
+- Set WS_BASE environment variable (for downloading data if not present)
+- Create utils/sucursales.json with branch configuration (if downloading data)
+- If data already exists, it will be used; otherwise it will be downloaded
 """
 
 from pathlib import Path
+from datetime import date, timedelta
 import pandas as pd
 
+from pos_core.etl import PaymentsETLConfig, build_payments_dataset
 from pos_core.forecasting import ForecastConfig, run_payments_forecast
 
 # Example 1: Load existing payments data and run naive forecast
 # Modify this path to point to your aggregated payments data
-data_file = Path("data/c_processed/payments/aggregated_payments_daily.csv")
+data_root = Path("data")
+data_file = data_root / "c_processed" / "payments" / "aggregated_payments_daily.csv"
 
 print("=" * 80)
 print("Example 1: Naive Forecasting with Historical Data")
@@ -73,8 +77,88 @@ if data_file.exists():
 
 else:
     print(f"\nData file not found: {data_file}")
-    print("Using synthetic data for demonstration instead...")
-    print()
+    print("Attempting to build payments dataset using ETL pipeline...")
+    
+    try:
+        # Set up ETL configuration
+        sucursales_json = Path("utils/sucursales.json")
+        
+        if not sucursales_json.exists():
+            print(f"\nWarning: Branch configuration not found at {sucursales_json}")
+            print("Creating data directory structure for manual setup...")
+            data_file.parent.mkdir(parents=True, exist_ok=True)
+            print(f"\nPlease either:")
+            print(f"1. Place aggregated payments CSV at: {data_file}")
+            print(f"2. Set up branch config at: {sucursales_json} and set WS_BASE env variable")
+            print("\nUsing synthetic data for demonstration instead...")
+            print()
+        else:
+            # Build configuration
+            config = PaymentsETLConfig.from_data_root(data_root)
+            
+            # Calculate date range (last 90 days for quick demo)
+            end_date = date.today()
+            start_date = end_date - timedelta(days=90)
+            
+            print(f"\nBuilding payments dataset from {start_date} to {end_date}...")
+            print("This will download data from POS API if WS_BASE is set...")
+            print("(This may take a few minutes on first run)\n")
+            
+            # Build the dataset
+            payments_df = build_payments_dataset(
+                start_date=start_date.isoformat(),
+                end_date=end_date.isoformat(),
+                config=config,
+            )
+            
+            # Save to file for future use
+            data_file.parent.mkdir(parents=True, exist_ok=True)
+            payments_df.to_csv(data_file, index=False)
+            print(f"\nSaved payments data to: {data_file}")
+            print(f"Loaded {len(payments_df)} rows of historical data")
+            print(f"Date range: {payments_df['fecha'].min()} to {payments_df['fecha'].max()}")
+            print(f"Branches: {payments_df['sucursal'].nunique()}")
+            
+            # Now run the forecast with the downloaded data
+            config_forecast = ForecastConfig(
+                horizon_days=7,
+                model_type="naive",
+                branches=None,
+            )
+            
+            print("\nRunning naive forecast...")
+            result = run_payments_forecast(payments_df, config=config_forecast)
+            
+            # Display results
+            print("\n" + "=" * 80)
+            print("Forecast Results:")
+            print("=" * 80)
+            print(f"\nSuccessful forecasts: {result.metadata['successful_forecasts']}")
+            print(f"Failed forecasts: {result.metadata['failed_forecasts']}")
+            
+            print("\nForecast DataFrame (first 20 rows):")
+            print(result.forecast.head(20))
+            
+            print("\nDeposit Schedule (cash flow view):")
+            print(result.deposit_schedule)
+            
+            # Save results
+            output_dir = Path("data/c_processed/forecasts")
+            output_dir.mkdir(parents=True, exist_ok=True)
+            
+            forecast_file = output_dir / "naive_forecast.csv"
+            deposit_file = output_dir / "naive_deposit_schedule.csv"
+            
+            result.forecast.to_csv(forecast_file, index=False)
+            result.deposit_schedule.to_csv(deposit_file, index=False)
+            
+            print(f"\nSaved forecast to: {forecast_file}")
+            print(f"Saved deposit schedule to: {deposit_file}")
+            
+    except Exception as e:
+        print(f"\nError building payments dataset: {e}")
+        print("Using synthetic data for demonstration instead...")
+        print()
 
 # Example 2: Comparison between ARIMA and Naive models
 print("\n" + "=" * 80)
