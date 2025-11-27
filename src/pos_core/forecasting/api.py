@@ -21,6 +21,7 @@ from pos_core.forecasting.data.preparation import (
     calculate_ingreso_total,
 )
 from pos_core.forecasting.models.arima import LogARIMAModel
+from pos_core.forecasting.models.base import ForecastModel
 from pos_core.forecasting.models.naive import NaiveLastWeekModel
 
 logger = logging.getLogger(__name__)
@@ -245,19 +246,18 @@ def run_payments_forecast(
     # Extract holidays from payments_df if is_national_holiday column exists
     holidays: set[date] = set()
     if "is_national_holiday" in df.columns:
-        holiday_dates = df[df["is_national_holiday"] == True]["fecha"].dt.date.unique()
+        holiday_dates = df[df["is_national_holiday"]]["fecha"].dt.date.unique()
         holidays = set(holiday_dates)
         logger.info(f"Extracted {len(holidays)} holiday dates from data")
 
     # Select model class based on config.model_type
     if config.model_type == "naive":
-        model = NaiveLastWeekModel()
+        model: ForecastModel = NaiveLastWeekModel()
     elif config.model_type == "arima":
         model = LogARIMAModel()
     else:
         raise ValueError(
-            f"Unknown model_type: {config.model_type}. "
-            f"Supported options: 'arima', 'naive'"
+            f"Unknown model_type: {config.model_type}. Supported options: 'arima', 'naive'"
         )
 
     # Generate forecasts: {branch: {metric: forecast_series}}
