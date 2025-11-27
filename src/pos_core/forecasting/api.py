@@ -21,6 +21,7 @@ from pos_core.forecasting.data.preparation import (
     calculate_ingreso_total,
 )
 from pos_core.forecasting.models.arima import LogARIMAModel
+from pos_core.forecasting.models.naive import NaiveLastWeekModel
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +34,7 @@ class ForecastConfig:
         horizon_days: Number of days ahead to forecast (default: 7).
         metrics: List of metrics to forecast (default: cash, credit, debit, total).
         branches: Optional list of branch names to forecast. If None, infers from payments_df.
+        model_type: Type of forecasting model to use. Valid values: "arima" or "naive" (default: "arima").
     """
 
     horizon_days: int = 7
@@ -45,6 +47,7 @@ class ForecastConfig:
         ]
     )
     branches: Optional[List[str]] = None  # if None, infer from payments_df
+    model_type: str = "arima"  # "arima" or "naive"
 
 
 @dataclass
@@ -239,8 +242,23 @@ def run_payments_forecast(
         f"{horizon_days} days"
     )
 
-    # Get model instance
-    model = LogARIMAModel()
+    # Extract holidays from payments_df for naive model
+    holidays = set()
+    if "is_national_holiday" in df.columns:
+        holiday_dates = df.loc[df["is_national_holiday"] == True, "fecha"].dt.date.unique()
+        holidays = set(holiday_dates)
+
+    # Get model instance based on config
+    if config.model_type == "naive":
+        model = NaiveLastWeekModel()
+    elif config.model_type == "arima":
+        model = LogARIMAModel()
+    else:
+        raise ValueError(
+            f"Unknown model_type: {config.model_type}. Valid values are 'arima' or 'naive'"
+        )
+
+    logger.info(f"Using {config.model_type} model for forecasting")
 
     # Generate forecasts: {branch: {metric: forecast_series}}
     forecasts: Dict[str, Dict[str, pd.Series]] = {}
@@ -272,7 +290,8 @@ def run_payments_forecast(
 
                 # Train model and forecast
                 logger.debug(f"Training {branch} - {metric}...")
-                trained_model = model.train(series)
+                # Pass holidays to naive model, ARIMA model ignores extra kwargs
+                trained_model = model.train(series, holidays=holidays)
                 last_date = series.index[-1]
                 forecast = model.forecast(trained_model, steps=horizon_days, last_date=last_date)
                 forecasts[branch][metric] = forecast
