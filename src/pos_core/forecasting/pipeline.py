@@ -46,6 +46,13 @@ def main() -> None:
         help="Number of days to forecast ahead (default: 7)",
     )
     parser.add_argument(
+        "--model",
+        type=str,
+        default="arima",
+        choices=["arima", "naive"],
+        help="Forecast model to use (default: arima). Options: arima, naive",
+    )
+    parser.add_argument(
         "--verbose",
         "-v",
         action="store_true",
@@ -83,8 +90,8 @@ def main() -> None:
         print(f"[OK] Loaded {len(payments_df)} rows")
 
         # Configure and run forecast
-        print(f"\n[2/3] Generating {args.horizon}-day forecasts...")
-        config = ForecastConfig(horizon_days=args.horizon)
+        print(f"\n[2/3] Generating {args.horizon}-day forecasts using {args.model} model...")
+        config = ForecastConfig(horizon_days=args.horizon, model_type=args.model)
         result = run_payments_forecast(payments_df, config=config)
         branches_list = result.metadata.get("branches", [])
         branches_count = len(branches_list) if isinstance(branches_list, list) else 0
