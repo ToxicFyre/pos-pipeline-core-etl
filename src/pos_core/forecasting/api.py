@@ -21,6 +21,8 @@ from pos_core.forecasting.data.preparation import (
     calculate_ingreso_total,
 )
 from pos_core.forecasting.models.arima import LogARIMAModel
+from pos_core.forecasting.models.base import ForecastModel
+from pos_core.forecasting.models.naive import NaiveLastWeekModel
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +35,7 @@ class ForecastConfig:
         horizon_days: Number of days ahead to forecast (default: 7).
         metrics: List of metrics to forecast (default: cash, credit, debit, total).
         branches: Optional list of branch names to forecast. If None, infers from payments_df.
+        model: Forecasting model instance to use (default: LogARIMAModel).
     """
 
     horizon_days: int = 7
@@ -45,6 +48,7 @@ class ForecastConfig:
         ]
     )
     branches: Optional[List[str]] = None  # if None, infer from payments_df
+    model: ForecastModel = field(default_factory=LogARIMAModel)
 
 
 @dataclass
@@ -233,19 +237,37 @@ def run_payments_forecast(
 
     metrics = config.metrics
     horizon_days = config.horizon_days
+    model = config.model
 
     logger.info(
         f"Running forecast for {len(branches)} branches, {len(metrics)} metrics, "
-        f"{horizon_days} days"
+        f"{horizon_days} days using {model.__class__.__name__}"
     )
 
-    # Get model instance
-    model = LogARIMAModel()
+    # Extract holidays from payments_df if available
+    holidays: set[date] = set()
+    if "is_national_holiday" in df.columns:
+        holiday_rows = df[df["is_national_holiday"] == True]
+        for _, row in holiday_rows.iterrows():
+            fecha = row["fecha"]
+            if isinstance(fecha, pd.Timestamp):
+                holidays.add(fecha.date())
+            elif isinstance(fecha, date):
+                holidays.add(fecha)
+            else:
+                try:
+                    holidays.add(pd.to_datetime(fecha).date())
+                except Exception:
+                    continue
+        logger.debug(f"Extracted {len(holidays)} holidays from payments_df")
 
     # Generate forecasts: {branch: {metric: forecast_series}}
     forecasts: Dict[str, Dict[str, pd.Series]] = {}
     successful_forecasts = 0
     failed_forecasts = 0
+
+    # Minimum data requirement depends on model type
+    min_data_points = 7 if isinstance(model, NaiveLastWeekModel) else 30
 
     for branch in branches:
         if branch not in df["sucursal"].values:
@@ -263,16 +285,21 @@ def run_payments_forecast(
                 # But check for any remaining NaN/inf just in case
                 series = series.replace([np.inf, -np.inf], np.nan).fillna(0.0)
 
-                if len(series) < 30:
+                if len(series) < min_data_points:
                     logger.warning(
-                        f"{branch} - {metric}: insufficient data ({len(series)} obs), skipping"
+                        f"{branch} - {metric}: insufficient data ({len(series)} obs), "
+                        f"need at least {min_data_points}, skipping"
                     )
                     failed_forecasts += 1
                     continue
 
                 # Train model and forecast
                 logger.debug(f"Training {branch} - {metric}...")
-                trained_model = model.train(series)
+                # Pass holidays to NaiveLastWeekModel
+                train_kwargs = {}
+                if isinstance(model, NaiveLastWeekModel):
+                    train_kwargs["holidays"] = holidays
+                trained_model = model.train(series, **train_kwargs)
                 last_date = series.index[-1]
                 forecast = model.forecast(trained_model, steps=horizon_days, last_date=last_date)
                 forecasts[branch][metric] = forecast
