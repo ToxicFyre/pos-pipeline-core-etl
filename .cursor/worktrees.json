@@ -1,0 +1,7 @@
+{
+    "setup-worktree-windows": "setup-worktree-windows.ps1",
+    "setup-worktree": [
+      "echo 'Generic fallback – Windows-specific script should be used.'"
+    ]
+  }
+  

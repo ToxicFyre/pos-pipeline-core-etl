@@ -1,0 +1,55 @@
+# Cursor Rules for POS Pipeline Core ETL
+
+## Python Environment Configuration
+
+This project uses an Anaconda environment. Configure the Python interpreter based on your operating system:
+
+### Windows
+The Python interpreter should be located at:
+- `C:\Users\mzenk\anaconda3\envs\pos-etl\python.exe` (if using Anaconda)
+- `C:\Users\<username>\miniconda3\envs\pos-etl\python.exe` (if using Miniconda)
+
+### macOS
+The Python interpreter should be located at:
+- `~/anaconda3/envs/pos-etl/bin/python` (if using Anaconda)
+- `~/miniconda3/envs/pos-etl/bin/python` (if using Miniconda)
+
+## Environment Setup
+
+If the environment doesn't exist, create it with:
+```bash
+# Windows (PowerShell)
+conda create -n pos-etl python=3.10
+conda activate pos-etl
+pip install -e .[dev]
+
+# macOS (Terminal)
+conda create -n pos-etl python=3.10
+conda activate pos-etl
+pip install -e .[dev]
+```
+
+## Project Context
+
+- Python version: 3.10+ (as specified in pyproject.toml)
+- Main package: pos-core-etl
+- Source code location: `src/pos_core/`
+- Tests location: `tests/`
+- Examples location: `examples/`
+
+## Code Style
+
+- Follow PEP 8 conventions
+- Use type hints where appropriate
+- Line length: 100 characters (as configured in ruff)
+- Use ruff for linting and black for formatting
+- Target Python version: 3.10
+
+## When Running Commands
+
+Always activate the conda environment before running Python commands:
+- Windows: `conda activate pos-etl`
+- macOS: `conda activate pos-etl`
+
+If you need to use a different environment name, update the paths above accordingly.
+
