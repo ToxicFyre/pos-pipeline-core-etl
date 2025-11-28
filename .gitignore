@@ -55,7 +55,6 @@ secrets.env
 *.xls
 *.csv
 data/
-models/
 
 # Jupyter Notebook
 .ipynb_checkpoints
