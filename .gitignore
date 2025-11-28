@@ -49,6 +49,8 @@ secrets.env
 *.env
 *.key
 *.pem
+sucursales.json
+manual_tests/
 
 # Data files (raw, clean, processed)
 *.xlsx
