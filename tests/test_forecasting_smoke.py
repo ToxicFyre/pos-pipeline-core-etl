@@ -91,11 +91,15 @@ def test_run_payments_forecast_exposes_debug_info() -> None:
     # Run forecast with debug=True
     result = run_payments_forecast(df, config=config, debug=True)
 
-    # Verify debug info is populated
+    # Verify debug info is populated with nested structure
     assert result.debug is not None, "Debug info should be populated when debug=True"
     assert "naive_last_week" in result.debug, "Naive model debug info should be present"
+    assert "Kavia" in result.debug["naive_last_week"], "Debug info should be tracked per branch"
 
-    naive_debug = result.debug["naive_last_week"]
+    # Check debug info for at least one metric (ingreso_efectivo)
+    assert "ingreso_efectivo" in result.debug["naive_last_week"]["Kavia"], "Debug info should be tracked per metric"
+
+    naive_debug = result.debug["naive_last_week"]["Kavia"]["ingreso_efectivo"]
     assert naive_debug.model_name == "naive_last_week"
     assert "source_dates" in naive_debug.data, "Naive model should expose 'source_dates' in debug.data"
 
@@ -103,6 +107,14 @@ def test_run_payments_forecast_exposes_debug_info() -> None:
     source_dates = naive_debug.data["source_dates"]
     assert isinstance(source_dates, dict)
     assert len(source_dates) == 3, "Should have 3 forecast dates (horizon_days=3)"
+
+    # Verify debug info exists for all metrics that were forecasted
+    # (config uses default metrics: efectivo, credito, debito, total)
+    expected_metrics = {"ingreso_efectivo", "ingreso_credito", "ingreso_debito", "ingreso_total"}
+    actual_metrics = set(result.debug["naive_last_week"]["Kavia"].keys())
+    assert expected_metrics.issubset(
+        actual_metrics
+    ), f"Debug info should exist for all forecasted metrics. Missing: {expected_metrics - actual_metrics}"
 
 
 def test_run_payments_forecast_no_debug_by_default() -> None:
@@ -125,6 +137,52 @@ def test_run_payments_forecast_no_debug_by_default() -> None:
 
     # Verify debug info is None
     assert result.debug is None, "Debug info should be None when debug=False (default)"
+
+
+def test_debug_info_tracks_multiple_branches_and_metrics() -> None:
+    """Test that debug info is properly tracked per branch and metric combination."""
+    # Build data for multiple branches
+    num_days = 40
+    data = {
+        "sucursal": (["Kavia"] * num_days) + (["CrediClub"] * num_days),
+        "fecha": list(pd.date_range("2025-01-01", periods=num_days, freq="D")) * 2,
+        "ingreso_efectivo": list(range(100, 100 + num_days)) * 2,
+        "ingreso_credito": list(range(200, 200 + num_days)) * 2,
+        "ingreso_debito": list(range(150, 150 + num_days)) * 2,
+        "ingreso_total": list(range(450, 450 + num_days)) * 2,
+    }
+    df = pd.DataFrame(data)
+
+    from pos_core.forecasting.models.naive import NaiveLastWeekModel
+
+    config = ForecastConfig(
+        horizon_days=3, branches=["Kavia", "CrediClub"], model=NaiveLastWeekModel()
+    )
+
+    # Run forecast with debug=True
+    result = run_payments_forecast(df, config=config, debug=True)
+
+    # Verify nested structure exists for both branches
+    assert result.debug is not None
+    assert "naive_last_week" in result.debug
+    assert "Kavia" in result.debug["naive_last_week"]
+    assert "CrediClub" in result.debug["naive_last_week"]
+
+    # Verify debug info exists for both branches and multiple metrics
+    kavia_metrics = set(result.debug["naive_last_week"]["Kavia"].keys())
+    crediclub_metrics = set(result.debug["naive_last_week"]["CrediClub"].keys())
+
+    assert "ingreso_efectivo" in kavia_metrics
+    assert "ingreso_efectivo" in crediclub_metrics
+
+    # Verify each branch/metric combination has its own debug info
+    kavia_efectivo_debug = result.debug["naive_last_week"]["Kavia"]["ingreso_efectivo"]
+    crediclub_efectivo_debug = result.debug["naive_last_week"]["CrediClub"]["ingreso_efectivo"]
+
+    assert kavia_efectivo_debug.model_name == "naive_last_week"
+    assert crediclub_efectivo_debug.model_name == "naive_last_week"
+    # They should have different source_dates mappings (different branches, different data)
+    assert kavia_efectivo_debug.data["source_dates"] != crediclub_efectivo_debug.data["source_dates"]
 
 
 def test_imports_work() -> None:

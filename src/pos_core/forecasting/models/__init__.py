@@ -44,8 +44,10 @@ debug information is properly exposed:
 
 4. If run_payments_forecast(debug=True) uses this model:
    - The model's .debug_ will automatically be collected into ForecastResult.debug
-   - The debug info will be keyed by debug.model_name
-   - If the same model is used for multiple forecasts, the last one's debug info is kept
+   - Debug info is stored in nested structure: debug[model_name][branch][metric] = ModelDebugInfo
+   - This allows tracking debug info per model, branch, and metric combination
+   - Multiple models can coexist: debug["naive_last_week"] and debug["arima"] both exist
+   - Each branch/metric combination gets its own debug info instance
 
 Example implementations:
 - NaiveLastWeekModel: see models/naive.py
