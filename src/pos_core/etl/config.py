@@ -1,5 +1,9 @@
 """Path configuration for POS ETL pipeline.
 
+.. deprecated:: 0.1.0
+    This module is deprecated. Use :class:`pos_core.etl.api.PaymentsETLConfig` and
+    :class:`pos_core.etl.sales_config.SalesETLConfig` instead.
+
 This module defines all directory paths used throughout the ETL pipeline.
 Paths are resolved relative to the project root (two levels up from this file).
 
