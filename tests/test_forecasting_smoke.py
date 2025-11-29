@@ -275,6 +275,7 @@ def test_naive_forecasting_with_live_data() -> None:
             )
         except Exception as e:
             import traceback
+
             error_details = traceback.format_exc()
             print(f"\n[Live Test] Error downloading data: {e}")
             print(f"[Live Test] Full traceback:\n{error_details}")
@@ -353,9 +354,9 @@ def test_naive_forecasting_with_live_data() -> None:
             assert source_date in efectivo_series.index
 
             # And the value must match exactly
-            assert (
-                forecast_series.loc[target_date] == efectivo_series.loc[source_date]
-            ), f"Forecast for {target_date} should copy value from {source_date}"
+            assert forecast_series.loc[target_date] == efectivo_series.loc[source_date], (
+                f"Forecast for {target_date} should copy value from {source_date}"
+            )
 
         # Test the full forecasting pipeline
         forecast_config = ForecastConfig(horizon_days=7, branches=["Kavia"])
@@ -375,9 +376,9 @@ def test_naive_forecasting_with_live_data() -> None:
         # Verify we have forecasts for all payment types
         metrics_in_forecast = set(result.forecast["metric"].unique())
         expected_metrics = {"ingreso_efectivo", "ingreso_credito", "ingreso_debito"}
-        assert expected_metrics.issubset(
-            metrics_in_forecast
-        ), f"Missing metrics: {expected_metrics - metrics_in_forecast}"
+        assert expected_metrics.issubset(metrics_in_forecast), (
+            f"Missing metrics: {expected_metrics - metrics_in_forecast}"
+        )
 
         # Verify forecast values are reasonable (non-negative)
         assert (result.forecast["valor"] >= 0).all(), "All forecast values should be non-negative"

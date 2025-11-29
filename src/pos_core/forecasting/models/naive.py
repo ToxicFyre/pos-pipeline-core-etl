@@ -129,9 +129,7 @@ class NaiveLastWeekModel(ForecastModel):
                 series_by_date[idx] = value
 
         # Generate forecast dates
-        forecast_dates = pd.date_range(
-            start=last_date + timedelta(days=1), periods=steps, freq="D"
-        )
+        forecast_dates = pd.date_range(start=last_date + timedelta(days=1), periods=steps, freq="D")
 
         # Build mapping from forecast_date to source_date for debug info
         source_dates_mapping: Dict[pd.Timestamp, pd.Timestamp] = {}
@@ -178,4 +176,3 @@ class NaiveLastWeekModel(ForecastModel):
         )
 
         return forecast_series
-
