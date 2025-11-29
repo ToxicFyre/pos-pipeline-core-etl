@@ -202,6 +202,33 @@ def test_naive_forecasting_with_live_data() -> None:
         print(f"[Live Test] Generated 7-day forecast:")
         print(forecast_series)
 
+        # --- New: generic debug inspection for naive model ---
+
+        # 1) We expect every forecasting model to populate .debug_
+        assert naive_model.debug_ is not None, "Model should populate debug_ after forecast"
+
+        debug = naive_model.debug_
+        assert debug.model_name == "naive_last_week"
+
+        # 2) Naive model guarantee: debug.data["source_dates"] exists and is a mapping
+        assert "source_dates" in debug.data, "Naive model must expose 'source_dates' in debug.data"
+        mapping = debug.data["source_dates"]
+
+        # Basic shape checks
+        assert isinstance(mapping, dict)
+        assert len(mapping) == len(forecast_series)
+
+        for target_date, source_date in mapping.items():
+            # Forecast date must be in the forecast index
+            assert target_date in forecast_series.index
+            # Source date must be in the history index
+            assert source_date in efectivo_series.index
+
+            # And the value must match exactly
+            assert (
+                forecast_series.loc[target_date] == efectivo_series.loc[source_date]
+            ), f"Forecast for {target_date} should copy value from {source_date}"
+
         # Test the full forecasting pipeline
         forecast_config = ForecastConfig(horizon_days=7, branches=["Kavia"])
         result = run_payments_forecast(payments_df, config=forecast_config)
