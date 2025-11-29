@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Protocol
 
 
-@dataclass
+@dataclass(frozen=True)
 class ModelDebugInfo:
     """Generic container for model-specific debug information.
 
@@ -18,8 +18,27 @@ class ModelDebugInfo:
         version: Optional version string if model behavior changes over time.
         data: Arbitrary model-specific payload (dict of JSON-like values).
             Each model can populate this with its own schema.
+
+    Note:
+        This dataclass is frozen to prevent accidental mutations after creation.
+        The data dict itself can still be mutated in place if needed, but the
+        ModelDebugInfo instance cannot be reassigned.
     """
 
     model_name: str
     version: Optional[str] = None
     data: Dict[str, Any] = field(default_factory=dict)
+
+
+class HasDebugInfo(Protocol):
+    """Protocol for models that expose debug information.
+
+    This protocol allows type checkers (MyPy, Pyright) to recognize models
+    that have a debug_ attribute, without requiring a concrete base class.
+
+    Example:
+        def inspect_model_debug(model: HasDebugInfo) -> Optional[ModelDebugInfo]:
+            return model.debug_
+    """
+
+    debug_: Optional[ModelDebugInfo]

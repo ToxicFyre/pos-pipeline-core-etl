@@ -68,6 +68,65 @@ def test_forecasting_smoke() -> None:
     assert result.metadata["horizon_days"] == 3
 
 
+def test_run_payments_forecast_exposes_debug_info() -> None:
+    """Test that run_payments_forecast exposes debug info when debug=True."""
+    # Build a dummy payments_df with 40 days of data for one branch
+    # (ARIMA models require at least 30 days)
+    num_days = 40
+    data = {
+        "sucursal": ["Kavia"] * num_days,
+        "fecha": pd.date_range("2025-01-01", periods=num_days, freq="D"),
+        "ingreso_efectivo": range(100, 100 + num_days),
+        "ingreso_credito": range(200, 200 + num_days),
+        "ingreso_debito": range(150, 150 + num_days),
+        "ingreso_total": range(450, 450 + num_days),
+    }
+    df = pd.DataFrame(data)
+
+    # Use NaiveLastWeekModel so we can test debug info
+    from pos_core.forecasting.models.naive import NaiveLastWeekModel
+
+    config = ForecastConfig(horizon_days=3, branches=["Kavia"], model=NaiveLastWeekModel())
+
+    # Run forecast with debug=True
+    result = run_payments_forecast(df, config=config, debug=True)
+
+    # Verify debug info is populated
+    assert result.debug is not None, "Debug info should be populated when debug=True"
+    assert "naive_last_week" in result.debug, "Naive model debug info should be present"
+
+    naive_debug = result.debug["naive_last_week"]
+    assert naive_debug.model_name == "naive_last_week"
+    assert "source_dates" in naive_debug.data, "Naive model should expose 'source_dates' in debug.data"
+
+    # Verify source_dates mapping structure
+    source_dates = naive_debug.data["source_dates"]
+    assert isinstance(source_dates, dict)
+    assert len(source_dates) == 3, "Should have 3 forecast dates (horizon_days=3)"
+
+
+def test_run_payments_forecast_no_debug_by_default() -> None:
+    """Test that debug info is None by default (debug=False)."""
+    num_days = 40
+    data = {
+        "sucursal": ["Kavia"] * num_days,
+        "fecha": pd.date_range("2025-01-01", periods=num_days, freq="D"),
+        "ingreso_efectivo": range(100, 100 + num_days),
+        "ingreso_credito": range(200, 200 + num_days),
+        "ingreso_debito": range(150, 150 + num_days),
+        "ingreso_total": range(450, 450 + num_days),
+    }
+    df = pd.DataFrame(data)
+
+    config = ForecastConfig(horizon_days=3, branches=["Kavia"])
+
+    # Run forecast without debug flag (defaults to False)
+    result = run_payments_forecast(df, config=config)
+
+    # Verify debug info is None
+    assert result.debug is None, "Debug info should be None when debug=False (default)"
+
+
 def test_imports_work() -> None:
     """Test that forecasting API can be imported without errors."""
     assert ForecastConfig is not None
