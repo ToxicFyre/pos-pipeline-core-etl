@@ -1,8 +1,28 @@
 # Examples
 
-This package includes runnable example scripts in the `examples/` directory.
+This package includes runnable example scripts in the `examples/` directory. All examples are self-contained and can be run directly.
 
-## Example 1: Sales Detail ETL (Query API)
+## Prerequisites
+
+Before running any example:
+
+1. **Install the package**: `pip install -e .` (or `pip install pos-core-etl` for production)
+2. **Create `utils/sucursales.json`**: Branch configuration file (see [Configuration](configuration.md))
+3. **Set environment variables** (for online extraction):
+   - `WS_BASE`: Base URL of your POS instance
+   - `WS_USER` (optional): Username for authentication
+   - `WS_PASS` (optional): Password for authentication
+4. **Create data directory structure** (or modify paths in scripts):
+   ```
+   data/
+   ├── a_raw/
+   ├── b_clean/
+   └── c_processed/
+   ```
+
+## Example Scripts
+
+### Example 1: Sales Detail ETL (Query API)
 
 **File**: `examples/sales_week_by_group.py`
 
@@ -26,7 +46,7 @@ python examples/sales_week_by_group.py
 - Uses `refresh=False` for subsequent calls to reuse existing data
 - Demonstrates the `level` parameter ("ticket" vs "group")
 
-## Example 2: Payments ETL (Query API)
+### Example 2: Payments ETL (Query API)
 
 **File**: `examples/payments_full_etl.py`
 
@@ -47,7 +67,7 @@ python examples/payments_full_etl.py
 
 **Alternative**: You can also use `build_payments_dataset()` for complete orchestration, or use stage functions (`download_payments`, `clean_payments`, `aggregate_payments`) for fine-grained control.
 
-## Example 3: Forecasting (Query API)
+### Example 3: Forecasting (Query API)
 
 **File**: `examples/payments_forecast.py`
 
@@ -66,22 +86,12 @@ python examples/payments_forecast.py
 
 **Note**: The query API automatically handles getting historical data. For full control including deposit schedule and metadata, use `run_payments_forecast()` directly.
 
-## Prerequisites
-
-Before running any example:
-
-1. Install the package: `pip install -e .`
-2. Create `utils/sucursales.json` (see [Configuration](configuration.md))
-3. Set `WS_BASE` environment variable (for online extraction)
-4. Create data directory structure (or modify paths in scripts)
-
-See `examples/README.md` for more details.
-
 ## Advanced: Stage Functions
 
 For fine-grained control, you can use stage functions directly:
 
 ```python
+from pathlib import Path
 from pos_core.etl import PaymentsETLConfig, download_payments, clean_payments, aggregate_payments
 
 config = PaymentsETLConfig.from_root(Path("data"), Path("utils/sucursales.json"))
@@ -93,3 +103,13 @@ df = aggregate_payments("2025-01-01", "2025-01-31", config)
 ```
 
 This gives you control over when each stage runs, but query functions (`get_payments`, `get_sales`) are recommended for most use cases as they handle idempotence automatically.
+
+## Next Steps
+
+- **Configure**: Learn about [Configuration](configuration.md) options
+- **Understand Concepts**: Read about [Concepts](concepts.md) and design decisions
+- **Explore API**: Check the [API Reference](../api-reference/etl.md) for detailed documentation
+
+## More Information
+
+For detailed information about each example script, see the [examples README](https://github.com/ToxicFyre/pos-pipeline-core-etl/blob/main/examples/README.md) in the repository.

@@ -113,3 +113,8 @@ pytest tests/test_etl_queries.py -m live -v   # Query live tests
 - `test_qa_*.py` - QA functionality tests
 
 Each test file may contain both regular and live tests.
+
+## Additional Documentation
+
+- [`LIVE_TESTS_QUICK_REFERENCE.md`](LIVE_TESTS_QUICK_REFERENCE.md) - Quick reference for live tests
+- [`LIVE_TEST_SUMMARY.md`](LIVE_TEST_SUMMARY.md) - Detailed implementation summary of live tests

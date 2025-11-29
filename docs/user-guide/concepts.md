@@ -16,20 +16,15 @@ During extraction, the package automatically selects the correct code for each d
 
 ```json
 {
-  "MyBranch": [
-    {
-      "code": "1234",
-      "valid_from": "2024-01-01",
-      "valid_to": "2024-05-31"
-    },
-    {
-      "code": "5678",
-      "valid_from": "2024-06-01",
-      "valid_to": null
-    }
-  ]
+  "MyBranch": {
+    "code": "5678",
+    "valid_from": "2024-06-01",
+    "valid_to": null
+  }
 }
 ```
+
+**Note**: For branches with code changes over time, the package automatically selects the correct code based on validity windows. The current format supports a single code per branch entry. If you need to track multiple code changes, ensure your `sucursales.json` has separate entries or use the validity windows appropriately.
 
 ## ETL Directory Convention
 
@@ -64,6 +59,7 @@ The **query functions** are the recommended way to get data:
 
 **Example**:
 ```python
+from pathlib import Path
 from pos_core.etl import PaymentsETLConfig, get_payments
 
 config = PaymentsETLConfig.from_root(Path("data"), Path("utils/sucursales.json"))
@@ -84,6 +80,7 @@ df = get_payments("2025-01-01", "2025-01-31", config, refresh=False)
 
 **Example**:
 ```python
+from pathlib import Path
 from pos_core.etl import PaymentsETLConfig, download_payments, clean_payments
 
 config = PaymentsETLConfig.from_root(Path("data"), Path("utils/sucursales.json"))
@@ -166,3 +163,8 @@ The forecasting module uses **ARIMA (AutoRegressive Integrated Moving Average)**
 - **Per-branch, per-metric**: Separate models for each combination
 
 The models require at least 30 days of historical data to generate reliable forecasts.
+
+## Next Steps
+
+- **Explore API**: Check the [API Reference](../api-reference/etl.md) for detailed API documentation
+- **Try Examples**: See [Examples](examples.md) for complete runnable scripts

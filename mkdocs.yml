@@ -29,14 +29,16 @@ nav:
   - User Guide:
     - Installation: user-guide/installation.md
     - Quickstart: user-guide/quickstart.md
+    - Examples: user-guide/examples.md
     - Configuration: user-guide/configuration.md
     - Concepts: user-guide/concepts.md
-    - Examples: user-guide/examples.md
   - API Reference:
     - ETL: api-reference/etl.md
     - Forecasting: api-reference/forecasting.md
     - QA: api-reference/qa.md
     - Exceptions: api-reference/exceptions.md
+  - Development:
+    - Development Notes: development/dev-notes.md
 
 markdown_extensions:
   - pymdownx.highlight:

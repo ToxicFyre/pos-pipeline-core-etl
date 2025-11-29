@@ -103,8 +103,8 @@ All live tests include:
 
 ## Documentation
 
-- `tests/README.md` - Comprehensive test guide
-- `LIVE_TEST_SUMMARY.md` - Detailed implementation summary
+- [`README.md`](README.md) - Comprehensive test guide
+- [`LIVE_TEST_SUMMARY.md`](LIVE_TEST_SUMMARY.md) - Detailed implementation summary
 - This file - Quick reference
 
 ## Support
