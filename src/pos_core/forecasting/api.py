@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from datetime import date
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Set
 
 import numpy as np
 import pandas as pd
@@ -21,6 +21,7 @@ from pos_core.forecasting.data.preparation import (
     calculate_ingreso_total,
 )
 from pos_core.forecasting.models.arima import LogARIMAModel
+from pos_core.forecasting.models.base import ForecastModel
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +34,7 @@ class ForecastConfig:
         horizon_days: Number of days ahead to forecast (default: 7).
         metrics: List of metrics to forecast (default: cash, credit, debit, total).
         branches: Optional list of branch names to forecast. If None, infers from payments_df.
+        model: Optional forecast model instance. If None, uses LogARIMAModel.
     """
 
     horizon_days: int = 7
@@ -45,6 +47,7 @@ class ForecastConfig:
         ]
     )
     branches: Optional[List[str]] = None  # if None, infer from payments_df
+    model: Optional[ForecastModel] = None  # if None, use LogARIMAModel
 
 
 @dataclass
@@ -239,8 +242,18 @@ def run_payments_forecast(
         f"{horizon_days} days"
     )
 
-    # Get model instance
-    model = LogARIMAModel()
+    # Get model instance (use configured model or default to LogARIMAModel)
+    model = config.model if config.model is not None else LogARIMAModel()
+
+    # Extract holidays from payments_df if is_national_holiday column exists
+    holidays: Set[date] = set()
+    if "is_national_holiday" in df.columns:
+        holiday_rows = df[df["is_national_holiday"] == True]  # noqa: E712
+        for fecha in holiday_rows["fecha"].unique():
+            if isinstance(fecha, pd.Timestamp):
+                holidays.add(fecha.date())
+            else:
+                holidays.add(fecha)
 
     # Generate forecasts: {branch: {metric: forecast_series}}
     forecasts: Dict[str, Dict[str, pd.Series]] = {}
@@ -272,7 +285,7 @@ def run_payments_forecast(
 
                 # Train model and forecast
                 logger.debug(f"Training {branch} - {metric}...")
-                trained_model = model.train(series)
+                trained_model = model.train(series, holidays=holidays)
                 last_date = series.index[-1]
                 forecast = model.forecast(trained_model, steps=horizon_days, last_date=last_date)
                 forecasts[branch][metric] = forecast
