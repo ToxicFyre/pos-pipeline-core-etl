@@ -226,9 +226,13 @@ def test_naive_forecasting_with_live_data() -> None:
         )
 
     # Strip quotes from environment variables if present
-    ws_base = ws_base.strip('"').strip("'") if ws_base else None
-    ws_user = ws_user.strip('"').strip("'") if ws_user else None
-    ws_pass = ws_pass.strip('"').strip("'") if ws_pass else None
+    # Type narrowing: we know these are not None after the all() check above
+    assert ws_base is not None
+    assert ws_user is not None
+    assert ws_pass is not None
+    ws_base = ws_base.strip('"').strip("'")
+    ws_user = ws_user.strip('"').strip("'")
+    ws_pass = ws_pass.strip('"').strip("'")
 
     # Set cleaned values back for use by the ETL functions
     os.environ["WS_BASE"] = ws_base
