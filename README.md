@@ -165,6 +165,19 @@ config = PaymentsETLConfig.from_root(Path("data"), Path("utils/sucursales.json")
 forecast = get_payments_forecast("2025-01-31", horizon_weeks=13, config=config)
 ```
 
+**Forecasting with Debug Information**:
+```python
+from pos_core.forecasting import ForecastConfig, run_payments_forecast
+
+config = ForecastConfig(horizon_days=7)
+result = run_payments_forecast(payments_df, config=config, debug=True)
+
+# Access model-specific debug information
+if result.debug:
+    naive_debug = result.debug["naive_last_week"]["Kavia"]["ingreso_efectivo"]
+    print(f"Source dates mapping: {naive_debug.data['source_dates']}")
+```
+
 ## API Reference
 
 For complete API documentation, see:
@@ -186,8 +199,9 @@ For complete API documentation, see:
 - `ForecastConfig` - Forecasting configuration
 
 **Forecasting**:
-- `run_payments_forecast()` - Main forecasting function
-- `ForecastResult` - Forecast results with deposit schedule and metadata
+- `run_payments_forecast()` - Main forecasting function (supports `debug=True` for model introspection)
+- `ForecastResult` - Forecast results with deposit schedule, metadata, and optional debug info
+- `ModelDebugInfo` - Generic container for model-specific debug information
 
 **QA**:
 - `run_payments_qa()` - Data quality validation
