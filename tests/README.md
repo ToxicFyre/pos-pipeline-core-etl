@@ -40,31 +40,42 @@ Live tests require the following environment variables:
 
 These should be set in your environment or CI/CD secrets.
 
-#### Example: Naive Forecasting Live Test
+#### Available Live Tests
 
-The test `test_naive_forecasting_with_live_data` in `test_forecasting_smoke.py`:
+**1. Forecasting Tests** (`test_forecasting_smoke.py`)
 
-1. **Downloads** 45 days of real payment data from the POS API (Kavia branch)
-2. **Validates** data structure and content
-3. **Runs** the naive forecasting model directly
-4. **Tests** the full forecasting pipeline
-5. **Verifies** the forecast results are reasonable
+- `test_naive_forecasting_with_live_data`: Downloads 45 days of data, tests naive forecasting model and full pipeline
 
-The test will:
-- Skip if credentials are not available
-- Clean up all downloaded data after completion (uses temporary directories)
-- Print progress information for debugging
+**2. ETL Tests** (`test_etl_smoke.py`)
 
-#### What It Validates
+- `test_etl_pipeline_with_live_data`: Tests complete ETL pipeline (download, clean, aggregate) with 14 days of real data
 
-✅ Authentication with the POS API  
-✅ Data download and ETL pipeline  
-✅ Data quality and structure  
-✅ Naive forecasting model produces valid predictions  
-✅ Full forecasting pipeline integration  
-✅ Forecast values are non-negative and reasonable  
-✅ All expected metrics are forecasted (efectivo, credito, debito)  
-✅ Metadata and results structure
+**3. Query Tests** (`test_etl_queries.py`)
+
+- `test_get_payments_with_live_data`: Tests get_payments query function with idempotence validation
+- `test_get_payments_metadata_tracking`: Verifies metadata tracking throughout ETL stages
+
+**4. QA Tests** (`test_qa_smoke.py`)
+
+- `test_qa_with_live_data`: Runs QA checks at all levels (1-4) on real data
+- `test_qa_detects_data_quality_issues`: Validates QA issue detection capabilities
+
+#### What Live Tests Validate
+
+✅ **Authentication**: With the POS API  
+✅ **Data Download**: HTTP extraction with real credentials  
+✅ **ETL Pipeline**: Download, clean, and aggregate stages  
+✅ **Data Quality**: Structure, completeness, and validity  
+✅ **Forecasting**: Naive model and full pipeline integration  
+✅ **Query Functions**: Idempotence and caching behavior  
+✅ **Metadata**: Tracking and version control  
+✅ **QA Checks**: Issue detection and reporting at all levels  
+
+All live tests:
+- Skip gracefully if credentials are not available
+- Use temporary directories (auto-cleanup)
+- Print detailed progress information
+- Validate results comprehensively
 
 ## Running Specific Tests
 
@@ -81,6 +92,18 @@ pytest tests/test_forecasting_smoke.py::test_naive_forecasting_with_live_data -v
 Run with output (show print statements):
 ```bash
 pytest tests/test_forecasting_smoke.py::test_naive_forecasting_with_live_data -v -s
+```
+
+Run all live tests:
+```bash
+pytest -m live -v
+```
+
+Run specific live test category:
+```bash
+pytest tests/test_etl_smoke.py -m live -v     # ETL live tests
+pytest tests/test_qa_smoke.py -m live -v      # QA live tests
+pytest tests/test_etl_queries.py -m live -v   # Query live tests
 ```
 
 ## Test Organization
