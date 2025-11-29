@@ -163,3 +163,8 @@ The forecasting module uses **ARIMA (AutoRegressive Integrated Moving Average)**
 - **Per-branch, per-metric**: Separate models for each combination
 
 The models require at least 30 days of historical data to generate reliable forecasts.
+
+## Next Steps
+
+- **Explore API**: Check the [API Reference](../api-reference/etl.md) for detailed API documentation
+- **Try Examples**: See [Examples](examples.md) for complete runnable scripts

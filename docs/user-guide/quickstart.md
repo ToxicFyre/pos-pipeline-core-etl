@@ -110,8 +110,9 @@ print(f"Missing days: {qa_result.summary['missing_days_count']}")
 print(f"Anomalies: {qa_result.summary['zscore_anomalies_count']}")
 ```
 
-## See Also
+## Next Steps
 
-- [Configuration](configuration.md) - Detailed configuration options
-- [Examples](examples.md) - Complete runnable examples
-- [API Reference](../api-reference/etl.md) - Full API documentation
+1. **Try Examples**: See [Examples](examples.md) for complete runnable scripts
+2. **Configure**: Learn about [Configuration](configuration.md) options
+3. **Understand Concepts**: Read about [Concepts](concepts.md) and design decisions
+4. **Explore API**: Check the [API Reference](../api-reference/etl.md) for detailed documentation

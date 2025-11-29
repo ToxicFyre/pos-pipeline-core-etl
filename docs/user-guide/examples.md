@@ -104,6 +104,12 @@ df = aggregate_payments("2025-01-01", "2025-01-31", config)
 
 This gives you control over when each stage runs, but query functions (`get_payments`, `get_sales`) are recommended for most use cases as they handle idempotence automatically.
 
+## Next Steps
+
+- **Configure**: Learn about [Configuration](configuration.md) options
+- **Understand Concepts**: Read about [Concepts](concepts.md) and design decisions
+- **Explore API**: Check the [API Reference](../api-reference/etl.md) for detailed documentation
+
 ## More Information
 
 For detailed information about each example script, see the [examples README](https://github.com/ToxicFyre/pos-pipeline-core-etl/blob/main/examples/README.md) in the repository.

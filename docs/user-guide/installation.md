@@ -37,7 +37,8 @@ Optional dependencies (for development):
 
 ## Next Steps
 
-1. Create your `sucursales.json` configuration file (see [Configuration](configuration.md))
-2. Set up your data directory structure (see [Concepts](concepts.md))
-3. Try the [Quickstart](quickstart.md) guide
+1. **Get Started**: Follow the [Quickstart](quickstart.md) guide
+2. **Try Examples**: See [Examples](examples.md) for complete runnable scripts
+3. **Configure**: Set up your `sucursales.json` file (see [Configuration](configuration.md))
+4. **Learn More**: Understand [Concepts](concepts.md) and design decisions
 

@@ -1,6 +1,6 @@
 # Development Notes - ETL API Refactor
 
-> **Note**: This document contains internal development notes and is intended for contributors and maintainers. For user-facing documentation, see the [User Guide](user-guide/installation.md) and [API Reference](api-reference/etl.md).
+> **Note**: This document contains internal development notes and is intended for contributors and maintainers. For user-facing documentation, see the [User Guide](../user-guide/installation.md) and [API Reference](../api-reference/etl.md).
 
 ## Target API
 
