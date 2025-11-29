@@ -27,6 +27,7 @@ print(f"Processed {len(payments)} rows")
 **Alternative**: Use `build_payments_dataset()` for complete orchestration:
 
 ```python
+from pathlib import Path
 from pos_core.etl import PaymentsETLConfig, build_payments_dataset
 
 config = PaymentsETLConfig.from_root(Path("data"), Path("utils/sucursales.json"))
@@ -38,6 +39,7 @@ payments = build_payments_dataset("2025-01-01", "2025-01-31", config)
 Get sales data aggregated at different levels:
 
 ```python
+from pathlib import Path
 from pos_core.etl import SalesETLConfig, get_sales
 
 config = SalesETLConfig.from_root(Path("data"), Path("utils/sucursales.json"))
@@ -54,6 +56,7 @@ df_group = get_sales("2025-01-01", "2025-01-31", config, level="group")
 The easiest way to get forecasts is using the query API:
 
 ```python
+from pathlib import Path
 from pos_core.etl import PaymentsETLConfig, get_payments_forecast
 
 config = PaymentsETLConfig.from_root(Path("data"), Path("utils/sucursales.json"))
@@ -71,10 +74,12 @@ print(forecast.head())
 **Alternative**: For full control including deposit schedule and metadata:
 
 ```python
+from pathlib import Path
 from pos_core.etl import PaymentsETLConfig, get_payments
 from pos_core.forecasting import ForecastConfig, run_payments_forecast
 
 # Get historical data
+config = PaymentsETLConfig.from_root(Path("data"), Path("utils/sucursales.json"))
 payments = get_payments("2022-01-01", "2025-11-24", config)
 
 # Run forecast with full result
@@ -90,6 +95,7 @@ print(result.deposit_schedule)
 ## Quality Assurance
 
 ```python
+from pathlib import Path
 from pos_core.etl import PaymentsETLConfig, get_payments
 from pos_core.qa import run_payments_qa
 
