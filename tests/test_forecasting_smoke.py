@@ -146,11 +146,16 @@ def test_run_payments_forecast_no_debug_by_default() -> None:
 
 def test_debug_info_tracks_multiple_branches_and_metrics() -> None:
     """Test that debug info is properly tracked per branch and metric combination."""
-    # Build data for multiple branches
+    # Build data for multiple branches with different date ranges
+    # This ensures they have different source_dates mappings
     num_days = 40
+    kavia_dates = pd.date_range("2025-01-01", periods=num_days, freq="D")
+    # CrediClub starts 5 days later, so it will have different forecast dates
+    crediclub_dates = pd.date_range("2025-01-06", periods=num_days, freq="D")
+    
     data = {
         "sucursal": (["Kavia"] * num_days) + (["CrediClub"] * num_days),
-        "fecha": list(pd.date_range("2025-01-01", periods=num_days, freq="D")) * 2,
+        "fecha": list(kavia_dates) + list(crediclub_dates),
         "ingreso_efectivo": list(range(100, 100 + num_days)) * 2,
         "ingreso_credito": list(range(200, 200 + num_days)) * 2,
         "ingreso_debito": list(range(150, 150 + num_days)) * 2,
@@ -186,7 +191,7 @@ def test_debug_info_tracks_multiple_branches_and_metrics() -> None:
 
     assert kavia_efectivo_debug.model_name == "naive_last_week"
     assert crediclub_efectivo_debug.model_name == "naive_last_week"
-    # They should have different source_dates mappings (different branches, different data)
+    # They should have different source_dates mappings (different branches, different date ranges)
     kavia_sources = kavia_efectivo_debug.data["source_dates"]
     crediclub_sources = crediclub_efectivo_debug.data["source_dates"]
     assert kavia_sources != crediclub_sources
