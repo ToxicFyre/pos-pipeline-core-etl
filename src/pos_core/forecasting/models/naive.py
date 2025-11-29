@@ -7,12 +7,13 @@ skipping holidays and holiday-adjacent dates, and using those historical values 
 from __future__ import annotations
 
 from datetime import date, timedelta
-from typing import Any, Optional, Set
+from typing import Any, Dict, Optional, Set
 
 import pandas as pd
 
 from pos_core.forecasting.deposit_schedule import is_holiday_or_adjacent
 from pos_core.forecasting.models.base import ForecastModel
+from pos_core.forecasting.types import ModelDebugInfo
 
 
 def find_equivalent_historical_weekday(
@@ -67,6 +68,10 @@ class NaiveLastWeekModel(ForecastModel):
     This is a simple baseline model that captures weekly patterns without
     any statistical modeling.
     """
+
+    def __init__(self) -> None:
+        """Initialize the naive last week model."""
+        self.debug_: ModelDebugInfo | None = None
 
     def train(self, series: pd.Series, holidays: Optional[Set[date]] = None, **kwargs: Any) -> dict:
         """Store historical series and holidays for use in forecast.
@@ -128,6 +133,9 @@ class NaiveLastWeekModel(ForecastModel):
             start=last_date + timedelta(days=1), periods=steps, freq="D"
         )
 
+        # Build mapping from forecast_date to source_date for debug info
+        source_dates_mapping: Dict[pd.Timestamp, pd.Timestamp] = {}
+
         # Forecast each date
         forecast_values = []
         for forecast_date in forecast_dates:
@@ -142,11 +150,32 @@ class NaiveLastWeekModel(ForecastModel):
 
             if equivalent_date is not None and equivalent_date in series_by_date:
                 value = series_by_date[equivalent_date]
+                # Find the original Timestamp in series index that corresponds to equivalent_date
+                # (series index may have Timestamps, so find matching date)
+                source_timestamp = None
+                for ts in series.index:
+                    ts_date = ts.date() if isinstance(ts, pd.Timestamp) else ts
+                    if ts_date == equivalent_date:
+                        source_timestamp = ts if isinstance(ts, pd.Timestamp) else pd.Timestamp(ts)
+                        break
+                if source_timestamp is not None:
+                    source_dates_mapping[forecast_date] = source_timestamp
             else:
                 # Fallback: return 0.0 if no equivalent found
                 value = 0.0
 
             forecast_values.append(value)
 
-        return pd.Series(forecast_values, index=forecast_dates)
+        forecast_series = pd.Series(forecast_values, index=forecast_dates)
+
+        # Populate generic debug channel with model-specific payload
+        self.debug_ = ModelDebugInfo(
+            model_name="naive_last_week",
+            data={
+                "horizon_steps": steps,
+                "source_dates": source_dates_mapping,  # Dict[pd.Timestamp, pd.Timestamp]
+            },
+        )
+
+        return forecast_series
 
