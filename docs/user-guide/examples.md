@@ -84,7 +84,22 @@ Demonstrates the forecasting query API:
 python examples/payments_forecast.py
 ```
 
-**Note**: The query API automatically handles getting historical data. For full control including deposit schedule and metadata, use `run_payments_forecast()` directly.
+**Note**: The query API automatically handles getting historical data. For full control including deposit schedule, metadata, and debug information, use `run_payments_forecast()` directly with `debug=True`:
+
+```python
+from pos_core.forecasting import ForecastConfig, run_payments_forecast
+
+config = ForecastConfig(horizon_days=7)
+result = run_payments_forecast(payments_df, config=config, debug=True)
+
+# Access debug information
+if result.debug:
+    for model_name, branches in result.debug.items():
+        print(f"Model: {model_name}")
+        for branch, metrics in branches.items():
+            for metric, debug_info in metrics.items():
+                print(f"  {branch}/{metric}: {debug_info.model_name}")
+```
 
 ## Advanced: Stage Functions
 
