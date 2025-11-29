@@ -97,11 +97,15 @@ def test_run_payments_forecast_exposes_debug_info() -> None:
     assert "Kavia" in result.debug["naive_last_week"], "Debug info should be tracked per branch"
 
     # Check debug info for at least one metric (ingreso_efectivo)
-    assert "ingreso_efectivo" in result.debug["naive_last_week"]["Kavia"], "Debug info should be tracked per metric"
+    assert "ingreso_efectivo" in result.debug["naive_last_week"]["Kavia"], (
+        "Debug info should be tracked per metric"
+    )
 
     naive_debug = result.debug["naive_last_week"]["Kavia"]["ingreso_efectivo"]
     assert naive_debug.model_name == "naive_last_week"
-    assert "source_dates" in naive_debug.data, "Naive model should expose 'source_dates' in debug.data"
+    assert "source_dates" in naive_debug.data, (
+        "Naive model should expose 'source_dates' in debug.data"
+    )
 
     # Verify source_dates mapping structure
     source_dates = naive_debug.data["source_dates"]
@@ -112,9 +116,10 @@ def test_run_payments_forecast_exposes_debug_info() -> None:
     # (config uses default metrics: efectivo, credito, debito, total)
     expected_metrics = {"ingreso_efectivo", "ingreso_credito", "ingreso_debito", "ingreso_total"}
     actual_metrics = set(result.debug["naive_last_week"]["Kavia"].keys())
-    assert expected_metrics.issubset(
-        actual_metrics
-    ), f"Debug info should exist for all forecasted metrics. Missing: {expected_metrics - actual_metrics}"
+    missing = expected_metrics - actual_metrics
+    assert expected_metrics.issubset(actual_metrics), (
+        f"Debug info should exist for all forecasted metrics. Missing: {missing}"
+    )
 
 
 def test_run_payments_forecast_no_debug_by_default() -> None:
@@ -182,7 +187,9 @@ def test_debug_info_tracks_multiple_branches_and_metrics() -> None:
     assert kavia_efectivo_debug.model_name == "naive_last_week"
     assert crediclub_efectivo_debug.model_name == "naive_last_week"
     # They should have different source_dates mappings (different branches, different data)
-    assert kavia_efectivo_debug.data["source_dates"] != crediclub_efectivo_debug.data["source_dates"]
+    kavia_sources = kavia_efectivo_debug.data["source_dates"]
+    crediclub_sources = crediclub_efectivo_debug.data["source_dates"]
+    assert kavia_sources != crediclub_sources
 
 
 def test_imports_work() -> None:
@@ -290,7 +297,7 @@ def test_naive_forecasting_with_live_data() -> None:
                 + payments_df["ingreso_credito"]
                 + payments_df["ingreso_debito"]
             )
-            print(f"[Live Test] Added ingreso_total column (sum of payment types)")
+            print("[Live Test] Added ingreso_total column (sum of payment types)")
 
         # Filter to Kavia branch only
         kavia_df = payments_df[payments_df["sucursal"] == "Kavia"].copy()
@@ -316,7 +323,7 @@ def test_naive_forecasting_with_live_data() -> None:
         assert all(forecast_series >= 0), "Forecasted values should be non-negative"
         assert not forecast_series.isna().any(), "Forecast should not contain NaN values"
 
-        print(f"[Live Test] Generated 7-day forecast:")
+        print("[Live Test] Generated 7-day forecast:")
         print(forecast_series)
 
         # --- New: generic debug inspection for naive model ---
@@ -377,6 +384,6 @@ def test_naive_forecasting_with_live_data() -> None:
         assert "horizon_days" in result.metadata
         assert result.metadata["horizon_days"] == 7
 
-        print(f"[Live Test] ✓ Successfully validated naive forecasting with live data")
+        print("[Live Test] ✓ Successfully validated naive forecasting with live data")
         print(f"[Live Test] Forecast shape: {result.forecast.shape}")
         print(f"[Live Test] Deposit schedule shape: {result.deposit_schedule.shape}")
