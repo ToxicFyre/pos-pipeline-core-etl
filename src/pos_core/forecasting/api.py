@@ -59,14 +59,18 @@ class ForecastResult:
         forecast: DataFrame with columns: sucursal, fecha, metric, valor
         deposit_schedule: DataFrame with cash-flow deposit schedule
         metadata: Dictionary with additional metadata (branches, metrics, horizon_days, etc.)
-        debug: Optional dictionary mapping model names to their debug info.
+        debug: Optional nested dictionary of debug info.
+            Structure: debug[model_name][branch][metric] = ModelDebugInfo
             Only populated when run_payments_forecast is called with debug=True.
+            Allows tracking debug info per model, branch, and metric combination.
     """
 
     forecast: pd.DataFrame  # per branch/metric/date forecast
     deposit_schedule: pd.DataFrame  # cash-flow / banking schedule view
     metadata: Dict[str, object] = field(default_factory=dict)
-    debug: Optional[Dict[str, ModelDebugInfo]] = None
+    # Debug info structure: debug[model_name][branch][metric] = ModelDebugInfo
+    # Allows tracking debug info per model, branch, and metric combination
+    debug: Optional[Dict[str, Dict[str, Dict[str, ModelDebugInfo]]]] = None
 
 
 def _forecast_dict_to_dataframe(forecasts: Dict[str, Dict[str, pd.Series]]) -> pd.DataFrame:
@@ -264,7 +268,9 @@ def run_payments_forecast(
                 holidays.add(fecha)
 
     # Collect debug info if requested
-    debug_info: Optional[Dict[str, ModelDebugInfo]] = {} if debug else None
+    # Structure: debug_info[model_name][branch][metric] = ModelDebugInfo
+    # This allows tracking debug info per model, branch, and metric combination
+    debug_info: Optional[Dict[str, Dict[str, Dict[str, ModelDebugInfo]]]] = {} if debug else None
 
     # Generate forecasts: {branch: {metric: forecast_series}}
     forecasts: Dict[str, Dict[str, pd.Series]] = {}
@@ -304,9 +310,14 @@ def run_payments_forecast(
 
                 # Collect debug info if requested
                 if debug and hasattr(model, "debug_") and model.debug_ is not None:
-                    # Use model_name as key (e.g., "naive_last_week", "arima")
-                    # If multiple forecasts use the same model, the last one's debug info is kept
-                    debug_info[model.debug_.model_name] = model.debug_
+                    # Store debug info in nested structure: model_name -> branch -> metric
+                    # This allows tracking debug info per model, branch, and metric combination
+                    model_name = model.debug_.model_name
+                    if model_name not in debug_info:
+                        debug_info[model_name] = {}
+                    if branch not in debug_info[model_name]:
+                        debug_info[model_name][branch] = {}
+                    debug_info[model_name][branch][metric] = model.debug_
 
             except Exception as e:
                 logger.warning(f"Error forecasting {branch} - {metric}: {e}")
