@@ -312,6 +312,7 @@ def run_payments_forecast(
                 if debug and hasattr(model, "debug_") and model.debug_ is not None:
                     # Store debug info in nested structure: model_name -> branch -> metric
                     # This allows tracking debug info per model, branch, and metric combination
+                    assert debug_info is not None  # Type narrowing: debug_info is {} when debug=True
                     model_name = model.debug_.model_name
                     if model_name not in debug_info:
                         debug_info[model_name] = {}

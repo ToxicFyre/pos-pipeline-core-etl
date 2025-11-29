@@ -21,8 +21,8 @@ class ModelDebugInfo:
 
     Note:
         This dataclass is frozen to prevent accidental mutations after creation.
-        The data dict itself can still be mutated in place if needed, but the
-        ModelDebugInfo instance cannot be reassigned.
+        The ModelDebugInfo instance cannot be reassigned, and the data dict
+        should be populated at creation time with all required information.
     """
 
     model_name: str
