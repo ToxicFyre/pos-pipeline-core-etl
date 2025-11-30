@@ -46,44 +46,45 @@ def test_get_sales_refresh_runs_all_stages(test_paths, monkeypatch):
     download_called = []
     clean_called = []
 
-    def mock_download(*args, **kwargs):
+    def mock_download(paths, start_date, end_date, branches=None):
         download_called.append(True)
         # Write metadata to simulate completion
         from pos_core.sales.metadata import StageMetadata, write_metadata
 
         write_metadata(
-            test_paths.raw_sales,
-            "2025-01-01",
-            "2025-01-31",
+            paths.raw_sales,
+            start_date,
+            end_date,
             StageMetadata(
-                start_date="2025-01-01",
-                end_date="2025-01-31",
-                branches=[],
+                start_date=start_date,
+                end_date=end_date,
+                branches=branches or [],
                 version="extract_v1",
                 last_run="2025-01-15T12:00:00",
                 status="ok",
             ),
         )
 
-    def mock_clean(*args, **kwargs):
+    def mock_clean(paths, start_date, end_date, branches=None):
         clean_called.append(True)
         from pos_core.sales.metadata import StageMetadata, write_metadata
 
+        # Use the paths parameter passed to the function, not test_paths
         write_metadata(
-            test_paths.clean_sales,
-            "2025-01-01",
-            "2025-01-31",
+            paths.clean_sales,
+            start_date,
+            end_date,
             StageMetadata(
-                start_date="2025-01-01",
-                end_date="2025-01-31",
-                branches=[],
+                start_date=start_date,
+                end_date=end_date,
+                branches=branches or [],
                 version="transform_v1",
                 last_run="2025-01-15T12:00:00",
                 status="ok",
             ),
         )
-        # Create dummy clean files
-        test_paths.clean_sales.mkdir(parents=True, exist_ok=True)
+        # Create dummy clean files in the correct location
+        paths.clean_sales.mkdir(parents=True, exist_ok=True)
         pd.DataFrame(
             {
                 "sucursal": ["TestBranch"],
@@ -94,10 +95,13 @@ def test_get_sales_refresh_runs_all_stages(test_paths, monkeypatch):
                 "subtotal_item": [100.0],
                 "total_item": [116.0],
             }
-        ).to_csv(test_paths.clean_sales / "test.csv", index=False)
+        ).to_csv(paths.clean_sales / "test.csv", index=False)
 
+    # Patch both where it's defined and where it's imported
     monkeypatch.setattr("pos_core.sales.extract.download_sales", mock_download)
+    monkeypatch.setattr("pos_core.sales.raw.download_sales", mock_download)
     monkeypatch.setattr("pos_core.sales.transform.clean_sales", mock_clean)
+    monkeypatch.setattr("pos_core.sales.core.clean_sales", mock_clean)
 
     # Call with mode="force" to get the core fact
     result = sales_core.fetch(test_paths, "2025-01-01", "2025-01-31", mode="force")
