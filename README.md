@@ -12,7 +12,7 @@ This package is designed for POS systems that expose **Wansoft-style HTTP export
 
 - HTTP endpoints for exporting reports (payments, detail, transfers)
 - Excel format for exported reports
-- Optional username/password authentication
+- Username/password authentication (required for downloading raw data; optional if you already have raw data files)
 
 ## Features
 
