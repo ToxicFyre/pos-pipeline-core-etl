@@ -31,13 +31,22 @@ The `sucursales.json` file maps branch names to codes and tracks validity window
 
 ## Environment Variables
 
-Required for online extraction (downloading data from POS API):
+**Required for extraction** (downloading data from POS API):
 
 - `WS_BASE` (required): Base URL of your POS instance
-- `WS_USER` (optional): Username for authentication
-- `WS_PASS` (optional): Password for authentication
+- `WS_USER` (required): Username for authentication
+- `WS_PASS` (required): Password for authentication
 
-**Note**: These are only needed if you're downloading data from the POS API. If you only work with already-downloaded files, you can ignore these.
+These credentials are required to authenticate with the POS system and download data. Set them before running any extraction operations.
+
+**Example**:
+```bash
+export WS_BASE="https://your-pos-instance.com"
+export WS_USER="your_username"
+export WS_PASS="your_password"
+```
+
+**Note**: These are only needed if you're downloading data from the POS API. If you only work with already-downloaded files in `a_raw`, you can ignore these.
 
 ## Directory Structure
 

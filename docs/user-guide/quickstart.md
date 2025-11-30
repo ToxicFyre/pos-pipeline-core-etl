@@ -2,6 +2,18 @@
 
 Get started with POS Core ETL in minutes.
 
+## Prerequisites
+
+Before running extraction, you need to set up credentials for your POS system:
+
+```bash
+export WS_BASE="https://your-pos-instance.com"
+export WS_USER="your_username"
+export WS_PASS="your_password"
+```
+
+These environment variables are **required** for downloading data from the POS API. The extraction process will fail if credentials are missing when authentication is required.
+
 ## Basic ETL Workflow
 
 The recommended approach is to use the query functions, which automatically handle running ETL stages and provide automatic idempotence:

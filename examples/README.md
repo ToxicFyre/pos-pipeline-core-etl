@@ -8,10 +8,17 @@ Before running any example, ensure you have:
 
 1. **Installed the package**: `pip install -e .` (or `pip install pos-core-etl` for production)
 2. **Created `utils/sucursales.json`**: Branch configuration file (see main README for format)
-3. **Set environment variables** (for online extraction):
+3. **Set environment variables** (required for online extraction):
    - `WS_BASE`: Base URL of your POS instance
-   - `WS_USER` (optional): Username for authentication
-   - `WS_PASS` (optional): Password for authentication
+   - `WS_USER`: Username for authentication
+   - `WS_PASS`: Password for authentication
+
+   **Example:**
+   ```bash
+   export WS_BASE="https://your-pos-instance.com"
+   export WS_USER="your_username"
+   export WS_PASS="your_password"
+   ```
 
 ## Example Scripts
 

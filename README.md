@@ -50,6 +50,16 @@ The package requires Python 3.10+ and the following dependencies:
 
 ## Quickstart
 
+**Before running extraction**, set up your credentials:
+
+```bash
+export WS_BASE="https://your-pos-instance.com"
+export WS_USER="your_username"
+export WS_PASS="your_password"
+```
+
+Then run your ETL pipeline:
+
 ```python
 from pathlib import Path
 from pos_core import DataPaths
@@ -61,6 +71,7 @@ from pos_core.forecasting import ForecastConfig, run_payments_forecast
 paths = DataPaths.from_root(Path("data"), Path("utils/sucursales.json"))
 
 # Get payments data (daily mart by default)
+# This will automatically download data if needed
 payments = get_payments(paths, "2025-01-01", "2025-01-31")
 
 # Get sales data (item-line core fact by default)
@@ -102,11 +113,20 @@ Example:
 
 ### Environment Variables
 
-Required for downloading data from the POS API:
+**Required for extraction** (downloading data from the POS API):
 
-- `WS_BASE` (required for extraction): Base URL of your POS instance
-- `WS_USER` (optional): Username for authentication
-- `WS_PASS` (optional): Password for authentication
+- `WS_BASE` (required): Base URL of your POS instance
+- `WS_USER` (required): Username for authentication
+- `WS_PASS` (required): Password for authentication
+
+These credentials are required to authenticate with the POS system and download data. Set them before running any extraction operations.
+
+**Example**:
+```bash
+export WS_BASE="https://your-pos-instance.com"
+export WS_USER="your_username"
+export WS_PASS="your_password"
+```
 
 If you only work with already-downloaded files in `a_raw`, these are not needed.
 
@@ -285,7 +305,7 @@ All dates should be in `YYYY-MM-DD` format (e.g., `"2025-01-15"`).
 ## Troubleshooting
 
 1. **Missing sucursales.json**: Ensure the file exists at the expected location
-2. **Authentication Errors**: Verify `WS_BASE`, `WS_USER`, and `WS_PASS` environment variables
+2. **Authentication Errors**: Verify `WS_BASE`, `WS_USER`, and `WS_PASS` environment variables are set correctly. Credentials are required for extraction.
 3. **Insufficient Data for Forecasting**: ARIMA models require at least 30 days of historical data
 4. **Missing Date Ranges**: Use `refresh=True` to force re-run ETL stages
 
