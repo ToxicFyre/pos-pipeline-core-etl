@@ -2,6 +2,10 @@
 
 A comprehensive Python package for Point of Sale (POS) data processing, forecasting, and quality assurance.
 
+## Overview
+
+POS Core ETL provides tools to extract payment and sales data from POS systems, clean and transform it, aggregate it for analysis, generate forecasts using time series models, and perform automated quality checks.
+
 ## Features
 
 - **ETL Pipeline**: Extract, transform, and load POS payment and sales data
@@ -9,6 +13,7 @@ A comprehensive Python package for Point of Sale (POS) data processing, forecast
 - **Quality Assurance**: Automated data validation and anomaly detection
 - **Multi-Branch Support**: Handle multiple sucursales (branches) with code window tracking
 - **Incremental Processing**: Smart date range chunking and existing data discovery
+- **Automatic Idempotence**: Query functions skip work that's already been done
 
 ## Quick Start
 
@@ -34,14 +39,27 @@ pip install pos-core-etl
 For development:
 
 ```bash
+git clone https://github.com/ToxicFyre/pos-pipeline-core-etl.git
+cd pos-pipeline-core-etl
 pip install -e .[dev]
 ```
 
 ## Documentation
 
-- [User Guide](user-guide/installation.md) - Installation, configuration, and usage
-- [API Reference](api-reference/etl.md) - Complete API documentation
+### User Guide
+
+- [Installation](user-guide/installation.md) - Setup and requirements
+- [Quickstart](user-guide/quickstart.md) - Get started in minutes
+- [Configuration](user-guide/configuration.md) - Branch config and environment variables
+- [Concepts](user-guide/concepts.md) - Key concepts and design decisions
 - [Examples](user-guide/examples.md) - Runnable example scripts
+
+### API Reference
+
+- [ETL API](api-reference/etl.md) - ETL pipeline functions and configuration
+- [Forecasting API](api-reference/forecasting.md) - Time series forecasting
+- [QA API](api-reference/qa.md) - Quality assurance and validation
+- [Exceptions](api-reference/exceptions.md) - Error handling
 
 ## License
 

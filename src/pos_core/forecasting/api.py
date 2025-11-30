@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from datetime import date
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Set
 
 import numpy as np
 import pandas as pd
@@ -21,6 +21,8 @@ from pos_core.forecasting.data.preparation import (
     calculate_ingreso_total,
 )
 from pos_core.forecasting.models.arima import LogARIMAModel
+from pos_core.forecasting.models.base import ForecastModel
+from pos_core.forecasting.types import ModelDebugInfo
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +35,7 @@ class ForecastConfig:
         horizon_days: Number of days ahead to forecast (default: 7).
         metrics: List of metrics to forecast (default: cash, credit, debit, total).
         branches: Optional list of branch names to forecast. If None, infers from payments_df.
+        model: Optional forecast model instance. If None, uses LogARIMAModel.
     """
 
     horizon_days: int = 7
@@ -45,6 +48,7 @@ class ForecastConfig:
         ]
     )
     branches: Optional[List[str]] = None  # if None, infer from payments_df
+    model: Optional[ForecastModel] = None  # if None, use LogARIMAModel
 
 
 @dataclass
@@ -55,11 +59,18 @@ class ForecastResult:
         forecast: DataFrame with columns: sucursal, fecha, metric, valor
         deposit_schedule: DataFrame with cash-flow deposit schedule
         metadata: Dictionary with additional metadata (branches, metrics, horizon_days, etc.)
+        debug: Optional nested dictionary of debug info.
+            Structure: debug[model_name][branch][metric] = ModelDebugInfo
+            Only populated when run_payments_forecast is called with debug=True.
+            Allows tracking debug info per model, branch, and metric combination.
     """
 
     forecast: pd.DataFrame  # per branch/metric/date forecast
     deposit_schedule: pd.DataFrame  # cash-flow / banking schedule view
     metadata: Dict[str, object] = field(default_factory=dict)
+    # Debug info structure: debug[model_name][branch][metric] = ModelDebugInfo
+    # Allows tracking debug info per model, branch, and metric combination
+    debug: Optional[Dict[str, Dict[str, Dict[str, ModelDebugInfo]]]] = None
 
 
 def _forecast_dict_to_dataframe(forecasts: Dict[str, Dict[str, pd.Series]]) -> pd.DataFrame:
@@ -169,6 +180,7 @@ def _build_deposit_schedule_dataframe(
 def run_payments_forecast(
     payments_df: pd.DataFrame,
     config: Optional[ForecastConfig] = None,
+    debug: bool = False,
 ) -> ForecastResult:
     """Run the payments forecasting pipeline in memory.
 
@@ -186,12 +198,15 @@ def run_payments_forecast(
             - 'fecha' (date or datetime)
             - the metrics in config.metrics (e.g. ingreso_efectivo, ingreso_credito, ...)
         config: ForecastConfig for horizon, metrics, and branches. If None, uses defaults.
+        debug: If True, collects debug information from models and includes it in result.debug.
+            Default is False to keep the API simple for normal use.
 
     Returns:
         ForecastResult containing:
         - forecast: per-branch, per-metric predictions for the next horizon_days
         - deposit_schedule: computed cash-flow deposit schedule using existing logic.
         - metadata: additional information about the forecast
+        - debug: model debug information (only if debug=True)
 
     Raises:
         DataQualityError: If required columns are missing.
@@ -239,8 +254,23 @@ def run_payments_forecast(
         f"{horizon_days} days"
     )
 
-    # Get model instance
-    model = LogARIMAModel()
+    # Get model instance (use configured model or default to LogARIMAModel)
+    model = config.model if config.model is not None else LogARIMAModel()
+
+    # Extract holidays from payments_df if is_national_holiday column exists
+    holidays: Set[date] = set()
+    if "is_national_holiday" in df.columns:
+        holiday_rows = df[df["is_national_holiday"] == True]  # noqa: E712
+        for fecha in holiday_rows["fecha"].unique():
+            if isinstance(fecha, pd.Timestamp):
+                holidays.add(fecha.date())
+            else:
+                holidays.add(fecha)
+
+    # Collect debug info if requested
+    # Structure: debug_info[model_name][branch][metric] = ModelDebugInfo
+    # This allows tracking debug info per model, branch, and metric combination
+    debug_info: Optional[Dict[str, Dict[str, Dict[str, ModelDebugInfo]]]] = {} if debug else None
 
     # Generate forecasts: {branch: {metric: forecast_series}}
     forecasts: Dict[str, Dict[str, pd.Series]] = {}
@@ -272,11 +302,24 @@ def run_payments_forecast(
 
                 # Train model and forecast
                 logger.debug(f"Training {branch} - {metric}...")
-                trained_model = model.train(series)
+                trained_model = model.train(series, holidays=holidays)
                 last_date = series.index[-1]
                 forecast = model.forecast(trained_model, steps=horizon_days, last_date=last_date)
                 forecasts[branch][metric] = forecast
                 successful_forecasts += 1
+
+                # Collect debug info if requested
+                if debug and hasattr(model, "debug_") and model.debug_ is not None:
+                    # Store debug info in nested structure: model_name -> branch -> metric
+                    # This allows tracking debug info per model, branch, and metric combination
+                    # Type narrowing: debug_info is {} when debug=True
+                    assert debug_info is not None
+                    model_name = model.debug_.model_name
+                    if model_name not in debug_info:
+                        debug_info[model_name] = {}
+                    if branch not in debug_info[model_name]:
+                        debug_info[model_name][branch] = {}
+                    debug_info[model_name][branch][metric] = model.debug_
 
             except Exception as e:
                 logger.warning(f"Error forecasting {branch} - {metric}: {e}")
@@ -313,6 +356,7 @@ def run_payments_forecast(
             "successful_forecasts": successful_forecasts,
             "failed_forecasts": failed_forecasts,
         },
+        debug=debug_info if debug else None,
     )
 
     return result

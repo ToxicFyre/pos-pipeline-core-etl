@@ -137,280 +137,75 @@ data/
 
 ## Usage Examples
 
-### Example 1: Recommended – Sales Detail ETL (Query API)
+For detailed examples, see:
+- **[Quickstart Guide](docs/user-guide/quickstart.md)** - Get started in minutes
+- **[Examples Guide](docs/user-guide/examples.md)** - Complete runnable examples
+- **[Example Scripts](examples/)** - Runnable Python scripts in the repository
 
-**Recommended approach**: Using the high-level query API for sales detail ETL. This example shows how to get sales data aggregated by ticket and by product group for a specific week.
+### Quick Examples
 
+**Sales Data**:
 ```python
-from pathlib import Path
 from pos_core.etl import SalesETLConfig, get_sales
-
-# Set up configuration
-data_root = Path("data")
-sucursales_json = Path("utils/sucursales.json")
-config = SalesETLConfig.from_root(data_root, sucursales_json)
-
-# Define the week (Monday to Sunday)
-week_start = "2025-01-06"  # Monday
-week_end = "2025-01-12"    # Sunday
-
-# Get sales data aggregated by ticket (runs ETL stages only if needed)
-df_ticket = get_sales(
-    start_date=week_start,
-    end_date=week_end,
-    config=config,
-    level="ticket",
-    refresh=True,  # Force re-run all stages
-)
-
-print(f"Aggregated by ticket: {len(df_ticket)} tickets")
-print(df_ticket.head())
-
-# Get sales data aggregated by group (reuses existing data if available)
-df_group = get_sales(
-    start_date=week_start,
-    end_date=week_end,
-    config=config,
-    level="group",
-    refresh=False,  # Use existing data if available
-)
-
-print(f"Aggregated by group: pivot table with {len(df_group)} groups")
-print(df_group.head())
+config = SalesETLConfig.from_root(Path("data"), Path("utils/sucursales.json"))
+df = get_sales("2025-01-01", "2025-01-31", config, level="group")
 ```
 
-The final output (`sales_by_group_*.csv`) will be a pivot table with:
-- **Rows**: Product groups (e.g., "CAFE Y BEBIDAS CALIENTES", "COMIDAS", "PIZZA", etc.)
-- **Columns**: Sucursales (branches)
-- **Values**: Total sales amounts for each group-branch combination
-
-**Note**: For fine-grained control, you can also use stage functions (`download_sales`, `clean_sales`, `aggregate_sales`) or low-level functions in `pos_core.etl.a_extract`, `pos_core.etl.b_transform`, and `pos_core.etl.c_load`.
-
-### Example 2: Recommended – Main Payments ETL Workflow
-
-**Recommended approach**: Using the query API to get payments data. The query functions automatically handle running ETL stages only when needed.
-
+**Payments Data**:
 ```python
-from pathlib import Path
-from datetime import date, timedelta
-
 from pos_core.etl import PaymentsETLConfig, get_payments
-
-# Calculate date range (3 years ago to today)
-end_date = date.today()
-start_date = end_date - timedelta(days=3 * 365)
-
-# Set up configuration
-data_root = Path("data")
-sucursales_json = Path("utils/sucursales.json")
-
-config = PaymentsETLConfig.from_root(data_root, sucursales_json)
-
-# Get payments data (automatically runs ETL stages only if needed)
-# This will:
-# 1. Check metadata and download missing payment reports from POS API
-# 2. Clean raw Excel files into normalized CSVs (if needed)
-# 3. Aggregate cleaned data into daily dataset (if needed)
-payments_df = get_payments(
-    start_date=start_date.strftime("%Y-%m-%d"),
-    end_date=end_date.strftime("%Y-%m-%d"),
-    config=config,
-    refresh=False,  # Use existing data if available
-)
-
-# The resulting DataFrame has one row per sucursal per day
-print(f"Total rows: {len(payments_df)}")
-print(f"Date range: {payments_df['fecha'].min()} to {payments_df['fecha'].max()}")
-print(f"Branches: {payments_df['sucursal'].nunique()}")
-print(f"\nColumns: {list(payments_df.columns)}")
-print(f"\nFirst few rows:")
-print(payments_df.head())
-
-# Save to CSV for future use
-output_path = data_root / "c_processed" / "payments" / "aggregated_payments_daily.csv"
-output_path.parent.mkdir(parents=True, exist_ok=True)
-payments_df.to_csv(output_path, index=False)
-print(f"\nSaved to: {output_path}")
-
-# Example: Filter for a specific branch
-banana_payments = payments_df[payments_df['sucursal'] == 'Banana']
-print(f"\nBanana payments: {len(banana_payments)} days")
-
-# Example: Get summary statistics
-summary = payments_df.groupby('sucursal').agg({
-    'ingreso_total': ['sum', 'mean', 'min', 'max'],
-    'fecha': ['min', 'max', 'count']
-})
-print(f"\nSummary by branch:")
-print(summary)
+config = PaymentsETLConfig.from_root(Path("data"), Path("utils/sucursales.json"))
+payments = get_payments("2025-01-01", "2025-01-31", config)
 ```
 
-The resulting DataFrame contains columns such as:
-- `sucursal`: Branch name
-- `fecha`: Date (YYYY-MM-DD)
-- `ingreso_efectivo`: Cash income
-- `ingreso_credito`: Credit card income
-- `ingreso_debito`: Debit card income
-- `ingreso_total`: Total income
-- Additional payment method columns (AMEX, UberEats, Rappi, etc.)
-
-### Example 3: Recommended – Forecasting Workflow
-
-**Recommended approach**: Using the query API to get forecasts. This automatically handles getting historical data and running the forecast.
-
+**Forecasting**:
 ```python
-from pathlib import Path
 from pos_core.etl import PaymentsETLConfig, get_payments_forecast
-
-# Set up configuration
-data_root = Path("data")
-sucursales_json = Path("utils/sucursales.json")
-config = PaymentsETLConfig.from_root(data_root, sucursales_json)
-
-# Get payments forecast (automatically gets historical data and runs forecast)
-forecast_df = get_payments_forecast(
-    as_of="2025-11-24",  # Forecast as of this date
-    horizon_weeks=13,  # Forecast 13 weeks ahead
-    config=config,
-    refresh=False,  # Use existing data if available
-)
-
-print("Forecast DataFrame:")
-print(forecast_df.head(20))
+config = PaymentsETLConfig.from_root(Path("data"), Path("utils/sucursales.json"))
+forecast = get_payments_forecast("2025-01-31", horizon_weeks=13, config=config)
 ```
 
-**Alternative**: If you need the full `ForecastResult` with deposit schedule and metadata, use `run_payments_forecast()` directly:
-
+**Forecasting with Debug Information**:
 ```python
-from pathlib import Path
-import pandas as pd
-from pos_core.etl import PaymentsETLConfig, get_payments
 from pos_core.forecasting import ForecastConfig, run_payments_forecast
 
-# Get historical data
-config = PaymentsETLConfig.from_root(Path("data"), Path("utils/sucursales.json"))
-payments_df = get_payments("2022-01-01", "2025-11-24", config)
+config = ForecastConfig(horizon_days=7)
+result = run_payments_forecast(payments_df, config=config, debug=True)
 
-# Ensure fecha is datetime
-payments_df['fecha'] = pd.to_datetime(payments_df['fecha'])
-
-# Configure forecast
-forecast_config = ForecastConfig(
-    horizon_days=7,  # Forecast next 7 days
-    metrics=[
-        "ingreso_efectivo",
-        "ingreso_credito",
-        "ingreso_debito",
-        "ingreso_total"
-    ],
-    branches=None  # Forecast for all branches (or specify: ["Kavia", "QIN"])
-)
-
-# Run forecast
-result = run_payments_forecast(payments_df, config=forecast_config)
-
-# Access forecast results
-print("Forecast DataFrame:")
-print(result.forecast.head(20))
-
-# The forecast DataFrame has columns:
-# - sucursal: Branch name
-# - fecha: Forecast date
-# - metric: Metric name (ingreso_efectivo, ingreso_credito, etc.)
-# - valor: Forecasted value
-
-# Access deposit schedule (cash flow view)
-print("\nDeposit Schedule:")
-print(result.deposit_schedule)
-
-# The deposit schedule has columns:
-# - fecha: Deposit date
-# - efectivo: Total cash deposits
-# - credito: Total credit card deposits
-# - debito: Total debit card deposits
-# - total: Total deposits
-
-# Access metadata
-print(f"\nForecast Metadata:")
-print(f"Branches: {result.metadata['branches']}")
-print(f"Metrics: {result.metadata['metrics']}")
-print(f"Horizon: {result.metadata['horizon_days']} days")
-print(f"Last historical date: {result.metadata['last_historical_date']}")
-print(f"Successful forecasts: {result.metadata['successful_forecasts']}")
-print(f"Failed forecasts: {result.metadata['failed_forecasts']}")
-
-# Example: Get forecast for a specific branch and metric
-banana_cash = result.forecast[
-    (result.forecast['sucursal'] == 'Banana') &
-    (result.forecast['metric'] == 'ingreso_efectivo')
-]
-print(f"\nBanana cash forecast (next 7 days):")
-print(banana_cash[['fecha', 'valor']])
-
-# Example: Pivot forecast for easier viewing
-forecast_pivot = result.forecast.pivot_table(
-    index=['sucursal', 'fecha'],
-    columns='metric',
-    values='valor'
-)
-print(f"\nForecast Pivot (first 10 rows):")
-print(forecast_pivot.head(10))
-
-# Save results
-forecast_output = data_root / "c_processed" / "forecasts" / "next_7_days_forecast.csv"
-forecast_output.parent.mkdir(parents=True, exist_ok=True)
-result.forecast.to_csv(forecast_output, index=False)
-print(f"\nSaved forecast to: {forecast_output}")
-
-deposit_output = data_root / "c_processed" / "forecasts" / "next_7_days_deposits.csv"
-result.deposit_schedule.to_csv(deposit_output, index=False)
-print(f"Saved deposit schedule to: {deposit_output}")
+# Access model-specific debug information
+if result.debug:
+    naive_debug = result.debug["naive_last_week"]["Kavia"]["ingreso_efectivo"]
+    print(f"Source dates mapping: {naive_debug.data['source_dates']}")
 ```
 
 ## API Reference
 
-### ETL Module (`pos_core.etl`)
+For complete API documentation, see:
+- **[ETL API Reference](docs/api-reference/etl.md)** - ETL pipeline functions and configuration
+- **[Forecasting API Reference](docs/api-reference/forecasting.md)** - Time series forecasting
+- **[QA API Reference](docs/api-reference/qa.md)** - Quality assurance and validation
+- **[Exceptions API Reference](docs/api-reference/exceptions.md)** - Error handling
 
-#### Configuration
-- **`PaymentsETLConfig`**, **`PaymentsPaths`**: Configuration for payments ETL pipeline
-- **`SalesETLConfig`**, **`SalesPaths`**: Configuration for sales ETL pipeline
+### Quick API Overview
 
-#### Query Functions (Recommended)
-- **`get_payments()`**: Get payments data, running ETL stages only if needed
-- **`get_sales()`**: Get sales data at specified level (ticket/group/day), running ETL stages only if needed
-- **`get_payments_forecast()`**: Get payments forecast, automatically handling historical data retrieval
+**Query Functions** (Recommended):
+- `get_payments()` - Get payments data with automatic ETL stage execution
+- `get_sales()` - Get sales data at specified aggregation level
+- `get_payments_forecast()` - Generate forecasts with automatic data preparation
 
-#### Stage Functions (Fine-Grained Control)
-- **Payments**: `download_payments()`, `clean_payments()`, `aggregate_payments()`
-- **Sales**: `download_sales()`, `clean_sales()`, `aggregate_sales()`
+**Configuration**:
+- `PaymentsETLConfig` - Payments ETL configuration
+- `SalesETLConfig` - Sales ETL configuration
+- `ForecastConfig` - Forecasting configuration
 
-#### Orchestration Functions
-- **`build_payments_dataset()`**: Complete payments ETL orchestration (uses stage functions internally)
+**Forecasting**:
+- `run_payments_forecast()` - Main forecasting function (supports `debug=True` for model introspection)
+- `ForecastResult` - Forecast results with deposit schedule, metadata, and optional debug info
+- `ModelDebugInfo` - Generic container for model-specific debug information
 
-See [`src/pos_core/etl/api.py`](src/pos_core/etl/api.py) and [`src/pos_core/etl/queries.py`](src/pos_core/etl/queries.py) when viewing this repo for detailed API documentation.
-
-### Forecasting Module (`pos_core.forecasting`)
-
-- **`ForecastConfig`**: Configuration for forecasting (horizon_days, metrics, branches)
-- **`ForecastResult`**: Result dataclass containing forecast DataFrame, deposit schedule, and metadata
-- **`run_payments_forecast()`**: Main forecasting function
-
-See [`src/pos_core/forecasting/api.py`](src/pos_core/forecasting/api.py) when viewing this repo for detailed API documentation.
-
-### QA Module (`pos_core.qa`)
-
-- **`PaymentsQAResult`**: Result dataclass with QA summary and detailed findings
-- **`run_payments_qa()`**: Main QA function for data validation
-
-See [`src/pos_core/qa/api.py`](src/pos_core/qa/api.py) when viewing this repo for detailed API documentation.
-
-### Exceptions Module (`pos_core.exceptions`)
-
-- **`PosAPIError`**: Base exception for all POS Core ETL errors
-- **`ConfigError`**: Raised for configuration errors
-- **`DataQualityError`**: Raised for data quality validation failures
-
-See [`src/pos_core/exceptions.py`](src/pos_core/exceptions.py) when viewing this repo for detailed exception documentation.
+**QA**:
+- `run_payments_qa()` - Data quality validation
+- `PaymentsQAResult` - QA results with detailed findings
 
 ## API Stability
 
@@ -430,70 +225,26 @@ When in doubt, only use the documented public APIs. If you need access to intern
 
 ## Configuration
 
-### Payments ETL Configuration
+For detailed configuration options, see the [Configuration Guide](docs/user-guide/configuration.md).
 
+### Quick Configuration Examples
+
+**Payments ETL**:
 ```python
-from pathlib import Path
 from pos_core.etl import PaymentsETLConfig
-
-# Default configuration using standard directory structure
-config = PaymentsETLConfig.from_root(
-    data_root=Path("data"),
-    sucursales_file=Path("utils/sucursales.json"),
-    chunk_size_days=180  # Maximum days per HTTP request
-)
-
-# Alternative: using from_data_root (alias)
-config = PaymentsETLConfig.from_data_root(
-    data_root=Path("data"),
-    sucursales_json=Path("utils/sucursales.json"),
-    chunk_size_days=180
-)
-
-# Custom configuration
-from pos_core.etl import PaymentsPaths
-
-custom_paths = PaymentsPaths(
-    raw_payments=Path("custom/raw"),
-    clean_payments=Path("custom/clean"),
-    proc_payments=Path("custom/processed"),
-    sucursales_json=Path("custom/sucursales.json")
-)
-
-config = PaymentsETLConfig(
-    paths=custom_paths,
-    chunk_size_days=90,
-    excluded_branches=["CEDIS"]  # Branches to exclude from processing
-)
+config = PaymentsETLConfig.from_root(Path("data"), Path("utils/sucursales.json"))
 ```
 
-### Sales ETL Configuration
-
+**Sales ETL**:
 ```python
-from pathlib import Path
 from pos_core.etl import SalesETLConfig
-
-# Default configuration using standard directory structure
-config = SalesETLConfig.from_root(
-    data_root=Path("data"),
-    sucursales_file=Path("utils/sucursales.json")
-)
+config = SalesETLConfig.from_root(Path("data"), Path("utils/sucursales.json"))
 ```
 
-### Forecasting Configuration
-
+**Forecasting**:
 ```python
 from pos_core.forecasting import ForecastConfig
-
-# Default configuration (7 days, all metrics, all branches)
-config = ForecastConfig()
-
-# Custom configuration
-config = ForecastConfig(
-    horizon_days=14,  # Forecast next 14 days
-    metrics=["ingreso_efectivo", "ingreso_total"],  # Only cash and total
-    branches=["Banana", "Queen"]  # Only specific branches
-)
+config = ForecastConfig(horizon_days=14, metrics=["ingreso_efectivo", "ingreso_total"])
 ```
 
 ## Data Formats
@@ -506,7 +257,7 @@ All dates should be in `YYYY-MM-DD` format (e.g., `"2025-01-15"`).
 
 The aggregated payments DataFrame contains:
 - `sucursal` (str): Branch name
-- `fecha` (date/datetime): Date of the record. Note: `fecha` is parsed as datetime when you pass the DataFrame into `run_payments_forecast()` (or do `pd.to_datetime()` yourself, as shown in Example 3).
+- `fecha` (date/datetime): Date of the record
 - `ingreso_efectivo` (float): Cash income
 - `ingreso_credito` (float): Credit card income
 - `ingreso_debito` (float): Debit card income
@@ -523,6 +274,8 @@ The sales details DataFrame (after cleaning) contains:
 - `subtotal_item` (float): Item subtotal
 - `total_item` (float): Item total
 - Additional columns for item details, modifiers, etc.
+
+For more details on data formats and structures, see the [Concepts Guide](docs/user-guide/concepts.md).
 
 ## Security and Best Practices
 
@@ -689,8 +442,7 @@ This package is designed for production use. When contributing:
 
 ## Support
 
-For issues, questions, or contributions, please refer to the source code documentation when viewing this repo:
-- [`src/pos_core/etl/api.py`](src/pos_core/etl/api.py)
-- [`src/pos_core/forecasting/api.py`](src/pos_core/forecasting/api.py)
-- [`src/pos_core/qa/api.py`](src/pos_core/qa/api.py)
+- **Documentation**: Full documentation at [https://toxicfyre.github.io/pos-pipeline-core-etl/](https://toxicfyre.github.io/pos-pipeline-core-etl/)
+- **Issues**: Report issues on [GitHub](https://github.com/ToxicFyre/pos-pipeline-core-etl/issues)
+- **Source Code**: View source code documentation in [`src/pos_core/`](src/pos_core/)
 

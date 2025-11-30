@@ -142,3 +142,8 @@ config = ForecastConfig(
     branches=["Banana", "Queen"]
 )
 ```
+
+## Next Steps
+
+- **Understand Concepts**: Learn about [Concepts](concepts.md) like branch code windows and ETL directory conventions
+- **Explore API**: Check the [API Reference](../api-reference/etl.md) for detailed configuration options

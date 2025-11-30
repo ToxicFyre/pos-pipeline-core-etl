@@ -15,7 +15,7 @@ Usage (from repo root):
 
 Examples:
 
-    # Default file in PROC_PAYMENTS_DIR
+    # Default file in processed payments directory
     python -m pos_qa.qa_payments
 
     # Only sample Carreta, 3 random months
@@ -27,10 +27,13 @@ Examples:
     # Disable random sampling
     python -m pos_qa.qa_payments --sample-months 0
 
+    # Use custom data root
+    python -m pos_qa.qa_payments --data-root /path/to/data
+
 What this script does:
 
 1. Loads aggregated_payments_daily.csv from:
-       PROC_PAYMENTS_DIR / <file>
+       <data-root>/c_processed/payments/<file>
 2. Validates:
    - required columns present
    - fecha is parseable as date
@@ -63,7 +66,7 @@ from typing import List, Optional, Tuple
 import numpy as np
 import pandas as pd
 
-from pos_core.etl.config import PROC_PAYMENTS_DIR
+from pos_core.etl.api import PaymentsETLConfig
 
 REQUIRED_COLUMNS = [
     "sucursal",
@@ -964,6 +967,7 @@ def run_qa(
     sample_months_n: int,
     sucursal: Optional[str],
     seed: Optional[int],
+    proc_payments_dir: Optional[Path] = None,
 ) -> Tuple[List[QAResult], Path, Optional[Path]]:
     """Run all QA checks on aggregated payments data.
 
@@ -977,28 +981,36 @@ def run_qa(
     - Random month sampling for manual review
 
     Args:
-        file_name: Name of the CSV file in PROC_PAYMENTS_DIR to load.
+        file_name: Name of the CSV file in proc_payments_dir to load.
         sample_months_n: Number of random sucursal-month combinations to sample.
         sucursal: Optional sucursal name to filter for sampling.
         seed: Random seed for reproducible sampling.
+        proc_payments_dir: Directory containing processed payments CSV files.
+            If None, defaults to "data/c_processed/payments" relative to current directory.
 
     Returns:
         Tuple of (list of QAResult objects, path to loaded CSV file,
             path to monthly sales CSV or None).
 
     Examples:
+        >>> from pathlib import Path
         >>> results, input_path, sales_csv_path = run_qa(
         ...     file_name="aggregated_payments_daily.csv",
         ...     sample_months_n=3,
         ...     sucursal=None,
-        ...     seed=42
+        ...     seed=42,
+        ...     proc_payments_dir=Path("data/c_processed/payments")
         ... )
         >>> len(results) > 0
         True
         >>> input_path.exists()
         True
     """
-    csv_path = Path(PROC_PAYMENTS_DIR) / file_name
+    if proc_payments_dir is None:
+        # Default to standard directory structure
+        proc_payments_dir = Path("data/c_processed/payments")
+    
+    csv_path = proc_payments_dir / file_name
     df = load_payments(csv_path)
 
     results: List[QAResult] = []
@@ -1009,7 +1021,7 @@ def run_qa(
     results.extend(check_per_sucursal_ranges(df))
 
     # Generate monthly sales table CSV
-    monthly_results, sales_csv_path = generate_monthly_sales_table(df, PROC_PAYMENTS_DIR)
+    monthly_results, sales_csv_path = generate_monthly_sales_table(df, proc_payments_dir)
     results.extend(monthly_results)
 
     results.extend(sample_months(df, sample_months_n, sucursal, seed))
@@ -1025,10 +1037,11 @@ def main(argv: Optional[List[str]] = None) -> None:
     and random month samples.
 
     Command-line arguments:
-        --file: CSV file name in PROC_PAYMENTS_DIR (default: aggregated_payments_daily.csv)
+        --file: CSV file name in processed payments directory (default: aggregated_payments_daily.csv)
         --sucursal: Optional sucursal name to filter sampling (default: None)
         --sample-months: Number of random months to sample (default: 3)
         --seed: Random seed for sampling (default: 42)
+        --data-root: Root directory for ETL data (default: "data")
 
     Exits with code 1 if errors are found, 0 otherwise.
 
@@ -1036,12 +1049,19 @@ def main(argv: Optional[List[str]] = None) -> None:
         $ python -m pos_qa.qa_payments
         $ python -m pos_qa.qa_payments --sucursal Carreta --sample-months 5
         $ python -m pos_qa.qa_payments --file my_payments.csv --sample-months 0
+        $ python -m pos_qa.qa_payments --data-root /path/to/data
     """
     parser = argparse.ArgumentParser(description="QA checks for aggregated daily payments (POS).")
     parser.add_argument(
         "--file",
         default="aggregated_payments_daily.csv",
-        help=("CSV file name inside PROC_PAYMENTS_DIR. Default: aggregated_payments_daily.csv"),
+        help=("CSV file name inside processed payments directory. Default: aggregated_payments_daily.csv"),
+    )
+    parser.add_argument(
+        "--data-root",
+        type=str,
+        default="data",
+        help="Root directory for ETL data (default: 'data'). Processed payments will be in <data-root>/c_processed/payments",
     )
     parser.add_argument(
         "--sucursal",
@@ -1063,8 +1083,13 @@ def main(argv: Optional[List[str]] = None) -> None:
 
     args = parser.parse_args(argv)
 
+    # Build proc_payments_dir from data_root
+    data_root = Path(args.data_root)
+    proc_payments_dir = data_root / "c_processed" / "payments"
+
     print("Running payments QA...")
     print(f"  file        : {args.file}")
+    print(f"  data-root   : {data_root}")
     print(f"  sucursal    : {args.sucursal or 'ALL'}")
     print(f"  sampleMonths: {args.sample_months}")
     print(f"  seed        : {args.seed}")
@@ -1075,6 +1100,7 @@ def main(argv: Optional[List[str]] = None) -> None:
             sample_months_n=args.sample_months,
             sucursal=args.sucursal,
             seed=args.seed,
+            proc_payments_dir=proc_payments_dir,
         )
     except Exception as e:
         import traceback

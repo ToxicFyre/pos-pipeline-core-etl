@@ -19,6 +19,9 @@ Configuration dataclass for payments ETL pipeline.
 Build a default config given a data_root.
 
 ```python
+from pathlib import Path
+from pos_core.etl import PaymentsETLConfig
+
 config = PaymentsETLConfig.from_data_root(
     data_root=Path("data"),
     sucursales_json=Path("utils/sucursales.json"),
@@ -31,6 +34,9 @@ config = PaymentsETLConfig.from_data_root(
 Alias for `from_data_root()` for consistency with `SalesETLConfig`.
 
 ```python
+from pathlib import Path
+from pos_core.etl import PaymentsETLConfig
+
 config = PaymentsETLConfig.from_root(
     data_root=Path("data"),
     sucursales_file=Path("utils/sucursales.json"),
@@ -65,6 +71,9 @@ Configuration dataclass for sales ETL pipeline.
 Build a default config given a data_root and sucursales file.
 
 ```python
+from pathlib import Path
+from pos_core.etl import SalesETLConfig
+
 config = SalesETLConfig.from_root(
     data_root=Path("data"),
     sucursales_file=Path("utils/sucursales.json")

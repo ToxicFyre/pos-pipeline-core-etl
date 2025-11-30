@@ -1,5 +1,7 @@
 # Development Notes - ETL API Refactor
 
+> **Note**: This document contains internal development notes and is intended for contributors and maintainers. For user-facing documentation, see the [User Guide](../user-guide/installation.md) and [API Reference](../api-reference/etl.md).
+
 ## Target API
 
 The goal of this refactor is to create a clean, lean API that matches how we think about ETL workflows.
@@ -63,6 +65,56 @@ These are treated as internal (not re-exported from `__init__`):
 
 ### Mark as internal
 - All functions in `a_extract`, `b_transform`, `c_load` are already internal (not exported)
+
+## Forecasting Model Debug Pattern
+
+All forecasting models should implement a generic debug pattern to expose introspection information.
+
+### Pattern Overview
+
+- **Generic entry point**: Every model has a `.debug_` attribute of type `ModelDebugInfo | None`
+- **Model-specific schema**: Each model populates `ModelDebugInfo.data` with its own structure
+- **Pipeline integration**: When `run_payments_forecast(debug=True)` is called, debug info is collected into `ForecastResult.debug`
+
+### Implementation Checklist
+
+When adding a new forecasting model:
+
+1. **Add debug attribute to `__init__`:**
+   ```python
+   def __init__(self, ...) -> None:
+       self.debug_: ModelDebugInfo | None = None
+   ```
+
+2. **Populate debug info in `forecast()` method:**
+   ```python
+   def forecast(self, model: Any, steps: int, **kwargs: Any) -> pd.Series:
+       # ... compute forecast ...
+       forecast_series = pd.Series(...)
+       
+       self.debug_ = ModelDebugInfo(
+           model_name="your_model_name",
+           version="v1",  # optional
+           data={
+               # Model-specific fields
+           },
+       )
+       
+       return forecast_series
+   ```
+
+3. **Important constraints:**
+   - Never change the return type of `forecast()`; it always returns `pd.Series`
+   - The `debug_` attribute should be set after computing the forecast
+   - Use `model_name` consistently (same string across all instances)
+   - Keep `data` dict JSON-serializable if possible
+
+4. **Debug info structure:**
+   - Debug info is stored in nested structure: `debug[model_name][branch][metric] = ModelDebugInfo`
+   - Multiple models can coexist (e.g., `debug["naive_last_week"]` and `debug["arima"]`)
+   - Each branch/metric combination gets its own debug info instance
+
+See `src/pos_core/forecasting/models/__init__.py` for the complete checklist template.
 
 ## Periodic Lean Audit
 
