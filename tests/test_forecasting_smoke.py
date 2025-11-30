@@ -239,7 +239,7 @@ def test_naive_forecasting_with_live_data() -> None:
     # Import new ETL API
     from pos_core import DataPaths
     from pos_core.forecasting.models.naive import NaiveLastWeekModel
-    from pos_core.payments import get_payments
+    from pos_core.payments import marts as payments_marts
 
     # Use a temporary directory for test data
     with TemporaryDirectory() as tmpdir:
@@ -261,13 +261,12 @@ def test_naive_forecasting_with_live_data() -> None:
 
         # Get payments data (this will download, clean, and aggregate)
         try:
-            payments_df = get_payments(
+            payments_df = payments_marts.fetch_daily(
                 paths=paths,
                 start_date=start_date.strftime("%Y-%m-%d"),
                 end_date=end_date.strftime("%Y-%m-%d"),
-                grain="daily",  # Get daily mart for forecasting
                 branches=["Kavia"],
-                refresh=True,
+                mode="force",
             )
         except Exception as e:
             import traceback

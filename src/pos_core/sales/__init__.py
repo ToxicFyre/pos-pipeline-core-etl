@@ -3,7 +3,8 @@
 This module provides access to sales data across bronze/silver/gold layers:
 
 - **Bronze (raw)**: `sales.raw.fetch()` / `load()` - raw Wansoft exports
-- **Silver (core)**: `sales.core.fetch()` / `load()` - fact_sales_item_line (item/modifier line grain)
+- **Silver (core)**: `sales.core.fetch()` / `load()` - fact_sales_item_line
+  (item/modifier line grain)
 - **Gold (marts)**: `sales.marts.fetch_ticket()` / `load_ticket()` - ticket-level aggregations
 - **Gold (marts)**: `sales.marts.fetch_group()` / `load_group()` - group-level pivot table
 
