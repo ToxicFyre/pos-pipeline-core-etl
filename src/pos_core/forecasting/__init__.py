@@ -4,13 +4,13 @@ This module provides time series forecasting for payment data.
 
 Example:
     >>> from pos_core import DataPaths
-    >>> from pos_core.payments import get_payments
+    >>> from pos_core.payments import marts as payments_marts
     >>> from pos_core.forecasting import run_payments_forecast, ForecastConfig
     >>>
     >>> paths = DataPaths.from_root("data", "utils/sucursales.json")
     >>>
     >>> # Get historical payment data (daily mart)
-    >>> payments_df = get_payments(paths, "2022-01-01", "2025-01-31")
+    >>> payments_df = payments_marts.fetch_daily(paths, "2022-01-01", "2025-01-31")
     >>>
     >>> # Run forecast
     >>> config = ForecastConfig(horizon_days=91)  # 13 weeks

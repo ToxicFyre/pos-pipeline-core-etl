@@ -1,26 +1,24 @@
 """Payments domain module.
 
-This module provides functions to load payment data at different grains:
+This module provides access to payment data across bronze/silver/gold layers:
 
-- **fact_payments_ticket** (grain="ticket"): Core fact at ticket × payment method grain.
-  One row per payment line on a ticket. This is the atomic grain for payments.
-
-- **mart_payments_daily** (grain="daily"): Gold-layer mart aggregated to sucursal × date.
-  Contains daily totals by payment method, tips, ticket counts, etc.
+- **Bronze (raw)**: `payments.raw.fetch()` / `load()` - raw Wansoft exports
+- **Silver (core)**: `payments.core.fetch()` / `load()` - fact_payments_ticket (ticket × payment method grain)
+- **Gold (marts)**: `payments.marts.fetch_daily()` / `load_daily()` - mart_payments_daily (daily aggregations)
 
 Example:
     >>> from pos_core import DataPaths
-    >>> from pos_core.payments import get_payments
+    >>> from pos_core.payments import core, marts
     >>>
     >>> paths = DataPaths.from_root("data", "utils/sucursales.json")
     >>>
     >>> # Get daily mart (most common use case)
-    >>> daily_df = get_payments(paths, "2025-01-01", "2025-01-31")
+    >>> daily_df = marts.fetch_daily(paths, "2025-01-01", "2025-01-31")
     >>>
     >>> # Get core fact (ticket grain)
-    >>> fact_df = get_payments(paths, "2025-01-01", "2025-01-31", grain="ticket")
+    >>> fact_df = core.fetch(paths, "2025-01-01", "2025-01-31")
 """
 
-from pos_core.payments.api import get_payments
+from pos_core.payments import core, marts, raw
 
-__all__ = ["get_payments"]
+__all__ = ["core", "marts", "raw"]
