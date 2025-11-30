@@ -63,23 +63,21 @@ Then run your ETL pipeline:
 ```python
 from pathlib import Path
 from pos_core import DataPaths
-from pos_core.payments import get_payments
-from pos_core.sales import get_sales
+from pos_core import payments, sales
 from pos_core.forecasting import ForecastConfig, run_payments_forecast
 
 # Configure paths
 paths = DataPaths.from_root(Path("data"), Path("utils/sucursales.json"))
 
-# Get payments data (daily mart by default)
-# This will automatically download data if needed
-payments = get_payments(paths, "2025-01-01", "2025-01-31")
+# Payments: daily mart
+payments_daily = payments.marts.fetch_daily(paths, "2025-01-01", "2025-01-31")
 
-# Get sales data (item-line core fact by default)
-sales = get_sales(paths, "2025-01-01", "2025-01-31")
+# Sales: core item-line fact
+sales_items = sales.core.fetch(paths, "2025-01-01", "2025-01-31")
 
-# Generate forecast
+# Forecasting on payments daily mart
 config = ForecastConfig(horizon_days=91)  # 13 weeks
-result = run_payments_forecast(payments, config)
+result = run_payments_forecast(payments_daily, config)
 print(result.forecast.head())
 ```
 
@@ -91,9 +89,14 @@ For more examples, see:
 
 ### Configuration Files
 
-**sucursales.json** (required): Branch configuration file that maps branch names to codes.
+**sucursales.json** (required): Branch configuration file that maps branch names to codes with validity windows.
 
 Default location: `utils/sucursales.json`
+
+The file supports branch code changes over time using `valid_from` and `valid_to` fields:
+- `code`: The POS system code for this branch (e.g., "8888")
+- `valid_from`: Start date when this code became active (YYYY-MM-DD format)
+- `valid_to`: End date when this code became inactive (null = still active)
 
 Example:
 ```json
@@ -107,8 +110,27 @@ Example:
     "code": "6362",
     "valid_from": "2024-01-01",
     "valid_to": null
+  },
+  "Kavia_OLD": {
+    "code": "6161",
+    "valid_from": "2022-11-01",
+    "valid_to": "2024-02-20"
   }
 }
+```
+
+Branch codes are resolved using `pos_core.branches.BranchRegistry`:
+```python
+from pathlib import Path
+from pos_core import DataPaths
+from pos_core.branches import BranchRegistry
+
+paths = DataPaths.from_root(Path("data"), Path("utils/sucursales.json"))
+registry = BranchRegistry(paths)
+
+# Get code for a specific date
+code = registry.get_code_for_date("Kavia", "2023-01-15")  # Returns "6161"
+code = registry.get_code_for_date("Kavia", "2024-03-01")  # Returns "8777"
 ```
 
 ### Environment Variables
@@ -179,6 +201,21 @@ The ETL pipeline follows **bronze/silver/gold** data layer conventions:
 └─────────────┘     └─────────────────────────┘     └─────────────────┘
 ```
 
+## Module & Naming Philosophy
+
+The package uses **domain + layer modules** to encode specificity:
+
+- **Modules define domain + layer**:
+  - `pos_core.payments.core` → payments, silver (core fact)
+  - `pos_core.payments.marts` → payments, gold (aggregates)
+  - `pos_core.sales.core` → sales, silver
+  - `pos_core.sales.marts` → sales, gold
+  - `pos_core.payments.raw` / `pos_core.sales.raw` → bronze (extraction)
+
+- **Functions define behavior**:
+  - `fetch(...)` / `fetch_*`: May run ETL for missing (or all, if `mode="force"`) partitions and return a DataFrame
+  - `load(...)` / `load_*`: Read existing outputs only; never run ETL
+
 ## API Reference
 
 ### Configuration
@@ -191,53 +228,129 @@ paths = DataPaths.from_root(Path("data"), Path("utils/sucursales.json"))
 
 ### Payments
 
+#### Core Fact (Silver Layer)
+
 ```python
-from pos_core.payments import get_payments
+from pos_core.payments import core
 
-# Get daily mart (default, most common use case)
-df = get_payments(paths, "2025-01-01", "2025-01-31")
+# Fetch: ensures data exists, runs ETL if needed
+df = core.fetch(paths, "2025-01-01", "2025-01-31")
 
-# Get core fact (ticket × payment method grain)
-df = get_payments(paths, "2025-01-01", "2025-01-31", grain="ticket")
+# Load: read existing data only (raises error if missing)
+df = core.load(paths, "2025-01-01", "2025-01-31")
 ```
 
 **Parameters:**
 - `paths`: DataPaths configuration
 - `start_date`, `end_date`: Date range (YYYY-MM-DD format)
-- `grain`: `"ticket"` (core fact) or `"daily"` (mart, default)
 - `branches`: Optional list of branch names to filter
-- `refresh`: If True, force re-run all ETL stages
+- `mode`: `"missing"` (default) or `"force"` (for `fetch` only)
+
+Returns: DataFrame with `fact_payments_ticket` structure (ticket × payment method grain)
+
+#### Daily Mart (Gold Layer)
+
+```python
+from pos_core.payments import marts
+
+# Fetch: ensures core fact + mart exist, runs ETL if needed
+df = marts.fetch_daily(paths, "2025-01-01", "2025-01-31")
+
+# Load: read existing mart only (raises error if missing)
+df = marts.load_daily(paths, "2025-01-01", "2025-01-31")
+```
+
+**Parameters:** Same as core, plus:
+- `mode`: `"missing"` (default) or `"force"` (for `fetch_daily` only)
+
+Returns: DataFrame with `mart_payments_daily` structure (sucursal × date grain)
 
 ### Sales
 
+#### Core Fact (Silver Layer)
+
 ```python
-from pos_core.sales import get_sales
+from pos_core.sales import core
 
-# Get core fact (item-line grain, default)
-df = get_sales(paths, "2025-01-01", "2025-01-31")
+# Fetch: ensures data exists, runs ETL if needed
+df = core.fetch(paths, "2025-01-01", "2025-01-31")
 
-# Get ticket-level mart
-df = get_sales(paths, "2025-01-01", "2025-01-31", grain="ticket")
-
-# Get group pivot mart
-df = get_sales(paths, "2025-01-01", "2025-01-31", grain="group")
+# Load: read existing data only (raises error if missing)
+df = core.load(paths, "2025-01-01", "2025-01-31")
 ```
 
-**Parameters:**
-- `paths`: DataPaths configuration
-- `start_date`, `end_date`: Date range (YYYY-MM-DD format)
-- `grain`: `"item"` (core fact, default), `"ticket"` (mart), or `"group"` (mart)
-- `branches`: Optional list of branch names to filter
-- `refresh`: If True, force re-run all ETL stages
+**Parameters:** Same as payments core
+
+Returns: DataFrame with `fact_sales_item_line` structure (item/modifier line grain)
+
+#### Ticket Mart (Gold Layer)
+
+```python
+from pos_core.sales import marts
+
+# Fetch: ensures core fact + ticket mart exist
+df = marts.fetch_ticket(paths, "2025-01-01", "2025-01-31")
+
+# Load: read existing mart only
+df = marts.load_ticket(paths, "2025-01-01", "2025-01-31")
+```
+
+Returns: DataFrame with `mart_sales_by_ticket` structure (one row per ticket)
+
+#### Group Mart (Gold Layer)
+
+```python
+from pos_core.sales import marts
+
+# Fetch: ensures ticket mart + group mart exist
+df = marts.fetch_group(paths, "2025-01-01", "2025-01-31")
+
+# Load: read existing mart only
+df = marts.load_group(paths, "2025-01-01", "2025-01-31")
+```
+
+Returns: DataFrame with `mart_sales_by_group` structure (category pivot table)
+
+### Processing Lifecycle
+
+**`payments.core.fetch(...)`**:
+1. Extract raw payments from Wansoft into `a_raw/` (only missing/force)
+2. Transform into `b_clean/fact_payments_ticket`
+3. Return the core fact DataFrame
+
+**`payments.marts.fetch_daily(...)`**:
+1. Ensure core fact exists (as above)
+2. Build/update `c_processed/mart_payments_daily`
+3. Return the daily mart DataFrame
+
+**`sales.core.fetch(...)`**:
+1. Extract raw sales from Wansoft into `a_raw/` (only missing/force)
+2. Transform into `b_clean/fact_sales_item_line`
+3. Return the core fact DataFrame
+
+**`sales.marts.fetch_ticket(...)`**:
+1. Ensure core fact exists (as above)
+2. Build/update `c_processed/mart_sales_by_ticket`
+3. Return the ticket mart DataFrame
+
+### Capabilities Table
+
+| Domain | Layer | Module | Function | Description |
+|--------|-------|--------|----------|-------------|
+| **Payments** | Silver (Core) | `payments.core` | `fetch()` / `load()` | Core fact: ticket × payment method |
+| **Payments** | Gold (Mart) | `payments.marts` | `fetch_daily()` / `load_daily()` | Daily aggregations for forecasting |
+| **Sales** | Silver (Core) | `sales.core` | `fetch()` / `load()` | Core fact: item/modifier line |
+| **Sales** | Gold (Mart) | `sales.marts` | `fetch_ticket()` / `load_ticket()` | Ticket-level aggregations |
+| **Sales** | Gold (Mart) | `sales.marts` | `fetch_group()` / `load_group()` | Group-level pivot table |
 
 ### Forecasting
 
 ```python
-from pos_core.payments import get_payments
+from pos_core.payments import marts as payments_marts
 from pos_core.forecasting import run_payments_forecast, ForecastConfig
 
-# Get historical data
-payments_df = get_payments(paths, "2022-01-01", "2025-01-31")
+# Get historical data (daily mart)
+payments_df = payments_marts.fetch_daily(paths, "2022-01-01", "2025-01-31")
 
 # Run forecast
 config = ForecastConfig(horizon_days=91)
@@ -259,10 +372,10 @@ if result.debug:
 ### QA
 
 ```python
-from pos_core.payments import get_payments
+from pos_core.payments import marts as payments_marts
 from pos_core.qa import run_payments_qa
 
-df = get_payments(paths, "2025-01-01", "2025-01-31")
+df = payments_marts.fetch_daily(paths, "2025-01-01", "2025-01-31")
 result = run_payments_qa(df)
 
 print(result.summary)
@@ -307,7 +420,7 @@ All dates should be in `YYYY-MM-DD` format (e.g., `"2025-01-15"`).
 1. **Missing sucursales.json**: Ensure the file exists at the expected location
 2. **Authentication Errors**: Verify `WS_BASE`, `WS_USER`, and `WS_PASS` environment variables are set correctly. Credentials are required for extraction.
 3. **Insufficient Data for Forecasting**: ARIMA models require at least 30 days of historical data
-4. **Missing Date Ranges**: Use `refresh=True` to force re-run ETL stages
+4. **Missing Date Ranges**: Use `mode="force"` in `fetch()` functions to force re-run ETL stages
 
 ## Development
 
@@ -336,24 +449,27 @@ For development, install with dev dependencies:
 pip install -e .[dev]
 ```
 
-## Migration from v0.1.x
+## Migration from v0.2.x
 
-The API has been simplified in v0.2.0. Key changes:
+The API has been refactored in v0.3.0 to use Option A (module namespaces). Key changes:
 
-| Old API | New API |
-|---------|---------|
-| `PaymentsETLConfig.from_root(...)` | `DataPaths.from_root(...)` |
-| `SalesETLConfig.from_root(...)` | `DataPaths.from_root(...)` |
-| `from pos_core.etl import get_payments` | `from pos_core.payments import get_payments` |
-| `from pos_core.etl import get_sales` | `from pos_core.sales import get_sales` |
-| `get_sales(..., level="ticket")` | `get_sales(..., grain="ticket")` |
-| `get_payments_forecast(...)` | `get_payments(...) + run_payments_forecast(...)` |
-| `build_payments_dataset(...)` | `get_payments(...)` |
+| Old API (v0.2.x) | New API (v0.3.x) |
+|------------------|------------------|
+| `from pos_core.payments import get_payments` | `from pos_core.payments import core, marts` |
+| `get_payments(..., grain="ticket")` | `payments.core.fetch(...)` |
+| `get_payments(..., grain="daily")` | `payments.marts.fetch_daily(...)` |
+| `get_payments(..., refresh=True)` | `payments.core.fetch(..., mode="force")` |
+| `from pos_core.sales import get_sales` | `from pos_core.sales import core, marts` |
+| `get_sales(..., grain="item")` | `sales.core.fetch(...)` |
+| `get_sales(..., grain="ticket")` | `sales.marts.fetch_ticket(...)` |
+| `get_sales(..., grain="group")` | `sales.marts.fetch_group(...)` |
 
-Old entry points were intentionally removed to reduce technical debt. The new API uses:
-- A unified `DataPaths` config for both payments and sales
-- `grain=` parameter instead of `level=` for clarity
-- Explicit composition for forecasting (get data, then forecast)
+The new API:
+- Uses **module namespaces** (`payments.core`, `payments.marts`, `sales.core`, `sales.marts`) to encode domain + layer
+- Uses **short verb-based names** (`fetch`, `load`) for behavior
+- Makes **bronze/silver/gold layers explicit** via module paths
+- Supports **`mode="missing"`** (default) vs **`mode="force"`** for partition-aware ETL
+- Provides **`load()`** functions that never run ETL (read-only)
 
 ## License
 

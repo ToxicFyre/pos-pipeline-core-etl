@@ -269,13 +269,13 @@ class TestNewAPIGrainDocumentation:
         # Check for key grain documentation
         assert "item" in docstring.lower() or "fact_sales_item_line" in docstring
 
-    def test_config_documents_layers(self) -> None:
-        """Verify that config module documents the data layers."""
-        from pos_core import config
+    def test_paths_documents_layers(self) -> None:
+        """Verify that paths module documents the data layers."""
+        from pos_core import paths
 
-        docstring = config.__doc__ or ""
+        docstring = paths.__doc__ or ""
         # Also check the DataPaths class docstring
-        datapaths_docstring = config.DataPaths.__doc__ or ""
+        datapaths_docstring = paths.DataPaths.__doc__ or ""
         combined = docstring + datapaths_docstring
 
         # Check that it mentions the layers
@@ -287,17 +287,19 @@ class TestNewAPIGrainDocumentation:
 class TestNewAPIImports:
     """Tests to verify the new API structure."""
 
-    def test_get_payments_importable(self) -> None:
-        """Verify get_payments can be imported from pos_core.payments."""
-        from pos_core.payments import get_payments
+    def test_payments_core_importable(self) -> None:
+        """Verify payments.core can be imported from pos_core.payments."""
+        from pos_core.payments import core
 
-        assert callable(get_payments)
+        assert callable(core.fetch)
+        assert callable(core.load)
 
-    def test_get_sales_importable(self) -> None:
-        """Verify get_sales can be imported from pos_core.sales."""
-        from pos_core.sales import get_sales
+    def test_sales_core_importable(self) -> None:
+        """Verify sales.core can be imported from pos_core.sales."""
+        from pos_core.sales import core
 
-        assert callable(get_sales)
+        assert callable(core.fetch)
+        assert callable(core.load)
 
     def test_data_paths_importable(self) -> None:
         """Verify DataPaths can be imported from pos_core."""

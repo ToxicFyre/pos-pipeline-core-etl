@@ -93,7 +93,7 @@ def test_qa_with_live_data() -> None:
 
     # Import new ETL API
     from pos_core import DataPaths
-    from pos_core.payments import get_payments
+    from pos_core.payments import marts as payments_marts
 
     # Use temporary directory
     with TemporaryDirectory() as tmpdir:
@@ -115,13 +115,12 @@ def test_qa_with_live_data() -> None:
 
         # Get payments data
         try:
-            payments_df = get_payments(
+            payments_df = payments_marts.fetch_daily(
                 paths=paths,
                 start_date=start_date.strftime("%Y-%m-%d"),
                 end_date=end_date.strftime("%Y-%m-%d"),
-                grain="daily",
                 branches=["Kavia"],
-                refresh=True,
+                mode="force",
             )
         except Exception as e:
             import traceback
@@ -194,7 +193,7 @@ def test_qa_detects_data_quality_issues() -> None:
     os.environ["WS_PASS"] = ws_pass
 
     from pos_core import DataPaths
-    from pos_core.payments import get_payments
+    from pos_core.payments import marts as payments_marts
 
     with TemporaryDirectory() as tmpdir:
         data_root = Path(tmpdir) / "data"
@@ -212,13 +211,12 @@ def test_qa_detects_data_quality_issues() -> None:
         print(f"\n[Live QA Issue Test] Testing issue detection from {start_date} to {end_date}")
 
         try:
-            payments_df = get_payments(
+            payments_df = payments_marts.fetch_daily(
                 paths=paths,
                 start_date=start_date.strftime("%Y-%m-%d"),
                 end_date=end_date.strftime("%Y-%m-%d"),
-                grain="daily",
                 branches=["Kavia"],
-                refresh=True,
+                mode="force",
             )
         except Exception as e:
             pytest.skip(f"Failed to download data: {e}")

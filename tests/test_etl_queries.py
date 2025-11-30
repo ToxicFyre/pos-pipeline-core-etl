@@ -17,9 +17,9 @@ import pandas as pd
 import pytest
 
 from pos_core import DataPaths
-from pos_core.payments import get_payments
+from pos_core.payments import marts as payments_marts
 from pos_core.payments.metadata import StageMetadata, read_metadata
-from pos_core.sales import get_sales
+from pos_core.sales import core as sales_core
 from pos_core.sales.metadata import write_metadata as write_sales_metadata
 
 
@@ -99,8 +99,8 @@ def test_get_sales_refresh_runs_all_stages(test_paths, monkeypatch):
     monkeypatch.setattr("pos_core.sales.extract.download_sales", mock_download)
     monkeypatch.setattr("pos_core.sales.transform.clean_sales", mock_clean)
 
-    # Call with refresh=True, grain="item" returns the core fact
-    result = get_sales(test_paths, "2025-01-01", "2025-01-31", grain="item", refresh=True)
+    # Call with mode="force" to get the core fact
+    result = sales_core.fetch(test_paths, "2025-01-01", "2025-01-31", mode="force")
 
     # Verify stages were called
     assert len(download_called) == 1
@@ -144,8 +144,8 @@ def test_get_sales_uses_existing_data_when_refresh_false(test_paths):
             ),
         )
 
-    # Call with refresh=False and grain="item" to get core fact
-    result = get_sales(test_paths, "2025-01-01", "2025-01-31", grain="item", refresh=False)
+    # Call with mode="missing" to get core fact (should use existing data)
+    result = sales_core.fetch(test_paths, "2025-01-01", "2025-01-31", mode="missing")
 
     # Verify we got the existing data
     assert len(result) == 2
@@ -208,13 +208,12 @@ def test_get_payments_with_live_data() -> None:
 
         # First call: should download and process
         try:
-            result1 = get_payments(
+            result1 = payments_marts.fetch_daily(
                 paths=paths,
                 start_date=start_date.strftime("%Y-%m-%d"),
                 end_date=end_date.strftime("%Y-%m-%d"),
-                grain="daily",  # Get daily mart
                 branches=["Kavia"],
-                refresh=True,
+                mode="force",
             )
         except Exception as e:
             import traceback
@@ -230,15 +229,14 @@ def test_get_payments_with_live_data() -> None:
         assert "fecha" in result1.columns
         print(f"[Live Query Test] First call returned {len(result1)} rows")
 
-        # Second call with refresh=False: should use cached data
-        print("[Live Query Test] Testing idempotence (refresh=False)...")
-        result2 = get_payments(
+        # Second call with mode="missing": should use cached data
+        print("[Live Query Test] Testing idempotence (mode='missing')...")
+        result2 = payments_marts.fetch_daily(
             paths=paths,
             start_date=start_date.strftime("%Y-%m-%d"),
             end_date=end_date.strftime("%Y-%m-%d"),
-            grain="daily",
             branches=["Kavia"],
-            refresh=False,
+            mode="missing",
         )
 
         # Should get same data
@@ -306,10 +304,10 @@ def test_get_payments_metadata_tracking() -> None:
 
         print(f"\n[Live Metadata Test] Testing metadata tracking from {start_date} to {end_date}")
 
-        # Run get_payments
+        # Run payments_marts.fetch_daily
         try:
-            result = get_payments(
-                paths, start_str, end_str, grain="daily", branches=["Kavia"], refresh=True
+            result = payments_marts.fetch_daily(
+                paths, start_str, end_str, branches=["Kavia"], mode="force"
             )
         except Exception as e:
             pytest.skip(f"Failed to get payments: {e}")
