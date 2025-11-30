@@ -15,8 +15,10 @@ from tempfile import TemporaryDirectory
 import pytest
 
 from pos_core import DataPaths
-from pos_core.payments import core as payments_core, marts as payments_marts
-from pos_core.sales import core as sales_core, marts as sales_marts
+from pos_core.payments import core as payments_core
+from pos_core.payments import marts as payments_marts
+from pos_core.sales import core as sales_core
+from pos_core.sales import marts as sales_marts
 
 
 def test_imports_work() -> None:

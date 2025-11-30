@@ -60,7 +60,9 @@ def fetch(
         fetch_raw(paths, start_date, end_date, branches, mode="missing")
 
     # Ensure clean data exists
-    if mode == "force" or should_run_stage(paths.clean_payments, start_date, end_date, "transform_v1"):
+    if mode == "force" or should_run_stage(
+        paths.clean_payments, start_date, end_date, "transform_v1"
+    ):
         logger.info("Cleaning payments for %s to %s", start_date, end_date)
         clean_payments(paths, start_date, end_date, branches)
     else:

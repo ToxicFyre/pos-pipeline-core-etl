@@ -7,11 +7,9 @@ validity windows from sucursales.json.
 
 from __future__ import annotations
 
-from datetime import date
-from pathlib import Path
 from typing import TYPE_CHECKING
 
-from pos_core.etl.branch_config import CodeWindow, load_branch_segments_from_json
+from pos_core.etl.branch_config import load_branch_segments_from_json
 from pos_core.etl.utils import parse_date
 
 if TYPE_CHECKING:
