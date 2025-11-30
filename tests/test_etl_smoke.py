@@ -1,7 +1,7 @@
-"""Smoke test for ETL API imports and basic functionality.
+"""Smoke test for new ETL API imports and basic functionality.
 
-This test verifies that the ETL API can be imported and basic configuration
-can be created without runtime errors.
+This test verifies that the new domain-oriented ETL API can be imported
+and basic configuration can be created without runtime errors.
 
 The module also includes live tests that use real credentials to validate
 the ETL pipeline end-to-end with actual POS data.
@@ -14,35 +14,66 @@ from tempfile import TemporaryDirectory
 
 import pytest
 
-from pos_core.etl import PaymentsETLConfig, build_payments_dataset
+from pos_core import DataPaths
+from pos_core.payments import get_payments
+from pos_core.sales import get_sales
 
 
 def test_imports_work() -> None:
-    """Test that ETL API can be imported without errors."""
-    assert PaymentsETLConfig is not None
-    assert build_payments_dataset is not None
+    """Test that new ETL API can be imported without errors."""
+    assert DataPaths is not None
+    assert get_payments is not None
+    assert get_sales is not None
 
 
 def test_config_creation() -> None:
-    """Test that PaymentsETLConfig can be created from data_root."""
-    config = PaymentsETLConfig.from_data_root(Path("data"))
-    assert config is not None
-    assert config.paths.raw_payments == Path("data/a_raw/payments/batch")
-    assert config.paths.clean_payments == Path("data/b_clean/payments/batch")
-    assert config.paths.proc_payments == Path("data/c_processed/payments")
-    assert config.chunk_size_days == 180
+    """Test that DataPaths can be created from data_root."""
+    paths = DataPaths.from_root(Path("data"), Path("utils/sucursales.json"))
+    assert paths is not None
+    assert paths.data_root == Path("data")
+    assert paths.sucursales_json == Path("utils/sucursales.json")
+    # Test derived paths
+    assert paths.raw_payments == Path("data/a_raw/payments/batch")
+    assert paths.clean_payments == Path("data/b_clean/payments/batch")
+    assert paths.mart_payments == Path("data/c_processed/payments")
+    assert paths.raw_sales == Path("data/a_raw/sales/batch")
+    assert paths.clean_sales == Path("data/b_clean/sales/batch")
+    assert paths.mart_sales == Path("data/c_processed/sales")
 
 
-def test_build_payments_dataset_is_callable() -> None:
-    """Test that build_payments_dataset is callable."""
-    assert callable(build_payments_dataset)
+def test_get_payments_is_callable() -> None:
+    """Test that get_payments is callable."""
+    assert callable(get_payments)
+
+
+def test_get_sales_is_callable() -> None:
+    """Test that get_sales is callable."""
+    assert callable(get_sales)
+
+
+def test_get_payments_invalid_grain() -> None:
+    """Test that get_payments raises on invalid grain."""
+    with TemporaryDirectory() as tmpdir:
+        paths = DataPaths.from_root(Path(tmpdir), Path(tmpdir) / "sucursales.json")
+        (Path(tmpdir) / "sucursales.json").write_text("{}")
+        with pytest.raises(ValueError, match="Invalid grain"):
+            get_payments(paths, "2025-01-01", "2025-01-31", grain="invalid")
+
+
+def test_get_sales_invalid_grain() -> None:
+    """Test that get_sales raises on invalid grain."""
+    with TemporaryDirectory() as tmpdir:
+        paths = DataPaths.from_root(Path(tmpdir), Path(tmpdir) / "sucursales.json")
+        (Path(tmpdir) / "sucursales.json").write_text("{}")
+        with pytest.raises(ValueError, match="Invalid grain"):
+            get_sales(paths, "2025-01-01", "2025-01-31", grain="invalid")
 
 
 @pytest.mark.live
 def test_etl_pipeline_with_live_data() -> None:
     """Live test: Full ETL pipeline with real credentials and data.
 
-    This test validates the complete ETL pipeline:
+    This test validates the complete ETL pipeline using the new API:
     1. Download raw payment reports from POS API
     2. Clean and transform the data
     3. Aggregate into daily dataset
@@ -81,13 +112,11 @@ def test_etl_pipeline_with_live_data() -> None:
         data_root.mkdir()
 
         # Create sucursales.json for Kavia branch
-        utils_dir = data_root.parent / "utils"
-        utils_dir.mkdir()
-        sucursales_json = utils_dir / "sucursales.json"
+        sucursales_json = data_root / "sucursales.json"
         sucursales_json.write_text('{"Kavia": {"code": "8777", "valid_from": "2024-02-21"}}')
 
-        # Configure ETL
-        config = PaymentsETLConfig.from_root(data_root, sucursales_json)
+        # Configure ETL with new API
+        paths = DataPaths.from_root(data_root, sucursales_json)
 
         # Test with 14 days of data (2 weeks)
         end_date = date.today() - timedelta(days=1)  # Yesterday
@@ -95,13 +124,15 @@ def test_etl_pipeline_with_live_data() -> None:
 
         print(f"\n[Live ETL Test] Testing ETL pipeline from {start_date} to {end_date}")
 
-        # Run full ETL pipeline
+        # Run full ETL pipeline using new API
         try:
-            result_df = build_payments_dataset(
+            result_df = get_payments(
+                paths=paths,
                 start_date=start_date.strftime("%Y-%m-%d"),
                 end_date=end_date.strftime("%Y-%m-%d"),
-                config=config,
+                grain="daily",  # Get daily mart
                 branches=["Kavia"],
+                refresh=True,
             )
         except Exception as e:
             import traceback

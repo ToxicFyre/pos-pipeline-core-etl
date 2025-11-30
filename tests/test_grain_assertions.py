@@ -39,7 +39,7 @@ class TestSalesGrain:
                     "2025-01-15",
                     "2025-01-15",
                 ],
-                "order_id": [1001, 1001, 1001, 1002, 2001, 2001],  # Note: same order_id for items
+                "order_id": [1001, 1001, 1001, 1002, 2001, 2001],
                 "item_key": ["CAFE01", "PAN01", "MOD_LECHE", "CAFE01", "JUGO01", "PAN02"],
                 "item": [
                     "Café Americano",
@@ -60,10 +60,7 @@ class TestSalesGrain:
     def test_sales_item_line_grain_has_multiple_rows_per_ticket(
         self, sample_sales_item_data: pd.DataFrame
     ) -> None:
-        """Verify that sales data at item-line grain allows multiple rows per ticket.
-
-        This is the expected behavior for the core sales fact (fact_sales_item_line).
-        """
+        """Verify that sales data at item-line grain allows multiple rows per ticket."""
         df = sample_sales_item_data
 
         # Count rows per order_id (ticket)
@@ -78,11 +75,7 @@ class TestSalesGrain:
         assert nativa_2001 == 2, f"Expected 2 item-lines for order 2001, got {nativa_2001}"
 
     def test_sales_item_line_key_uniqueness(self, sample_sales_item_data: pd.DataFrame) -> None:
-        """Verify that item-line key uniquely identifies rows.
-
-        Key: (sucursal, operating_date, order_id, item_key)
-        Note: For full uniqueness in production, modifier fields may also be needed.
-        """
+        """Verify that item-line key uniquely identifies rows."""
         df = sample_sales_item_data
         key_cols = ["sucursal", "operating_date", "order_id", "item_key"]
 
@@ -111,14 +104,10 @@ class TestSalesGrain:
     def test_sales_aggregation_to_ticket_is_mart(
         self, sample_sales_item_data: pd.DataFrame
     ) -> None:
-        """Verify that aggregating from item-line to ticket is a mart operation.
-
-        This tests that the item-line grain is more granular than ticket grain,
-        confirming that ticket-level is a mart (aggregation), not core.
-        """
+        """Verify that aggregating from item-line to ticket is a mart operation."""
         df = sample_sales_item_data
 
-        # Aggregate to ticket level (like the marts/sales_by_ticket.py function does)
+        # Aggregate to ticket level
         ticket_agg = (
             df.groupby(["sucursal", "operating_date", "order_id"])
             .agg({"subtotal_item": "sum", "total_item": "sum"})
@@ -152,11 +141,7 @@ class TestPaymentsGrain:
 
     @pytest.fixture
     def sample_payments_ticket_data(self) -> pd.DataFrame:
-        """Create a sample payments DataFrame at ticket × payment method grain.
-
-        This represents the output of the staging layer (b_clean/payments/)
-        which IS the core fact for payments.
-        """
+        """Create a sample payments DataFrame at ticket × payment method grain."""
         return pd.DataFrame(
             {
                 "sucursal": ["Kavia", "Kavia", "Kavia", "Nativa", "Nativa"],
@@ -167,7 +152,6 @@ class TestPaymentsGrain:
                     "2025-01-15",
                     "2025-01-15",
                 ],
-                # Note: order_index 1001 has two payment methods (split payment)
                 "order_index": [1001, 1001, 1002, 2001, 2002],
                 "payment_method": [
                     "Efectivo",
@@ -185,10 +169,7 @@ class TestPaymentsGrain:
     def test_payments_ticket_grain_allows_multiple_payment_methods(
         self, sample_payments_ticket_data: pd.DataFrame
     ) -> None:
-        """Verify that payments data allows multiple rows per ticket (split payments).
-
-        This is the expected behavior when a customer pays with multiple methods.
-        """
+        """Verify that payments data allows multiple rows per ticket (split payments)."""
         df = sample_payments_ticket_data
 
         # Count payment methods per ticket
@@ -205,10 +186,7 @@ class TestPaymentsGrain:
     def test_payments_ticket_key_uniqueness(
         self, sample_payments_ticket_data: pd.DataFrame
     ) -> None:
-        """Verify that ticket × payment method key uniquely identifies rows.
-
-        Key: (sucursal, operating_date, order_index, payment_method)
-        """
+        """Verify that ticket × payment method key uniquely identifies rows."""
         df = sample_payments_ticket_data
         key_cols = ["sucursal", "operating_date", "order_index", "payment_method"]
 
@@ -235,14 +213,10 @@ class TestPaymentsGrain:
     def test_payments_aggregation_to_daily_is_mart(
         self, sample_payments_ticket_data: pd.DataFrame
     ) -> None:
-        """Verify that aggregating from ticket to daily is a mart operation.
-
-        This tests that ticket × payment method grain is more granular than
-        daily grain, confirming that daily-level is a mart (aggregation).
-        """
+        """Verify that aggregating from ticket to daily is a mart operation."""
         df = sample_payments_ticket_data
 
-        # Aggregate to daily level (like the marts/payments_daily.py function does)
+        # Aggregate to daily level
         daily_agg = (
             df.groupby(["sucursal", "operating_date"])
             .agg(
@@ -273,61 +247,75 @@ class TestPaymentsGrain:
         assert kavia_day["num_tickets"].iloc[0] == expected_tickets
 
 
-class TestGrainDocumentation:
-    """Tests that verify grain documentation is accurate."""
+class TestNewAPIGrainDocumentation:
+    """Tests that verify grain documentation in the new API modules."""
 
-    def test_sales_grain_docstring_accuracy(self) -> None:
-        """Verify that sales grain is correctly documented in module docstrings."""
-        from pos_core.etl import staging
+    def test_payments_module_documents_grain(self) -> None:
+        """Verify that payments module docstring documents the grain."""
+        from pos_core import payments
 
-        docstring = staging.__doc__ or ""
-
-        # Check for key grain documentation
-        assert "item/modifier line" in docstring.lower() or "fact_sales_item_line" in docstring
-        assert "order_id" in docstring
-
-    def test_payments_grain_docstring_accuracy(self) -> None:
-        """Verify that payments grain is correctly documented in module docstrings."""
-        from pos_core.etl import staging
-
-        docstring = staging.__doc__ or ""
+        docstring = payments.__doc__ or ""
 
         # Check for key grain documentation
         assert "ticket" in docstring.lower()
-        assert "payment method" in docstring.lower() or "fact_payments_ticket" in docstring
+        assert "fact_payments_ticket" in docstring
 
-    def test_marts_layer_documents_aggregations(self) -> None:
-        """Verify that marts layer documents that it contains aggregations."""
-        from pos_core.etl import marts
+    def test_sales_module_documents_grain(self) -> None:
+        """Verify that sales module docstring documents the grain."""
+        from pos_core import sales
 
-        docstring = marts.__doc__ or ""
+        docstring = sales.__doc__ or ""
 
-        # Check that it's documented as aggregations
-        assert "aggregat" in docstring.lower()
-        assert "gold" in docstring.lower() or "mart" in docstring.lower()
+        # Check for key grain documentation
+        assert "item" in docstring.lower() or "fact_sales_item_line" in docstring
+
+    def test_config_documents_layers(self) -> None:
+        """Verify that config module documents the data layers."""
+        from pos_core import config
+
+        docstring = config.__doc__ or ""
+        # Also check the DataPaths class docstring
+        datapaths_docstring = config.DataPaths.__doc__ or ""
+        combined = docstring + datapaths_docstring
+
+        # Check that it mentions the layers
+        assert "bronze" in combined.lower() or "raw" in combined.lower()
+        assert "silver" in combined.lower() or "clean" in combined.lower()
+        assert "gold" in combined.lower() or "mart" in combined.lower()
 
 
-class TestAggregateByTicketIsInMarts:
-    """Tests to verify aggregate_by_ticket is correctly placed in marts layer."""
+class TestNewAPIImports:
+    """Tests to verify the new API structure."""
 
-    def test_aggregate_by_ticket_importable_from_marts(self) -> None:
-        """Verify that aggregate_by_ticket can be imported from marts."""
-        from pos_core.etl.marts import aggregate_by_ticket
+    def test_get_payments_importable(self) -> None:
+        """Verify get_payments can be imported from pos_core.payments."""
+        from pos_core.payments import get_payments
 
-        assert callable(aggregate_by_ticket)
+        assert callable(get_payments)
 
-    def test_aggregate_by_ticket_backwards_compat_from_core(self) -> None:
-        """Verify backwards compatibility: aggregate_by_ticket from core re-exports.
+    def test_get_sales_importable(self) -> None:
+        """Verify get_sales can be imported from pos_core.sales."""
+        from pos_core.sales import get_sales
 
-        This ensures existing code that imports from core still works.
-        """
-        from pos_core.etl.core import aggregate_by_ticket
+        assert callable(get_sales)
 
-        assert callable(aggregate_by_ticket)
+    def test_data_paths_importable(self) -> None:
+        """Verify DataPaths can be imported from pos_core."""
+        from pos_core import DataPaths
 
-    def test_both_imports_are_same_function(self) -> None:
-        """Verify that both import paths point to the same function."""
-        from pos_core.etl.core import aggregate_by_ticket as from_core
-        from pos_core.etl.marts import aggregate_by_ticket as from_marts
+        assert DataPaths is not None
 
-        assert from_core is from_marts
+    def test_forecasting_api_importable(self) -> None:
+        """Verify forecasting API is importable."""
+        from pos_core.forecasting import ForecastConfig, ForecastResult, run_payments_forecast
+
+        assert ForecastConfig is not None
+        assert ForecastResult is not None
+        assert callable(run_payments_forecast)
+
+    def test_qa_api_importable(self) -> None:
+        """Verify QA API is importable."""
+        from pos_core.qa import PaymentsQAResult, run_payments_qa
+
+        assert PaymentsQAResult is not None
+        assert callable(run_payments_qa)

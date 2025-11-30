@@ -1,59 +1,38 @@
-"""ETL pipeline module for POS data processing.
+"""ETL pipeline module - INTERNAL/DEPRECATED.
 
-This module provides a clean public API for running ETL operations on POS data,
-including payments extraction, cleaning, and aggregation.
+.. warning::
+    This module is deprecated. Use the new domain-oriented API instead:
 
-Data Layers (Industry Standard Bronze/Silver/Gold)
-==================================================
+    - ``from pos_core.payments import get_payments``
+    - ``from pos_core.sales import get_sales``
+    - ``from pos_core import DataPaths``
 
-The ETL pipeline follows industry-standard data engineering conventions with
-explicit data layers:
+This module contains the internal ETL implementation that the new public API
+calls into. It is not part of the public API and may change without notice.
+
+Data Layers (Bronze/Silver/Gold)
+================================
 
 **Raw (Bronze)** - ``pos_core.etl.raw/``
     Direct Wansoft HTTP exports, unchanged.
     Data directory: ``data/a_raw/``
 
 **Staging (Silver)** - ``pos_core.etl.staging/``
-    Cleaned and standardized tables. This is where the **core facts** live:
+    Core facts at atomic grain:
     - ``fact_payments_ticket``: One row per ticket × payment method
-    - ``fact_sales_item_line``: One row per item/modifier line on a ticket
+    - ``fact_sales_item_line``: One row per item/modifier line
     Data directory: ``data/b_clean/``
 
-**Core (Silver+)** - ``pos_core.etl.core/``
-    The staging layer output IS the core fact. This subpackage documents the
-    grain definitions but does not add further transformations.
-    Data directory: ``data/b_clean/`` (same as staging - core facts live there)
-
 **Marts (Gold)** - ``pos_core.etl.marts/``
-    Aggregated tables built on top of the core facts:
-    - ``mart_sales_by_ticket``: Aggregates item-lines to ticket level
+    Aggregated tables:
+    - ``mart_payments_daily``: Daily branch-level aggregates
+    - ``mart_sales_by_ticket``: Ticket-level aggregates
     - ``mart_sales_by_group``: Category pivot tables
-    - ``mart_payments_daily``: Daily branch-level payment aggregates
     Data directory: ``data/c_processed/``
-
-Grain Definitions (Ground Truth)
---------------------------------
-1. **Payments**: Most granular = ticket × payment method (``fact_payments_ticket``)
-   - The POS payments export does not expose item-level payment data
-   - Ticket-level is the atomic fact for payments
-
-2. **Sales**: Most granular = item/modifier line (``fact_sales_item_line``)
-   - Each row represents an item or modifier on a ticket
-   - Multiple rows can share the same ``ticket_id``
-   - Ticket-level aggregation is a **mart**, not core
-
-Key Rule
---------
-- For **sales**: anything aggregated beyond item/modifier line is **gold/mart**
-- For **payments**: ticket × payment method is already atomic (silver/core)
-
-High-Level API
---------------
-Use the public API (``get_sales()``, ``get_payments()``, etc.) which orchestrates
-the appropriate layers automatically. These functions run only the ETL stages
-that are needed based on metadata tracking.
 """
 
+# Internal imports - keep for backwards compatibility during transition
+# but these are not part of the public API
 from pos_core.etl.api import (
     PaymentsETLConfig,
     PaymentsPaths,
@@ -80,22 +59,21 @@ from pos_core.etl.sales_config import (
 )
 
 __all__ = [
-    # Configs
+    # Deprecated - use pos_core.DataPaths instead
     "PaymentsPaths",
     "PaymentsETLConfig",
     "SalesPaths",
     "SalesETLConfig",
-    # High-level orchestration
+    # Deprecated - use pos_core.payments.get_payments instead
     "build_payments_dataset",
-    # Stage functions - Payments
     "download_payments",
     "clean_payments",
     "aggregate_payments",
-    # Stage functions - Sales
+    # Deprecated - use pos_core.sales.get_sales instead
     "download_sales",
     "clean_sales",
     "aggregate_sales",
-    # Query functions
+    # Deprecated - use pos_core.payments.get_payments + pos_core.forecasting instead
     "get_payments",
     "get_sales",
     "get_payments_forecast",
