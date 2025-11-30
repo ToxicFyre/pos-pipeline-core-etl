@@ -15,15 +15,17 @@ from tempfile import TemporaryDirectory
 import pytest
 
 from pos_core import DataPaths
-from pos_core.payments import get_payments
-from pos_core.sales import get_sales
+from pos_core.payments import core as payments_core, marts as payments_marts
+from pos_core.sales import core as sales_core, marts as sales_marts
 
 
 def test_imports_work() -> None:
     """Test that new ETL API can be imported without errors."""
     assert DataPaths is not None
-    assert get_payments is not None
-    assert get_sales is not None
+    assert payments_core.fetch is not None
+    assert payments_marts.fetch_daily is not None
+    assert sales_core.fetch is not None
+    assert sales_marts.fetch_ticket is not None
 
 
 def test_config_creation() -> None:
@@ -41,32 +43,32 @@ def test_config_creation() -> None:
     assert paths.mart_sales == Path("data/c_processed/sales")
 
 
-def test_get_payments_is_callable() -> None:
-    """Test that get_payments is callable."""
-    assert callable(get_payments)
+def test_payments_fetch_is_callable() -> None:
+    """Test that payments.core.fetch is callable."""
+    assert callable(payments_core.fetch)
 
 
-def test_get_sales_is_callable() -> None:
-    """Test that get_sales is callable."""
-    assert callable(get_sales)
+def test_sales_fetch_is_callable() -> None:
+    """Test that sales.core.fetch is callable."""
+    assert callable(sales_core.fetch)
 
 
-def test_get_payments_invalid_grain() -> None:
-    """Test that get_payments raises on invalid grain."""
+def test_payments_fetch_invalid_mode() -> None:
+    """Test that payments.core.fetch raises on invalid mode."""
     with TemporaryDirectory() as tmpdir:
         paths = DataPaths.from_root(Path(tmpdir), Path(tmpdir) / "sucursales.json")
         (Path(tmpdir) / "sucursales.json").write_text("{}")
-        with pytest.raises(ValueError, match="Invalid grain"):
-            get_payments(paths, "2025-01-01", "2025-01-31", grain="invalid")
+        with pytest.raises(ValueError, match="Invalid mode"):
+            payments_core.fetch(paths, "2025-01-01", "2025-01-31", mode="invalid")
 
 
-def test_get_sales_invalid_grain() -> None:
-    """Test that get_sales raises on invalid grain."""
+def test_sales_fetch_invalid_mode() -> None:
+    """Test that sales.core.fetch raises on invalid mode."""
     with TemporaryDirectory() as tmpdir:
         paths = DataPaths.from_root(Path(tmpdir), Path(tmpdir) / "sucursales.json")
         (Path(tmpdir) / "sucursales.json").write_text("{}")
-        with pytest.raises(ValueError, match="Invalid grain"):
-            get_sales(paths, "2025-01-01", "2025-01-31", grain="invalid")
+        with pytest.raises(ValueError, match="Invalid mode"):
+            sales_core.fetch(paths, "2025-01-01", "2025-01-31", mode="invalid")
 
 
 @pytest.mark.live
@@ -126,13 +128,12 @@ def test_etl_pipeline_with_live_data() -> None:
 
         # Run full ETL pipeline using new API
         try:
-            result_df = get_payments(
+            result_df = payments_marts.fetch_daily(
                 paths=paths,
                 start_date=start_date.strftime("%Y-%m-%d"),
                 end_date=end_date.strftime("%Y-%m-%d"),
-                grain="daily",  # Get daily mart
                 branches=["Kavia"],
-                refresh=True,
+                mode="force",
             )
         except Exception as e:
             import traceback
