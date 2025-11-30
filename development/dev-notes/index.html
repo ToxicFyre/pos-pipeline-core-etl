@@ -10,27 +10,29 @@
       
       
       
-        <link rel="canonical" href="https://toxicfyre.github.io/pos-pipeline-core-etl/dev-notes/">
+        <link rel="canonical" href="https://toxicfyre.github.io/pos-pipeline-core-etl/development/dev-notes/">
       
+      
+        <link rel="prev" href="../../api-reference/exceptions/">
       
       
       
         
       
       
-      <link rel="icon" href="../assets/images/favicon.png">
+      <link rel="icon" href="../../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.0">
     
     
       
-        <title>Development Notes - ETL API Refactor - POS Core ETL</title>
+        <title>Development Notes - POS Core ETL</title>
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.618322db.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.618322db.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -49,7 +51,7 @@
       
     
     
-    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -88,7 +90,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="POS Core ETL" class="md-header__button md-logo" aria-label="POS Core ETL" data-md-component="logo">
+    <a href="../.." title="POS Core ETL" class="md-header__button md-logo" aria-label="POS Core ETL" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -108,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Development Notes - ETL API Refactor
+              Development Notes
             
           </span>
         </div>
@@ -209,7 +211,7 @@
   
   
     <li class="md-tabs__item">
-      <a href=".." class="md-tabs__link">
+      <a href="../.." class="md-tabs__link">
         
   
   
@@ -230,7 +232,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../user-guide/installation/" class="md-tabs__link">
+        <a href="../../user-guide/installation/" class="md-tabs__link">
           
   
   
@@ -250,11 +252,33 @@
     
     
       <li class="md-tabs__item">
-        <a href="../api-reference/etl/" class="md-tabs__link">
+        <a href="../../api-reference/etl/" class="md-tabs__link">
           
   
   
   API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="./" class="md-tabs__link">
+          
+  
+  
+  Development
 
         </a>
       </li>
@@ -286,7 +310,7 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="POS Core ETL" class="md-nav__button md-logo" aria-label="POS Core ETL" data-md-component="logo">
+    <a href="../.." title="POS Core ETL" class="md-nav__button md-logo" aria-label="POS Core ETL" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -304,7 +328,7 @@
   
   
     <li class="md-nav__item">
-      <a href=".." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   
@@ -383,7 +407,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user-guide/installation/" class="md-nav__link">
+      <a href="../../user-guide/installation/" class="md-nav__link">
         
   
   
@@ -411,7 +435,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user-guide/quickstart/" class="md-nav__link">
+      <a href="../../user-guide/quickstart/" class="md-nav__link">
         
   
   
@@ -439,7 +463,35 @@
   
   
     <li class="md-nav__item">
-      <a href="../user-guide/configuration/" class="md-nav__link">
+      <a href="../../user-guide/examples/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/configuration/" class="md-nav__link">
         
   
   
@@ -467,7 +519,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user-guide/concepts/" class="md-nav__link">
+      <a href="../../user-guide/concepts/" class="md-nav__link">
         
   
   
@@ -475,34 +527,6 @@
     
   
     Concepts
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../user-guide/examples/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Examples
   
 
     
@@ -582,7 +606,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api-reference/etl/" class="md-nav__link">
+      <a href="../../api-reference/etl/" class="md-nav__link">
         
   
   
@@ -610,7 +634,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api-reference/forecasting/" class="md-nav__link">
+      <a href="../../api-reference/forecasting/" class="md-nav__link">
         
   
   
@@ -638,7 +662,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api-reference/qa/" class="md-nav__link">
+      <a href="../../api-reference/qa/" class="md-nav__link">
         
   
   
@@ -666,7 +690,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api-reference/exceptions/" class="md-nav__link">
+      <a href="../../api-reference/exceptions/" class="md-nav__link">
         
   
   
@@ -682,6 +706,367 @@
   
 
       </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Development
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Notes
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Notes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#target-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Target API
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Target API">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#etl-configs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ETL Configs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stage-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage Commands
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#query-pandas-creator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Query / Pandas Creator
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#constraints" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Constraints
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#current-public-api-inventory" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Current Public API Inventory
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Current Public API Inventory">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#from-pos_coreetl" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        From pos_core.etl
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#from-pos_coreforecasting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        From pos_core.forecasting
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#from-pos_coreqa" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        From pos_core.qa
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#internal-modules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Internal Modules
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#api-decisions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API Decisions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="API Decisions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#keep-as-is" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Keep as-is
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#wrap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Wrap
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mark-as-internal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mark as internal
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#forecasting-model-debug-pattern" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Forecasting Model Debug Pattern
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Forecasting Model Debug Pattern">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pattern-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pattern Overview
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#implementation-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implementation Checklist
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#periodic-lean-audit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Periodic Lean Audit
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -712,6 +1097,9 @@
 
 
 <h1 id="development-notes-etl-api-refactor">Development Notes - ETL API Refactor<a class="headerlink" href="#development-notes-etl-api-refactor" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p><strong>Note</strong>: This document contains internal development notes and is intended for contributors and maintainers. For user-facing documentation, see the <a href="../../user-guide/installation/">User Guide</a> and <a href="../../api-reference/etl/">API Reference</a>.</p>
+</blockquote>
 <h2 id="target-api">Target API<a class="headerlink" href="#target-api" title="Permanent link">&para;</a></h2>
 <p>The goal of this refactor is to create a clean, lean API that matches how we think about ETL workflows.</p>
 <h3 id="etl-configs">ETL Configs<a class="headerlink" href="#etl-configs" title="Permanent link">&para;</a></h3>
@@ -776,6 +1164,57 @@
 <ul>
 <li>All functions in <code>a_extract</code>, <code>b_transform</code>, <code>c_load</code> are already internal (not exported)</li>
 </ul>
+<h2 id="forecasting-model-debug-pattern">Forecasting Model Debug Pattern<a class="headerlink" href="#forecasting-model-debug-pattern" title="Permanent link">&para;</a></h2>
+<p>All forecasting models should implement a generic debug pattern to expose introspection information.</p>
+<h3 id="pattern-overview">Pattern Overview<a class="headerlink" href="#pattern-overview" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Generic entry point</strong>: Every model has a <code>.debug_</code> attribute of type <code>ModelDebugInfo | None</code></li>
+<li><strong>Model-specific schema</strong>: Each model populates <code>ModelDebugInfo.data</code> with its own structure</li>
+<li><strong>Pipeline integration</strong>: When <code>run_payments_forecast(debug=True)</code> is called, debug info is collected into <code>ForecastResult.debug</code></li>
+</ul>
+<h3 id="implementation-checklist">Implementation Checklist<a class="headerlink" href="#implementation-checklist" title="Permanent link">&para;</a></h3>
+<p>When adding a new forecasting model:</p>
+<ol>
+<li>
+<p><strong>Add debug attribute to <code>__init__</code>:</strong>
+   <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">debug_</span><span class="p">:</span> <span class="n">ModelDebugInfo</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</code></pre></div></p>
+</li>
+<li>
+<p><strong>Populate debug info in <code>forecast()</code> method:</strong>
+   <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">forecast</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">steps</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">:</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="c1"># ... compute forecast ...</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">forecast_series</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">debug_</span> <span class="o">=</span> <span class="n">ModelDebugInfo</span><span class="p">(</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>        <span class="n">model_name</span><span class="o">=</span><span class="s2">&quot;your_model_name&quot;</span><span class="p">,</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>        <span class="n">version</span><span class="o">=</span><span class="s2">&quot;v1&quot;</span><span class="p">,</span>  <span class="c1"># optional</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>        <span class="n">data</span><span class="o">=</span><span class="p">{</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>            <span class="c1"># Model-specific fields</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>        <span class="p">},</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>    <span class="p">)</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>    <span class="k">return</span> <span class="n">forecast_series</span>
+</code></pre></div></p>
+</li>
+<li>
+<p><strong>Important constraints:</strong></p>
+</li>
+<li>Never change the return type of <code>forecast()</code>; it always returns <code>pd.Series</code></li>
+<li>The <code>debug_</code> attribute should be set after computing the forecast</li>
+<li>Use <code>model_name</code> consistently (same string across all instances)</li>
+<li>
+<p>Keep <code>data</code> dict JSON-serializable if possible</p>
+</li>
+<li>
+<p><strong>Debug info structure:</strong></p>
+</li>
+<li>Debug info is stored in nested structure: <code>debug[model_name][branch][metric] = ModelDebugInfo</code></li>
+<li>Multiple models can coexist (e.g., <code>debug["naive_last_week"]</code> and <code>debug["arima"]</code>)</li>
+<li>Each branch/metric combination gets its own debug info instance</li>
+</ol>
+<p>See <code>src/pos_core/forecasting/models/__init__.py</code> for the complete checklist template.</p>
 <h2 id="periodic-lean-audit">Periodic Lean Audit<a class="headerlink" href="#periodic-lean-audit" title="Permanent link">&para;</a></h2>
 <p>Every few weeks, ask:</p>
 <ol>
@@ -832,10 +1271,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "toc.integrate", "search.suggest", "search.highlight"], "search": "../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "toc.integrate", "search.suggest", "search.highlight"], "search": "../../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../assets/javascripts/bundle.e71a0d61.min.js"></script>
+      <script src="../../assets/javascripts/bundle.e71a0d61.min.js"></script>
       
     
   </body>
