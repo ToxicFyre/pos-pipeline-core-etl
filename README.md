@@ -142,26 +142,45 @@ The ETL pipeline follows industry-standard **bronze/silver/gold** data layer con
 | Layer | Code Location | Data Directory | Description |
 |-------|--------------|----------------|-------------|
 | **Raw (Bronze)** | `pos_core.etl.raw/` | `data/a_raw/` | Direct Wansoft exports, unchanged. Excel files as received from the POS API. |
-| **Staging (Silver)** | `pos_core.etl.staging/` | `data/b_clean/` | Cleaned and standardized tables. Normalized column names, data types, and encodings. |
-| **Core (Silver+)** | `pos_core.etl.core/` | `data/c_processed/` | Granular POS models. One row per ticket line or per branch/day at the most granular level. |
-| **Marts (Gold)** | `pos_core.etl.marts/` | `data/c_processed/` | Aggregated semantic tables. Daily/weekly branch-level summaries, group pivots, and forecast-ready datasets. |
+| **Staging (Silver)** | `pos_core.etl.staging/` | `data/b_clean/` | Cleaned and standardized tables containing **core facts** at their atomic grain. |
+| **Core (Silver+)** | `pos_core.etl.core/` | `data/b_clean/` | Documents the grain definitions. The staging output IS the core fact. |
+| **Marts (Gold)** | `pos_core.etl.marts/` | `data/c_processed/` | Aggregated semantic tables. All aggregations beyond core grain. |
+
+### Grain Definitions (Ground Truth)
+
+The most granular meaningful unit of data differs by domain:
+
+| Domain | Core Fact | Grain | Key | Description |
+|--------|-----------|-------|-----|-------------|
+| **Payments** | `fact_payments_ticket` | ticket × payment method | `(sucursal, operating_date, order_index, payment_method)` | The POS payments export does not expose item-level payment data. Ticket-level is the atomic fact. |
+| **Sales** | `fact_sales_item_line` | item/modifier line | `(sucursal, operating_date, order_id, item_key, [modifier])` | Each row represents an item or modifier on a ticket. Multiple rows can share the same `ticket_id`. |
+
+**Key Rule:**
+- For **sales**: anything aggregated beyond item/modifier line is **gold/mart**, not silver/core
+- For **payments**: ticket × payment method is already the atomic fact (silver/core)
 
 ### Layer Flow
 
 ```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│   Raw (Bronze)  │ ──▶ │ Staging (Silver)│ ──▶ │  Core (Silver+) │ ──▶ │  Marts (Gold)   │
-│                 │     │                 │     │                 │     │                 │
-│ a_raw/          │     │ b_clean/        │     │ c_processed/    │     │ c_processed/    │
-│ HTTP extraction │     │ Excel cleaning  │     │ Per-ticket data │     │ Daily aggregates│
-└─────────────────┘     └─────────────────┘     └─────────────────┘     └─────────────────┘
+┌─────────────────┐     ┌─────────────────────────────┐     ┌─────────────────┐
+│   Raw (Bronze)  │ ──▶ │ Staging (Silver) = Core     │ ──▶ │  Marts (Gold)   │
+│                 │     │                             │     │                 │
+│ a_raw/          │     │ b_clean/                    │     │ c_processed/    │
+│ HTTP extraction │     │ Core facts at atomic grain: │     │ Aggregations:   │
+│ Excel files     │     │ • fact_payments_ticket      │     │ • By ticket     │
+│                 │     │ • fact_sales_item_line      │     │ • By day        │
+│                 │     │                             │     │ • By category   │
+└─────────────────┘     └─────────────────────────────┘     └─────────────────┘
 ```
 
 ### API and Layers
 
 - **High-level functions** like `get_sales()` and `get_payments()` automatically orchestrate all layers, running only the stages that are needed.
-- **`pos_core.forecasting`** and **`pos_core.qa`** are consumers of the ETL outputs (core/marts layer).
-- The `level=` parameter in query functions controls whether you get core-grain (e.g., `level="ticket"`) or mart-grain (e.g., `level="group"`) DataFrames.
+- **`pos_core.forecasting`** and **`pos_core.qa`** are consumers of the ETL outputs (mart layer).
+- The `level=` parameter in query functions controls aggregation level:
+  - `level="ticket"` → **Mart**: aggregates item-lines to ticket level
+  - `level="group"` → **Mart**: aggregates to category pivot tables
+  - Core facts (item-line, ticket × payment method) are accessed via the staging layer output
 
 ## Usage Examples
 

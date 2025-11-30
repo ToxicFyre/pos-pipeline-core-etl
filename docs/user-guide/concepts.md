@@ -33,23 +33,104 @@ The package follows industry-standard data engineering conventions with explicit
 | Layer | Code Location | Data Directory | Description |
 |-------|--------------|----------------|-------------|
 | **Raw (Bronze)** | `pos_core.etl.raw/` | `data/a_raw/` | Direct Wansoft exports, unchanged. Excel files as received from the POS API. |
-| **Staging (Silver)** | `pos_core.etl.staging/` | `data/b_clean/` | Cleaned and standardized tables. Normalized column names, data types, and encodings. |
-| **Core (Silver+)** | `pos_core.etl.core/` | `data/c_processed/` | Granular POS models. One row per ticket line or per branch/day at the most granular level. |
-| **Marts (Gold)** | `pos_core.etl.marts/` | `data/c_processed/` | Aggregated semantic tables. Daily/weekly branch-level summaries, category pivots, and forecast-ready datasets. |
+| **Staging (Silver)** | `pos_core.etl.staging/` | `data/b_clean/` | Cleaned and standardized tables containing **core facts** at their atomic grain. |
+| **Core (Silver+)** | `pos_core.etl.core/` | `data/b_clean/` | Documents the grain definitions. The staging output IS the core fact. |
+| **Marts (Gold)** | `pos_core.etl.marts/` | `data/c_processed/` | Aggregated semantic tables. All aggregations beyond core grain. |
 
 ### Directory Convention
 
 The package uses a layered directory structure:
 
 - **`a_raw/`**: Raw (Bronze) - Data files downloaded from POS API (Excel files)
-- **`b_clean/`**: Staging (Silver) - Cleaned and normalized data (CSV files)
-- **`c_processed/`**: Core + Marts (Silver+/Gold) - Modeled and aggregated datasets (CSV files)
+- **`b_clean/`**: Staging (Silver) - Cleaned and normalized data (CSV files) at **atomic grain**
+- **`c_processed/`**: Marts (Gold) - Aggregated datasets (CSV files)
 
 This convention makes it easy to:
 - Identify which layer each file belongs to
 - Re-run specific stages without re-processing everything
 - Debug issues at each layer
 - Apply industry-standard data engineering practices
+
+## Grain and Layers
+
+Understanding data grain is essential for working with this package. Each domain has a specific atomic grain that defines the most granular meaningful unit of data.
+
+### Grain Definitions (Ground Truth)
+
+| Domain | Core Fact | Grain | Key | Description |
+|--------|-----------|-------|-----|-------------|
+| **Payments** | `fact_payments_ticket` | ticket × payment method | `(sucursal, operating_date, order_index, payment_method)` | The POS payments export does not expose item-level payment data. Ticket-level is the atomic fact. |
+| **Sales** | `fact_sales_item_line` | item/modifier line | `(sucursal, operating_date, order_id, item_key, [modifier])` | Each row represents an item or modifier on a ticket. Multiple rows can share the same `ticket_id`. |
+
+### Key Rule
+
+- **Sales**: The most granular meaningful unit is **item/modifier line**. Each row in the cleaned sales details represents an item or modifier on a ticket. Anything aggregated beyond this (e.g., ticket-level, day-level, group-level) is a **mart**, not core.
+
+- **Payments**: The most granular meaningful unit is **ticket × payment method**. The POS payments export does not expose deeper item-level fact. This IS the atomic fact, so it sits in the **staging/core** layer.
+
+### Example: Sales Data Flow
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Raw (Bronze): Excel file with sales transactions                           │
+└────────────────────────────────┬────────────────────────────────────────────┘
+                                 ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Staging (Silver) = Core Fact: fact_sales_item_line                         │
+│                                                                             │
+│ Grain: One row per item/modifier line on a ticket                          │
+│ Key: (sucursal, operating_date, order_id, item_key, [modifier])            │
+│                                                                             │
+│ Example rows for ticket #1001:                                              │
+│   Row 1: Café Americano (item_key=CAFE01, group=CAFE)                       │
+│   Row 2: Pan Dulce (item_key=PAN01, group=PAN DULCE)                        │
+│   Row 3: Extra Leche (item_key=MOD01, is_modifier=True)                     │
+└────────────────────────────────┬────────────────────────────────────────────┘
+                                 ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Marts (Gold): Aggregations built from core fact                            │
+│                                                                             │
+│ • mart_sales_by_ticket: One row per ticket (aggregates item-lines)         │
+│ • mart_sales_by_group: Category pivot tables (aggregates by group)         │
+│ • mart_sales_daily: One row per sucursal × day (if implemented)            │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Example: Payments Data Flow
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Raw (Bronze): Excel file with payment transactions                         │
+└────────────────────────────────┬────────────────────────────────────────────┘
+                                 ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Staging (Silver) = Core Fact: fact_payments_ticket                         │
+│                                                                             │
+│ Grain: One row per ticket × payment method                                 │
+│ Key: (sucursal, operating_date, order_index, payment_method)               │
+│                                                                             │
+│ Example rows for a split payment (ticket #1001):                            │
+│   Row 1: order_index=1001, payment_method=Efectivo, ticket_total=50.00     │
+│   Row 2: order_index=1001, payment_method=Tarjeta Crédito, ticket_total=100│
+└────────────────────────────────┬────────────────────────────────────────────┘
+                                 ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Marts (Gold): Aggregations built from core fact                            │
+│                                                                             │
+│ • mart_payments_daily: One row per sucursal × day                          │
+│   Columns: ingreso_efectivo, ingreso_credito, propinas, num_tickets, etc.  │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Why This Matters
+
+1. **Data Integrity**: Understanding the grain ensures you're not accidentally double-counting or losing data during aggregations.
+
+2. **Correct Joins**: When joining tables, you need to understand the grain to choose the right join keys.
+
+3. **Query Efficiency**: Querying at the right grain level improves performance and accuracy.
+
+4. **Debugging**: When data doesn't match expectations, checking the grain is often the first step in troubleshooting.
 
 ## API Layers
 

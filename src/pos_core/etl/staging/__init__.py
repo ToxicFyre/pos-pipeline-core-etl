@@ -9,7 +9,24 @@ This layer handles data cleaning and standardization:
 Data directory mapping:
     data/b_clean/ → Staging (Silver) layer - Cleaned and standardized tables.
 
-The staging layer produces clean, normalized data ready for further modeling.
+Core Facts (Silver+ grain)
+--------------------------
+The staging layer output IS the **core fact** for each domain:
+
+1. **Payments** (``fact_payments_ticket``):
+   - Grain: ticket × payment method
+   - Key: ``(sucursal, operating_date, order_index, payment_method)``
+   - One row per payment line on a ticket
+   - The POS does not expose item-level payment data
+
+2. **Sales** (``fact_sales_item_line``):
+   - Grain: item/modifier line
+   - Key: ``(sucursal, operating_date, order_id, item_key, [modifier fields])``
+   - One row per item or modifier on a ticket
+   - Multiple rows can share the same ticket_id/order_id
+
+The staging layer produces clean, normalized data at the atomic grain for each
+domain. All aggregations beyond these grains are **Marts (Gold)**.
 """
 
 from pos_core.etl.staging.cleaning_utils import (

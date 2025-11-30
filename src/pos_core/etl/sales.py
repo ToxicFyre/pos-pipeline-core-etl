@@ -3,12 +3,19 @@
 This module orchestrates the sales ETL pipeline across data layers:
 - download_sales: Raw (Bronze) layer - Download from Wansoft HTTP API
 - clean_sales: Staging (Silver) layer - Transform raw Excel files into clean CSVs
-- aggregate_sales: Core/Marts layers - Aggregate at specified level (ticket/group/day)
+- aggregate_sales: Marts (Gold) layer - Aggregate at specified level (ticket/group/day)
+
+Grain and Layers
+----------------
+- **Core Fact (Silver+)**: The staging output IS the core sales fact
+  (``fact_sales_item_line``) at item/modifier-line grain.
+- **Marts (Gold)**: All aggregations in ``aggregate_sales()`` produce mart-level
+  tables (ticket, group, day aggregations).
 
 Data directory mapping:
     data/a_raw/      → Raw (Bronze) - Direct Wansoft exports
-    data/b_clean/    → Staging (Silver) - Cleaned and standardized
-    data/c_processed → Core (ticket-level) + Marts (group pivots)
+    data/b_clean/    → Staging (Silver) - Cleaned data = core fact (item-line grain)
+    data/c_processed → Marts (Gold) - All aggregated tables (ticket, group, day)
 """
 
 from __future__ import annotations
@@ -280,11 +287,10 @@ def aggregate_sales(
         >>> len(df)
         100
     """
-    # Core (Silver+) layer: Per-ticket granular aggregation
-    from pos_core.etl.core.sales_by_ticket import aggregate_by_ticket
-
-    # Marts (Gold) layer: Category pivot tables
+    # Marts (Gold) layer: Ticket-level aggregation (from item-line core facts)
+    # Marts (Gold) layer: Category pivot tables (from ticket-level data)
     from pos_core.etl.marts.sales_by_group import build_category_pivot
+    from pos_core.etl.marts.sales_by_ticket import aggregate_by_ticket
 
     # Check metadata for idempotence (level-specific)
     meta_key = f"aggregate_{level}_v1"

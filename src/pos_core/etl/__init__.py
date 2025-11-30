@@ -14,23 +14,38 @@ explicit data layers:
     Data directory: ``data/a_raw/``
 
 **Staging (Silver)** - ``pos_core.etl.staging/``
-    Cleaned and standardized tables.
+    Cleaned and standardized tables. This is where the **core facts** live:
+    - ``fact_payments_ticket``: One row per ticket × payment method
+    - ``fact_sales_item_line``: One row per item/modifier line on a ticket
     Data directory: ``data/b_clean/``
 
 **Core (Silver+)** - ``pos_core.etl.core/``
-    Granular POS models (one row per ticket line/branch-day).
-    Data directory: ``data/c_processed/`` (core models)
+    The staging layer output IS the core fact. This subpackage documents the
+    grain definitions but does not add further transformations.
+    Data directory: ``data/b_clean/`` (same as staging - core facts live there)
 
 **Marts (Gold)** - ``pos_core.etl.marts/``
-    Aggregated tables used by forecasting and BI.
-    Data directory: ``data/c_processed/`` (aggregated tables)
+    Aggregated tables built on top of the core facts:
+    - ``mart_sales_by_ticket``: Aggregates item-lines to ticket level
+    - ``mart_sales_by_group``: Category pivot tables
+    - ``mart_payments_daily``: Daily branch-level payment aggregates
+    Data directory: ``data/c_processed/``
 
-Internal Layer Subpackages
---------------------------
-- ``raw/``: HTTP extraction from Wansoft API
-- ``staging/``: Excel cleaning and normalization
-- ``core/``: Per-ticket granular aggregation
-- ``marts/``: Daily/category-level aggregated tables
+Grain Definitions (Ground Truth)
+--------------------------------
+1. **Payments**: Most granular = ticket × payment method (``fact_payments_ticket``)
+   - The POS payments export does not expose item-level payment data
+   - Ticket-level is the atomic fact for payments
+
+2. **Sales**: Most granular = item/modifier line (``fact_sales_item_line``)
+   - Each row represents an item or modifier on a ticket
+   - Multiple rows can share the same ``ticket_id``
+   - Ticket-level aggregation is a **mart**, not core
+
+Key Rule
+--------
+- For **sales**: anything aggregated beyond item/modifier line is **gold/mart**
+- For **payments**: ticket × payment method is already atomic (silver/core)
 
 High-Level API
 --------------
