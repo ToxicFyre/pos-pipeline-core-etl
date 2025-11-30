@@ -1,10 +1,44 @@
 # Quickstart
 
-Get started with POS Core ETL in minutes.
+Get started with POS Core ETL in minutes. This guide walks you through setting up and running your first ETL pipeline.
 
 ## Prerequisites
 
-Before running extraction, you need to set up credentials for your POS system:
+Before starting, ensure you have:
+
+1. ✅ Installed POS Core ETL (see [Installation](installation.md))
+2. ✅ Access to a Wansoft-style POS system (or existing raw data files)
+3. ✅ Python 3.10+ installed
+
+## Step 1: Create Branch Configuration
+
+Create `utils/sucursales.json` with your branch configuration:
+
+```json
+{
+  "Banana": {
+    "code": "8888",
+    "valid_from": "2024-02-21",
+    "valid_to": null
+  },
+  "Queen": {
+    "code": "6362",
+    "valid_from": "2024-01-01",
+    "valid_to": null
+  }
+}
+```
+
+**Key fields:**
+- `code`: The POS system code for this branch
+- `valid_from`: Start date when this code became active (YYYY-MM-DD format)
+- `valid_to`: End date when this code became inactive (null = still active)
+
+See [Configuration](configuration.md) for detailed information.
+
+## Step 2: Set Environment Variables
+
+**Required for downloading raw data** (skip if you already have raw data files):
 
 ```bash
 export WS_BASE="https://your-pos-instance.com"
@@ -12,119 +46,184 @@ export WS_USER="your_username"
 export WS_PASS="your_password"
 ```
 
-These environment variables are **required** for downloading data from the POS API. The extraction process will fail if credentials are missing when authentication is required.
+**Note**: If you're working with already-downloaded files in `a_raw/`, these environment variables are not needed.
 
-## Basic ETL Workflow
+## Step 3: Create Data Directory Structure
 
-The recommended approach is to use the query functions, which automatically handle running ETL stages and provide automatic idempotence:
+The package expects a specific directory structure:
 
-```python
-from pathlib import Path
-from pos_core.etl import PaymentsETLConfig, get_payments
-
-# Configure
-config = PaymentsETLConfig.from_root(Path("data"), Path("utils/sucursales.json"))
-
-# Get payments data (automatically runs ETL stages only if needed)
-payments = get_payments(
-    start_date="2025-01-01",
-    end_date="2025-01-31",
-    config=config,
-    refresh=False,  # Use existing data if available
-)
-
-print(f"Processed {len(payments)} rows")
+```
+data/
+├── a_raw/          # Bronze: Raw Wansoft exports (Excel files)
+│   ├── payments/
+│   └── sales/
+├── b_clean/        # Silver: Core facts at atomic grain (CSV files)
+│   ├── payments/
+│   └── sales/
+└── c_processed/    # Gold: Marts (aggregated tables)
+    ├── payments/
+    └── sales/
 ```
 
-**Alternative**: Use `build_payments_dataset()` for complete orchestration:
+Create these directories:
 
-```python
-from pathlib import Path
-from pos_core.etl import PaymentsETLConfig, build_payments_dataset
-
-config = PaymentsETLConfig.from_root(Path("data"), Path("utils/sucursales.json"))
-payments = build_payments_dataset("2025-01-01", "2025-01-31", config)
+```bash
+mkdir -p data/{a_raw,b_clean,c_processed}/{payments,sales}
 ```
 
-## Sales Data
+## Step 4: Run Your First ETL
 
-Get sales data aggregated at different levels:
+Create a Python script `quickstart.py`:
 
 ```python
 from pathlib import Path
-from pos_core.etl import SalesETLConfig, get_sales
+from pos_core import DataPaths
+from pos_core.payments import marts as payments_marts
+from pos_core.sales import core as sales_core
 
-config = SalesETLConfig.from_root(Path("data"), Path("utils/sucursales.json"))
+# Configure paths
+paths = DataPaths.from_root(Path("data"), Path("utils/sucursales.json"))
 
-# Get sales by ticket
-df_ticket = get_sales("2025-01-01", "2025-01-31", config, level="ticket")
+# Payments: daily mart (most common use case)
+print("Fetching payments daily mart...")
+payments_daily = payments_marts.fetch_daily(paths, "2025-01-01", "2025-01-31")
+print(f"Retrieved {len(payments_daily)} rows")
+print(payments_daily.head())
 
-# Get sales by product group (pivot table)
-df_group = get_sales("2025-01-01", "2025-01-31", config, level="group")
+# Sales: core item-line fact
+print("\nFetching sales core fact...")
+sales_items = sales_core.fetch(paths, "2025-01-01", "2025-01-31")
+print(f"Retrieved {len(sales_items)} rows")
+print(sales_items.head())
 ```
 
-## Forecasting
+Run it:
 
-The easiest way to get forecasts is using the query API:
-
-```python
-from pathlib import Path
-from pos_core.etl import PaymentsETLConfig, get_payments_forecast
-
-config = PaymentsETLConfig.from_root(Path("data"), Path("utils/sucursales.json"))
-
-# Get 13-week forecast (automatically gets historical data)
-forecast = get_payments_forecast(
-    as_of="2025-11-24",
-    horizon_weeks=13,
-    config=config,
-)
-
-print(forecast.head())
+```bash
+python quickstart.py
 ```
 
-**Alternative**: For full control including deposit schedule and metadata:
+## Step 5: Generate a Forecast
+
+Add forecasting to your script:
 
 ```python
-from pathlib import Path
-from pos_core.etl import PaymentsETLConfig, get_payments
 from pos_core.forecasting import ForecastConfig, run_payments_forecast
 
-# Get historical data
-config = PaymentsETLConfig.from_root(Path("data"), Path("utils/sucursales.json"))
-payments = get_payments("2022-01-01", "2025-11-24", config)
+# Get historical data (need more data for forecasting)
+payments_df = payments_marts.fetch_daily(paths, "2022-01-01", "2025-01-31")
 
-# Run forecast with full result
-result = run_payments_forecast(
-    payments,
-    ForecastConfig(horizon_days=91)  # 13 weeks
-)
+# Run forecast
+config = ForecastConfig(horizon_days=91)  # 13 weeks
+result = run_payments_forecast(payments_df, config)
 
+print("\nForecast Results:")
 print(result.forecast.head())
-print(result.deposit_schedule)
+
+print("\nDeposit Schedule:")
+print(result.deposit_schedule.head())
 ```
 
-## Quality Assurance
+## Step 6: Run Quality Assurance
+
+Add QA checks:
 
 ```python
-from pathlib import Path
-from pos_core.etl import PaymentsETLConfig, get_payments
 from pos_core.qa import run_payments_qa
 
-# Get payments data
-config = PaymentsETLConfig.from_root(Path("data"), Path("utils/sucursales.json"))
-payments = get_payments("2025-01-01", "2025-01-31", config)
+df = payments_marts.fetch_daily(paths, "2025-01-01", "2025-01-31")
+result = run_payments_qa(df)
 
-# Run QA checks
-qa_result = run_payments_qa(payments)
+print("\nQA Summary:")
+print(f"Total rows: {result.summary['total_rows']}")
+print(f"Missing days: {result.summary['missing_days_count']}")
+print(f"Anomalies: {result.summary['zscore_anomalies_count']}")
 
-print(f"Missing days: {qa_result.summary['missing_days_count']}")
-print(f"Anomalies: {qa_result.summary['zscore_anomalies_count']}")
+if result.missing_days is not None:
+    print("\nMissing Days:")
+    print(result.missing_days)
+```
+
+## Understanding the Output
+
+### Payments Daily Mart
+
+The `payments.marts.fetch_daily()` function returns a DataFrame with:
+- `sucursal`: Branch name
+- `fecha`: Date
+- `ingreso_efectivo`: Cash income
+- `ingreso_credito`: Credit card income
+- `ingreso_debito`: Debit card income
+- `num_tickets`: Number of tickets
+- Additional payment method columns
+
+### Sales Core Fact
+
+The `sales.core.fetch()` function returns a DataFrame with:
+- `sucursal`: Branch name
+- `operating_date`: Date of operation
+- `order_id`: Ticket/order identifier
+- `item_key`: Item identifier
+- `group`: Product group/category
+- `subtotal_item`: Item subtotal
+- `total_item`: Item total
+
+## Common Patterns
+
+### Fetch vs Load
+
+- **`fetch()`**: Ensures data exists, runs ETL if needed
+- **`load()`**: Reads existing data only (raises error if missing)
+
+```python
+# Fetch: runs ETL if needed
+df = payments_marts.fetch_daily(paths, "2025-01-01", "2025-01-31")
+
+# Load: read only (faster, but requires existing data)
+df = payments_marts.load_daily(paths, "2025-01-01", "2025-01-31")
+```
+
+### Force Refresh
+
+Force re-run ETL stages:
+
+```python
+# Force re-run all stages
+df = payments_marts.fetch_daily(paths, "2025-01-01", "2025-01-31", mode="force")
+```
+
+### Filter by Branch
+
+Process specific branches:
+
+```python
+df = payments_marts.fetch_daily(
+    paths, 
+    "2025-01-01", 
+    "2025-01-31",
+    branches=["Banana", "Queen"]
+)
 ```
 
 ## Next Steps
 
-1. **Try Examples**: See [Examples](examples.md) for complete runnable scripts
-2. **Configure**: Learn about [Configuration](configuration.md) options
-3. **Understand Concepts**: Read about [Concepts](concepts.md) and design decisions
-4. **Explore API**: Check the [API Reference](../api-reference/etl.md) for detailed documentation
+- **[Explore Concepts](concepts.md)** - Understand data layers, grains, and API design
+- **[See Examples](examples.md)** - Complete runnable example scripts
+- **[Read API Reference](../api-reference/etl.md)** - Detailed function documentation
+- **[Configure Advanced Settings](configuration.md)** - Branch codes, date ranges, and more
+
+## Troubleshooting
+
+**Authentication Errors**: Verify environment variables are set correctly:
+```bash
+echo $WS_BASE
+echo $WS_USER
+echo $WS_PASS
+```
+
+**Missing Data**: Use `mode="force"` to force re-extraction:
+```python
+df = payments_marts.fetch_daily(paths, "2025-01-01", "2025-01-31", mode="force")
+```
+
+**Insufficient Data for Forecasting**: ARIMA models require at least 30 days of historical data.

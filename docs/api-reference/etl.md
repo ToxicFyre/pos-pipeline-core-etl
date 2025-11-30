@@ -1,348 +1,505 @@
 # ETL API Reference
 
+This page documents the ETL API for POS Core ETL. The API is organized by domain (payments, sales) and layer (raw, core, marts).
+
 ## Configuration
 
-### `PaymentsETLConfig`
+### `DataPaths`
 
-Configuration dataclass for payments ETL pipeline.
-
-#### Attributes
-
-- `paths` (PaymentsPaths): All filesystem paths used by the pipeline
-- `chunk_size_days` (int): Maximum number of days per HTTP request chunk (default: 180)
-- `excluded_branches` (List[str]): List of branch names to exclude from processing (default: ["CEDIS"])
-
-#### Methods
-
-##### `from_data_root()`
-
-Build a default config given a data_root.
-
-```python
-from pathlib import Path
-from pos_core.etl import PaymentsETLConfig
-
-config = PaymentsETLConfig.from_data_root(
-    data_root=Path("data"),
-    sucursales_json=Path("utils/sucursales.json"),
-    chunk_size_days=180
-)
-```
-
-##### `from_root()`
-
-Alias for `from_data_root()` for consistency with `SalesETLConfig`.
-
-```python
-from pathlib import Path
-from pos_core.etl import PaymentsETLConfig
-
-config = PaymentsETLConfig.from_root(
-    data_root=Path("data"),
-    sucursales_file=Path("utils/sucursales.json"),
-    chunk_size_days=180
-)
-```
-
-### `PaymentsPaths`
-
-Path configuration for ETL stages.
-
-#### Attributes
-
-- `raw_payments` (Path): Directory for raw payment Excel files
-- `clean_payments` (Path): Directory for cleaned payment CSV files
-- `proc_payments` (Path): Directory for processed/aggregated payment data
-- `sucursales_json` (Path): Path to sucursales.json configuration file
-
-### `SalesETLConfig`
-
-Configuration dataclass for sales ETL pipeline.
-
-#### Attributes
-
-- `paths` (SalesPaths): All filesystem paths used by the pipeline
-- `chunk_days` (int): Maximum number of days per HTTP request chunk (default: 180)
+Configuration class for data directory paths.
 
 #### Methods
 
 ##### `from_root()`
 
-Build a default config given a data_root and sucursales file.
+Create a DataPaths instance from root directories.
 
 ```python
 from pathlib import Path
-from pos_core.etl import SalesETLConfig
+from pos_core import DataPaths
 
-config = SalesETLConfig.from_root(
+paths = DataPaths.from_root(
     data_root=Path("data"),
     sucursales_file=Path("utils/sucursales.json")
 )
 ```
 
-### `SalesPaths`
+**Parameters:**
+- `data_root` (Path): Root directory for data (contains `a_raw/`, `b_clean/`, `c_processed/`)
+- `sucursales_file` (Path): Path to `sucursales.json` configuration file
 
-Path configuration for sales ETL stages.
+**Returns:** DataPaths instance
 
 #### Attributes
 
-- `raw_sales` (Path): Directory for raw sales Excel files
-- `clean_sales` (Path): Directory for cleaned sales CSV files
-- `proc_sales` (Path): Directory for processed/aggregated sales data
-- `sucursales_json` (Path): Path to sucursales.json configuration file
+- `raw_payments` (Path): Directory for raw payment Excel files (`a_raw/payments/`)
+- `raw_sales` (Path): Directory for raw sales Excel files (`a_raw/sales/`)
+- `clean_payments` (Path): Directory for cleaned payment CSV files (`b_clean/payments/`)
+- `clean_sales` (Path): Directory for cleaned sales CSV files (`b_clean/sales/`)
+- `mart_payments` (Path): Directory for payment marts (`c_processed/payments/`)
+- `mart_sales` (Path): Directory for sales marts (`c_processed/sales/`)
+- `sucursales_json` (Path): Path to `sucursales.json` file
 
-## Query Functions
+## Payments API
 
-Query functions are the recommended way to get data. They automatically run ETL stages only when needed based on metadata.
+### Core Fact (Silver Layer)
 
-### `get_payments()`
+#### `payments.core.fetch()`
 
-Get payments data, running stages only if needed.
+Ensure `fact_payments_ticket` exists for the given range, then return it.
 
-#### Signature
+**Signature:**
 
 ```python
-def get_payments(
+from pos_core.payments import core
+
+df = core.fetch(
+    paths: DataPaths,
     start_date: str,
     end_date: str,
-    config: PaymentsETLConfig,
-    branches: Optional[List[str]] = None,
-    refresh: bool = False,
+    branches: list[str] | None = None,
+    *,
+    mode: str = "missing",
 ) -> pd.DataFrame
 ```
 
-#### Parameters
-
+**Parameters:**
+- `paths` (DataPaths): DataPaths configuration
 - `start_date` (str): Start date in YYYY-MM-DD format (inclusive)
 - `end_date` (str): End date in YYYY-MM-DD format (inclusive)
-- `config` (PaymentsETLConfig): Configuration instance
-- `branches` (Optional[List[str]]): List of branch names to process. If None, processes all branches.
-- `refresh` (bool): If True, force re-run all stages. If False, check metadata and skip completed stages.
+- `branches` (list[str] | None): Optional list of branch names to filter
+- `mode` (str): Processing mode - `"missing"` (default) or `"force"`
 
-#### Returns
+**Returns:** DataFrame with `fact_payments_ticket` structure (ticket × payment method grain)
 
-DataFrame containing aggregated payments data (one row per sucursal + fecha).
+**Raises:**
+- `ValueError`: If mode is not `"missing"` or `"force"`
 
-#### Example
-
-```python
-from pos_core.etl import PaymentsETLConfig, get_payments
-
-config = PaymentsETLConfig.from_root(Path("data"), Path("utils/sucursales.json"))
-df = get_payments("2025-01-01", "2025-01-31", config, refresh=False)
-```
-
-### `get_sales()`
-
-Get sales data at the specified level, running stages only if needed.
-
-#### Signature
+**Example:**
 
 ```python
-def get_sales(
-    start_date: str,
-    end_date: str,
-    config: SalesETLConfig,
-    branches: Optional[List[str]] = None,
-    level: str = "ticket",  # "ticket" | "group" | "day"
-    refresh: bool = False,
-) -> pd.DataFrame
-```
-
-#### Parameters
-
-- `start_date` (str): Start date in YYYY-MM-DD format (inclusive)
-- `end_date` (str): End date in YYYY-MM-DD format (inclusive)
-- `config` (SalesETLConfig): Configuration instance
-- `branches` (Optional[List[str]]): List of branch names to process. If None, processes all branches.
-- `level` (str): Aggregation level: "ticket", "group", or "day" (default: "ticket")
-- `refresh` (bool): If True, force re-run all stages. If False, check metadata and skip completed stages.
-
-#### Returns
-
-DataFrame containing aggregated sales data at the specified level.
-
-#### Example
-
-```python
-from pos_core.etl import SalesETLConfig, get_sales
-
-config = SalesETLConfig.from_root(Path("data"), Path("utils/sucursales.json"))
-df_ticket = get_sales("2025-01-01", "2025-01-31", config, level="ticket")
-df_group = get_sales("2025-01-01", "2025-01-31", config, level="group")
-```
-
-### `get_payments_forecast()`
-
-Get payments forecast for the specified horizon.
-
-#### Signature
-
-```python
-def get_payments_forecast(
-    as_of: str,  # Date string
-    horizon_weeks: int,
-    config: PaymentsETLConfig,
-    refresh: bool = False,
-) -> pd.DataFrame
-```
-
-#### Parameters
-
-- `as_of` (str): Date string in YYYY-MM-DD format (forecast as of this date)
-- `horizon_weeks` (int): Number of weeks to forecast ahead
-- `config` (PaymentsETLConfig): Configuration instance
-- `refresh` (bool): If True, force re-run ETL stages before forecasting. If False, use existing data if available.
-
-#### Returns
-
-DataFrame containing forecast results with columns: `sucursal`, `fecha`, `metric`, `valor`.
-
-#### Example
-
-```python
-from pos_core.etl import PaymentsETLConfig, get_payments_forecast
-
-config = PaymentsETLConfig.from_root(Path("data"), Path("utils/sucursales.json"))
-forecast = get_payments_forecast("2025-11-24", horizon_weeks=13, config=config)
-```
-
-## Stage Functions
-
-Stage functions provide fine-grained control over individual ETL stages. They are used internally by query functions and can be called directly for advanced use cases.
-
-### Payments Stage Functions
-
-#### `download_payments()`
-
-Download raw payments Excel for the given range.
-
-```python
-def download_payments(
-    start_date: str,
-    end_date: str,
-    config: PaymentsETLConfig,
-    branches: Optional[List[str]] = None,
-    force: bool = False,
-) -> None
-```
-
-#### `clean_payments()`
-
-Transform raw payments files into clean CSV/Parquet.
-
-```python
-def clean_payments(
-    start_date: str,
-    end_date: str,
-    config: PaymentsETLConfig,
-    branches: Optional[List[str]] = None,
-    force: bool = False,
-) -> None
-```
-
-#### `aggregate_payments()`
-
-Aggregate clean payments into the canonical dataset and return it.
-
-```python
-def aggregate_payments(
-    start_date: str,
-    end_date: str,
-    config: PaymentsETLConfig,
-    branches: Optional[List[str]] = None,
-    force: bool = False,
-) -> pd.DataFrame
-```
-
-### Sales Stage Functions
-
-#### `download_sales()`
-
-Download raw sales Excel for the given range.
-
-```python
-def download_sales(
-    start_date: str,
-    end_date: str,
-    config: SalesETLConfig,
-    branches: Optional[List[str]] = None,
-    force: bool = False,
-) -> None
-```
-
-#### `clean_sales()`
-
-Transform raw sales files into clean CSV.
-
-```python
-def clean_sales(
-    start_date: str,
-    end_date: str,
-    config: SalesETLConfig,
-    branches: Optional[List[str]] = None,
-    force: bool = False,
-) -> None
-```
-
-#### `aggregate_sales()`
-
-Aggregate clean sales at the specified level.
-
-```python
-def aggregate_sales(
-    start_date: str,
-    end_date: str,
-    config: SalesETLConfig,
-    level: str = "ticket",  # "ticket" | "group" | "day"
-    branches: Optional[List[str]] = None,
-    force: bool = False,
-) -> pd.DataFrame
-```
-
-## Orchestration Functions
-
-### `build_payments_dataset()`
-
-Main orchestration function for payments ETL. This is a thin wrapper around the stage functions.
-
-#### Signature
-
-```python
-def build_payments_dataset(
-    start_date: str,
-    end_date: str,
-    config: PaymentsETLConfig,
-    branches: Optional[List[str]] = None,
-    steps: Optional[List[str]] = None,
-) -> pd.DataFrame
-```
-
-#### Parameters
-
-- `start_date` (str): Start date in YYYY-MM-DD format (inclusive)
-- `end_date` (str): End date in YYYY-MM-DD format (inclusive)
-- `config` (PaymentsETLConfig): Configuration instance
-- `branches` (Optional[List[str]]): List of branch names to process. If None, processes all branches.
-- `steps` (Optional[List[str]]): List of steps to execute. Valid steps: "extract", "transform", "aggregate". If None, executes all steps.
-
-#### Returns
-
-DataFrame containing the aggregated payments data (one row per sucursal + fecha).
-
-#### Raises
-
-- `ConfigError`: If invalid step names are provided
-- `FileNotFoundError`: If the aggregated file is expected but missing
-
-#### Example
-
-```python
+from pos_core import DataPaths
+from pos_core.payments import core
 from pathlib import Path
-from pos_core.etl import PaymentsETLConfig, build_payments_dataset
 
-config = PaymentsETLConfig.from_data_root(Path("data"))
-df = build_payments_dataset("2023-01-01", "2023-12-31", config)
+paths = DataPaths.from_root(Path("data"), Path("utils/sucursales.json"))
+df = core.fetch(paths, "2025-01-01", "2025-01-31")
 ```
 
-**Note**: For most use cases, `get_payments()` is recommended as it provides automatic idempotence through metadata checks.
+#### `payments.core.load()`
+
+Load `fact_payments_ticket` from disk without running ETL.
+
+**Signature:**
+
+```python
+df = core.load(
+    paths: DataPaths,
+    start_date: str,
+    end_date: str,
+    branches: list[str] | None = None,
+) -> pd.DataFrame
+```
+
+**Parameters:** Same as `fetch()`, except no `mode` parameter
+
+**Returns:** DataFrame with `fact_payments_ticket` structure
+
+**Raises:**
+- `FileNotFoundError`: If the data doesn't exist
+
+**Example:**
+
+```python
+# Read existing data only (faster, but requires data to exist)
+df = core.load(paths, "2025-01-01", "2025-01-31")
+```
+
+### Daily Mart (Gold Layer)
+
+#### `payments.marts.fetch_daily()`
+
+Ensure the daily payments mart exists for the range, then return it.
+
+**Signature:**
+
+```python
+from pos_core.payments import marts
+
+df = marts.fetch_daily(
+    paths: DataPaths,
+    start_date: str,
+    end_date: str,
+    branches: list[str] | None = None,
+    *,
+    mode: str = "missing",
+) -> pd.DataFrame
+```
+
+**Parameters:**
+- `paths` (DataPaths): DataPaths configuration
+- `start_date` (str): Start date in YYYY-MM-DD format (inclusive)
+- `end_date` (str): End date in YYYY-MM-DD format (inclusive)
+- `branches` (list[str] | None): Optional list of branch names to filter
+- `mode` (str): Processing mode - `"missing"` (default) or `"force"`
+
+**Returns:** DataFrame with `mart_payments_daily` structure (sucursal × date grain)
+
+**Example:**
+
+```python
+from pos_core.payments import marts
+
+# Most common use case: get daily aggregations
+df = marts.fetch_daily(paths, "2025-01-01", "2025-01-31")
+
+# Force refresh
+df = marts.fetch_daily(paths, "2025-01-01", "2025-01-31", mode="force")
+
+# Filter by branches
+df = marts.fetch_daily(paths, "2025-01-01", "2025-01-31", branches=["Banana", "Queen"])
+```
+
+#### `payments.marts.load_daily()`
+
+Load daily payments mart from disk without running ETL.
+
+**Signature:**
+
+```python
+df = marts.load_daily(
+    paths: DataPaths,
+    start_date: str,
+    end_date: str,
+    branches: list[str] | None = None,
+) -> pd.DataFrame
+```
+
+**Parameters:** Same as `fetch_daily()`, except no `mode` parameter
+
+**Returns:** DataFrame with `mart_payments_daily` structure
+
+**Raises:**
+- `FileNotFoundError`: If the mart doesn't exist
+
+### Raw Data (Bronze Layer)
+
+#### `payments.raw.fetch()`
+
+Download raw payment Excel files from the POS system.
+
+**Signature:**
+
+```python
+from pos_core.payments import raw
+
+raw.fetch(
+    paths: DataPaths,
+    start_date: str,
+    end_date: str,
+    branches: list[str] | None = None,
+    *,
+    mode: str = "missing",
+) -> None
+```
+
+**Parameters:**
+- `paths` (DataPaths): DataPaths configuration
+- `start_date` (str): Start date in YYYY-MM-DD format (inclusive)
+- `end_date` (str): End date in YYYY-MM-DD format (inclusive)
+- `branches` (list[str] | None): Optional list of branch names to filter
+- `mode` (str): Processing mode - `"missing"` (default) or `"force"`
+
+**Note:** Requires `WS_BASE`, `WS_USER`, and `WS_PASS` environment variables to be set.
+
+#### `payments.raw.load()`
+
+Load raw payment Excel files from disk.
+
+**Signature:**
+
+```python
+df = raw.load(
+    paths: DataPaths,
+    start_date: str,
+    end_date: str,
+    branches: list[str] | None = None,
+) -> pd.DataFrame
+```
+
+## Sales API
+
+### Core Fact (Silver Layer)
+
+#### `sales.core.fetch()`
+
+Ensure `fact_sales_item_line` exists for the given range, then return it.
+
+**Signature:**
+
+```python
+from pos_core.sales import core
+
+df = core.fetch(
+    paths: DataPaths,
+    start_date: str,
+    end_date: str,
+    branches: list[str] | None = None,
+    *,
+    mode: str = "missing",
+) -> pd.DataFrame
+```
+
+**Parameters:**
+- `paths` (DataPaths): DataPaths configuration
+- `start_date` (str): Start date in YYYY-MM-DD format (inclusive)
+- `end_date` (str): End date in YYYY-MM-DD format (inclusive)
+- `branches` (list[str] | None): Optional list of branch names to filter
+- `mode` (str): Processing mode - `"missing"` (default) or `"force"`
+
+**Returns:** DataFrame with `fact_sales_item_line` structure (item/modifier line grain)
+
+**Example:**
+
+```python
+from pos_core.sales import core
+
+df = core.fetch(paths, "2025-01-01", "2025-01-31")
+```
+
+#### `sales.core.load()`
+
+Load `fact_sales_item_line` from disk without running ETL.
+
+**Signature:**
+
+```python
+df = core.load(
+    paths: DataPaths,
+    start_date: str,
+    end_date: str,
+    branches: list[str] | None = None,
+) -> pd.DataFrame
+```
+
+### Ticket Mart (Gold Layer)
+
+#### `sales.marts.fetch_ticket()`
+
+Ensure the ticket-level sales mart exists for the range, then return it.
+
+**Signature:**
+
+```python
+from pos_core.sales import marts
+
+df = marts.fetch_ticket(
+    paths: DataPaths,
+    start_date: str,
+    end_date: str,
+    branches: list[str] | None = None,
+    *,
+    mode: str = "missing",
+) -> pd.DataFrame
+```
+
+**Parameters:** Same as `sales.core.fetch()`
+
+**Returns:** DataFrame with `mart_sales_by_ticket` structure (one row per ticket)
+
+**Example:**
+
+```python
+df = marts.fetch_ticket(paths, "2025-01-01", "2025-01-31")
+```
+
+#### `sales.marts.load_ticket()`
+
+Load ticket-level sales mart from disk without running ETL.
+
+**Signature:**
+
+```python
+df = marts.load_ticket(
+    paths: DataPaths,
+    start_date: str,
+    end_date: str,
+    branches: list[str] | None = None,
+) -> pd.DataFrame
+```
+
+### Group Mart (Gold Layer)
+
+#### `sales.marts.fetch_group()`
+
+Ensure the group-level sales mart exists for the range, then return it.
+
+**Signature:**
+
+```python
+df = marts.fetch_group(
+    paths: DataPaths,
+    start_date: str,
+    end_date: str,
+    branches: list[str] | None = None,
+    *,
+    mode: str = "missing",
+) -> pd.DataFrame
+```
+
+**Parameters:** Same as `sales.core.fetch()`
+
+**Returns:** DataFrame with `mart_sales_by_group` structure (category pivot table)
+
+**Example:**
+
+```python
+df = marts.fetch_group(paths, "2025-01-01", "2025-01-31")
+```
+
+#### `sales.marts.load_group()`
+
+Load group-level sales mart from disk without running ETL.
+
+**Signature:**
+
+```python
+df = marts.load_group(
+    paths: DataPaths,
+    start_date: str,
+    end_date: str,
+    branches: list[str] | None = None,
+) -> pd.DataFrame
+```
+
+### Raw Data (Bronze Layer)
+
+#### `sales.raw.fetch()`
+
+Download raw sales Excel files from the POS system.
+
+**Signature:**
+
+```python
+from pos_core.sales import raw
+
+raw.fetch(
+    paths: DataPaths,
+    start_date: str,
+    end_date: str,
+    branches: list[str] | None = None,
+    *,
+    mode: str = "missing",
+) -> None
+```
+
+**Note:** Requires `WS_BASE`, `WS_USER`, and `WS_PASS` environment variables to be set.
+
+#### `sales.raw.load()`
+
+Load raw sales Excel files from disk.
+
+**Signature:**
+
+```python
+df = raw.load(
+    paths: DataPaths,
+    start_date: str,
+    end_date: str,
+    branches: list[str] | None = None,
+) -> pd.DataFrame
+```
+
+## Processing Modes
+
+### `mode="missing"` (Default)
+
+- Only runs ETL stages for date ranges that don't have completed outputs
+- Checks metadata to determine if stages need to run
+- Skips work that's already been done
+- **Recommended for most use cases**
+
+### `mode="force"`
+
+- Forces re-run of all ETL stages for the given date range
+- Ignores existing metadata and outputs
+- Useful when:
+  - You've fixed a bug in transformation logic
+  - You want to refresh data from source
+  - You're debugging ETL issues
+
+## Function Behavior
+
+### `fetch()` Functions
+
+- **May run ETL**: Checks if data exists, runs ETL if needed (based on mode)
+- **Idempotent**: Safe to call multiple times
+- **Returns DataFrame**: Always returns the requested data
+
+### `load()` Functions
+
+- **Never runs ETL**: Only reads existing data from disk
+- **Faster**: No ETL overhead
+- **Raises error**: If data doesn't exist
+- **Use when**: You're certain the data already exists
+
+## Data Structures
+
+### `fact_payments_ticket` (Core Fact)
+
+Grain: ticket × payment method
+
+Key columns:
+- `sucursal`: Branch name
+- `operating_date`: Date of operation
+- `order_index`: Ticket/order identifier
+- `payment_method`: Payment method (e.g., "Efectivo", "Tarjeta Crédito")
+
+### `mart_payments_daily` (Daily Mart)
+
+Grain: sucursal × date
+
+Key columns:
+- `sucursal`: Branch name
+- `fecha`: Date
+- `ingreso_efectivo`: Cash income
+- `ingreso_credito`: Credit card income
+- `ingreso_debito`: Debit card income
+- `num_tickets`: Number of tickets
+- Additional payment method columns
+
+### `fact_sales_item_line` (Core Fact)
+
+Grain: item/modifier line
+
+Key columns:
+- `sucursal`: Branch name
+- `operating_date`: Date of operation
+- `order_id`: Ticket/order identifier
+- `item_key`: Item identifier
+- `group`: Product group/category
+- `subtotal_item`: Item subtotal
+- `total_item`: Item total
+
+### `mart_sales_by_ticket` (Ticket Mart)
+
+Grain: one row per ticket
+
+Key columns:
+- `sucursal`: Branch name
+- `operating_date`: Date of operation
+- `order_id`: Ticket/order identifier
+- `total`: Ticket total
+- Additional aggregated columns
+
+### `mart_sales_by_group` (Group Mart)
+
+Grain: category pivot table
+
+Structure: Groups as columns, sucursales/dates as rows
+
+## Next Steps
+
+- **[Forecasting API](forecasting.md)** - Generate time series forecasts
+- **[QA API](qa.md)** - Data quality assurance
+- **[Concepts](../user-guide/concepts.md)** - Understand data layers and grains
