@@ -1,6 +1,6 @@
 # Examples
 
-This directory contains runnable example scripts demonstrating how to use the POS Core ETL package.
+This directory contains runnable example scripts demonstrating how to use the POS Core ETL package with the new domain-oriented API.
 
 ## Prerequisites
 
@@ -12,64 +12,78 @@ Before running any example, ensure you have:
    - `WS_BASE`: Base URL of your POS instance
    - `WS_USER` (optional): Username for authentication
    - `WS_PASS` (optional): Password for authentication
-4. **Created data directory structure** (or modify paths in scripts):
-   ```
-   data/
-   ├── a_raw/
-   ├── b_clean/
-   └── c_processed/
-   ```
 
 ## Example Scripts
 
-### 1. `sales_week_by_group.py`
-**Advanced example** using low-level APIs for sales detail ETL.
+### 1. `payments_full_etl.py`
+**Full payments ETL pipeline** using the new API.
 
-- Downloads sales detail reports for a specific week
-- Cleans Excel files to CSV
-- Aggregates by ticket and by product group
-- Creates a pivot table (groups × sucursales)
-
-**Usage:**
-```bash
-python examples/sales_week_by_group.py
-```
-
-**Note:** Modify `week_start` and `week_end` variables in the script.
-
-### 2. `payments_full_etl.py`
-**Recommended example** using the high-level payments ETL API.
-
-- Downloads payment reports (if needed)
-- Cleans and aggregates payments data
-- Creates daily aggregated dataset
-- Uses `build_payments_dataset()` - the primary public API
+- Downloads raw payments from Wansoft API (Bronze)
+- Cleans into fact_payments_ticket (Silver/Core)
+- Aggregates into mart_payments_daily (Gold/Mart)
+- Runs QA checks on the result
 
 **Usage:**
 ```bash
 python examples/payments_full_etl.py
 ```
 
-**Note:** Modify date range in the script if needed.
+### 2. `sales_week_by_group.py`
+**Sales data at different grains** using the new API.
+
+- Downloads and cleans sales data
+- Shows data at all three grains:
+  - `grain="item"`: Core fact (item-line level)
+  - `grain="ticket"`: Ticket-level mart
+  - `grain="group"`: Category pivot mart
+
+**Usage:**
+```bash
+python examples/sales_week_by_group.py
+```
 
 ### 3. `payments_forecast.py`
-**Recommended example** for generating forecasts.
+**Forecasting workflow** using the new API.
 
-- Loads aggregated payments data
-- Generates 7-day forecasts for all branches and metrics
+- Loads historical payments data
+- Generates 13-week forecasts
 - Creates deposit schedule for cash flow planning
-- Uses `run_payments_forecast()` - the forecasting API
 
 **Usage:**
 ```bash
 python examples/payments_forecast.py
 ```
 
-**Note:** Requires running `payments_full_etl.py` first (or having the aggregated CSV file).
+## Quick Start
 
-## Running Examples
+```python
+from pathlib import Path
+from pos_core import DataPaths
+from pos_core.payments import get_payments
+from pos_core.sales import get_sales
 
-All examples are self-contained and can be run directly. They include comments indicating what needs to be modified (paths, dates, etc.).
+# Configure paths
+paths = DataPaths.from_root(Path("data"), Path("utils/sucursales.json"))
+
+# Get payment data (daily mart by default)
+payments_df = get_payments(paths, "2025-01-01", "2025-01-31")
+
+# Get sales data (item-line core fact by default)
+sales_df = get_sales(paths, "2025-01-01", "2025-01-31")
+
+# Get sales data at ticket grain
+ticket_df = get_sales(paths, "2025-01-01", "2025-01-31", grain="ticket")
+```
+
+## Grain Reference
+
+**Payments:**
+- `grain="ticket"`: Core fact (fact_payments_ticket) - ticket × payment method
+- `grain="daily"`: Daily mart (mart_payments_daily) - sucursal × date (default)
+
+**Sales:**
+- `grain="item"`: Core fact (fact_sales_item_line) - item/modifier line (default)
+- `grain="ticket"`: Ticket mart (mart_sales_by_ticket) - one row per ticket
+- `grain="group"`: Group mart (mart_sales_by_group) - category pivot
 
 For more details, see the main [README.md](../README.md) in the project root.
-

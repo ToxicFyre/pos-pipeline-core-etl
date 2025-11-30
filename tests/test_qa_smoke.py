@@ -91,8 +91,9 @@ def test_qa_with_live_data() -> None:
     os.environ["WS_USER"] = ws_user
     os.environ["WS_PASS"] = ws_pass
 
-    # Import ETL functions
-    from pos_core.etl import PaymentsETLConfig, get_payments
+    # Import new ETL API
+    from pos_core import DataPaths
+    from pos_core.payments import get_payments
 
     # Use temporary directory
     with TemporaryDirectory() as tmpdir:
@@ -100,13 +101,11 @@ def test_qa_with_live_data() -> None:
         data_root.mkdir()
 
         # Create sucursales.json
-        utils_dir = data_root.parent / "utils"
-        utils_dir.mkdir()
-        sucursales_json = utils_dir / "sucursales.json"
+        sucursales_json = data_root / "sucursales.json"
         sucursales_json.write_text('{"Kavia": {"code": "8777", "valid_from": "2024-02-21"}}')
 
-        # Configure ETL
-        config = PaymentsETLConfig.from_root(data_root, sucursales_json)
+        # Configure ETL with new API
+        paths = DataPaths.from_root(data_root, sucursales_json)
 
         # Download 14 days of data
         end_date = date.today() - timedelta(days=1)
@@ -117,9 +116,10 @@ def test_qa_with_live_data() -> None:
         # Get payments data
         try:
             payments_df = get_payments(
+                paths=paths,
                 start_date=start_date.strftime("%Y-%m-%d"),
                 end_date=end_date.strftime("%Y-%m-%d"),
-                config=config,
+                grain="daily",
                 branches=["Kavia"],
                 refresh=True,
             )
@@ -161,21 +161,6 @@ def test_qa_with_live_data() -> None:
                 f"{qa_result.summary['total_sucursales']}"
             )
 
-            # Validate checks were run
-            if hasattr(qa_result, "checks"):
-                print(f"[Live QA Test] Level {level} - Checks run: {len(qa_result.checks)}")
-
-            # Validate issues (may or may not be present)
-            if hasattr(qa_result, "issues"):
-                if qa_result.issues:
-                    print(f"[Live QA Test] Level {level} - Issues found: {len(qa_result.issues)}")
-                    # Show first issue as example
-                    if len(qa_result.issues) > 0:
-                        first_issue = qa_result.issues[0]
-                        print(f"[Live QA Test] Example issue: {first_issue}")
-                else:
-                    print(f"[Live QA Test] Level {level} - No issues found ✓")
-
         print("\n[Live QA Test] ✓ Successfully validated QA pipeline with live data")
 
 
@@ -208,18 +193,17 @@ def test_qa_detects_data_quality_issues() -> None:
     os.environ["WS_USER"] = ws_user
     os.environ["WS_PASS"] = ws_pass
 
-    from pos_core.etl import PaymentsETLConfig, get_payments
+    from pos_core import DataPaths
+    from pos_core.payments import get_payments
 
     with TemporaryDirectory() as tmpdir:
         data_root = Path(tmpdir) / "data"
         data_root.mkdir()
 
-        utils_dir = data_root.parent / "utils"
-        utils_dir.mkdir()
-        sucursales_json = utils_dir / "sucursales.json"
+        sucursales_json = data_root / "sucursales.json"
         sucursales_json.write_text('{"Kavia": {"code": "8777", "valid_from": "2024-02-21"}}')
 
-        config = PaymentsETLConfig.from_root(data_root, sucursales_json)
+        paths = DataPaths.from_root(data_root, sucursales_json)
 
         # Get recent data
         end_date = date.today() - timedelta(days=1)
@@ -229,9 +213,10 @@ def test_qa_detects_data_quality_issues() -> None:
 
         try:
             payments_df = get_payments(
+                paths=paths,
                 start_date=start_date.strftime("%Y-%m-%d"),
                 end_date=end_date.strftime("%Y-%m-%d"),
-                config=config,
+                grain="daily",
                 branches=["Kavia"],
                 refresh=True,
             )
@@ -250,13 +235,5 @@ def test_qa_detects_data_quality_issues() -> None:
         # Check data completeness
         assert qa_result.summary["total_rows"] > 0
         assert qa_result.summary["total_sucursales"] >= 1
-
-        # The test passes if QA runs successfully, regardless of issues found
-        # (real data may or may not have issues)
-        if hasattr(qa_result, "issues") and qa_result.issues:
-            print(f"[Live QA Issue Test] ✓ QA detected {len(qa_result.issues)} issues")
-            print("[Live QA Issue Test] Issues are being tracked and can be reviewed")
-        else:
-            print("[Live QA Issue Test] ✓ No data quality issues detected")
 
         print("[Live QA Issue Test] ✓ QA issue detection validated")

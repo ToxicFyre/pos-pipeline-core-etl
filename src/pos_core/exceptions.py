@@ -37,3 +37,27 @@ class DataQualityError(PosAPIError):
     """
 
     pass
+
+
+class ETLError(PosAPIError):
+    """Raised when an ETL pipeline stage fails.
+
+    This exception is raised when:
+    - Data extraction fails
+    - Data transformation fails
+    - Data aggregation fails
+    """
+
+    pass
+
+
+class ExtractionError(ETLError):
+    """Raised when data extraction from the source system fails.
+
+    This exception is raised when:
+    - Network connection to Wansoft API fails
+    - Authentication fails
+    - API returns unexpected response
+    """
+
+    pass

@@ -7,7 +7,6 @@ The module also includes a live test that uses real credentials to download
 a small amount of data and validate the forecasting pipeline end-to-end.
 """
 
-# at the top of tests/test_forecasting_smoke.py
 import os
 import warnings
 from datetime import date, timedelta
@@ -70,8 +69,6 @@ def test_forecasting_smoke() -> None:
 
 def test_run_payments_forecast_exposes_debug_info() -> None:
     """Test that run_payments_forecast exposes debug info when debug=True."""
-    # Build a dummy payments_df with 40 days of data for one branch
-    # (ARIMA models require at least 30 days)
     num_days = 40
     data = {
         "sucursal": ["Kavia"] * num_days,
@@ -113,7 +110,6 @@ def test_run_payments_forecast_exposes_debug_info() -> None:
     assert len(source_dates) == 3, "Should have 3 forecast dates (horizon_days=3)"
 
     # Verify debug info exists for all metrics that were forecasted
-    # (config uses default metrics: efectivo, credito, debito, total)
     expected_metrics = {"ingreso_efectivo", "ingreso_credito", "ingreso_debito", "ingreso_total"}
     actual_metrics = set(result.debug["naive_last_week"]["Kavia"].keys())
     missing = expected_metrics - actual_metrics
@@ -146,11 +142,8 @@ def test_run_payments_forecast_no_debug_by_default() -> None:
 
 def test_debug_info_tracks_multiple_branches_and_metrics() -> None:
     """Test that debug info is properly tracked per branch and metric combination."""
-    # Build data for multiple branches with different date ranges
-    # This ensures they have different source_dates mappings
     num_days = 40
     kavia_dates = pd.date_range("2025-01-01", periods=num_days, freq="D")
-    # CrediClub starts 5 days later, so it will have different forecast dates
     crediclub_dates = pd.date_range("2025-01-06", periods=num_days, freq="D")
 
     data = {
@@ -191,7 +184,7 @@ def test_debug_info_tracks_multiple_branches_and_metrics() -> None:
 
     assert kavia_efectivo_debug.model_name == "naive_last_week"
     assert crediclub_efectivo_debug.model_name == "naive_last_week"
-    # They should have different source_dates mappings (different branches, different date ranges)
+    # They should have different source_dates mappings
     kavia_sources = kavia_efectivo_debug.data["source_dates"]
     crediclub_sources = crediclub_efectivo_debug.data["source_dates"]
     assert kavia_sources != crediclub_sources
@@ -231,7 +224,6 @@ def test_naive_forecasting_with_live_data() -> None:
         )
 
     # Strip quotes from environment variables if present
-    # Type narrowing: we know these are not None after the all() check above
     assert ws_base is not None
     assert ws_user is not None
     assert ws_pass is not None
@@ -244,9 +236,10 @@ def test_naive_forecasting_with_live_data() -> None:
     os.environ["WS_USER"] = ws_user
     os.environ["WS_PASS"] = ws_pass
 
-    # Import ETL functions
-    from pos_core.etl import PaymentsETLConfig, get_payments
+    # Import new ETL API
+    from pos_core import DataPaths
     from pos_core.forecasting.models.naive import NaiveLastWeekModel
+    from pos_core.payments import get_payments
 
     # Use a temporary directory for test data
     with TemporaryDirectory() as tmpdir:
@@ -254,14 +247,11 @@ def test_naive_forecasting_with_live_data() -> None:
         data_root.mkdir()
 
         # Create a minimal sucursales.json with a single test branch
-        # Using CrediClub as a known branch from the codebase
-        utils_dir = data_root.parent / "utils"
-        utils_dir.mkdir()
-        sucursales_json = utils_dir / "sucursales.json"
+        sucursales_json = data_root / "sucursales.json"
         sucursales_json.write_text('{"Kavia": {"code": "8777", "valid_from": "2024-02-21"}}')
 
-        # Configure ETL
-        config = PaymentsETLConfig.from_root(data_root, sucursales_json)
+        # Configure ETL with new API
+        paths = DataPaths.from_root(data_root, sucursales_json)
 
         # Download 45 days of data (enough for naive model to work)
         end_date = date.today() - timedelta(days=1)  # Yesterday
@@ -272,11 +262,12 @@ def test_naive_forecasting_with_live_data() -> None:
         # Get payments data (this will download, clean, and aggregate)
         try:
             payments_df = get_payments(
+                paths=paths,
                 start_date=start_date.strftime("%Y-%m-%d"),
                 end_date=end_date.strftime("%Y-%m-%d"),
-                config=config,
+                grain="daily",  # Get daily mart for forecasting
                 branches=["Kavia"],
-                refresh=True,  # Force download
+                refresh=True,
             )
         except Exception as e:
             import traceback
@@ -316,7 +307,6 @@ def test_naive_forecasting_with_live_data() -> None:
         print(f"[Live Test] Kavia branch has {len(kavia_df)} days of data")
 
         # Test naive forecasting model directly
-        # Create a time series for ingreso_efectivo
         kavia_df = kavia_df.sort_values("fecha")
         kavia_df.set_index("fecha", inplace=True)
         efectivo_series = kavia_df["ingreso_efectivo"]
@@ -336,36 +326,28 @@ def test_naive_forecasting_with_live_data() -> None:
         print("[Live Test] Generated 7-day forecast:")
         print(forecast_series)
 
-        # --- New: generic debug inspection for naive model ---
-
-        # 1) We expect every forecasting model to populate .debug_
+        # --- Debug inspection for naive model ---
         assert naive_model.debug_ is not None, "Model should populate debug_ after forecast"
 
         debug = naive_model.debug_
         assert debug.model_name == "naive_last_week"
 
-        # 2) Naive model guarantee: debug.data["source_dates"] exists and is a mapping
         assert "source_dates" in debug.data, "Naive model must expose 'source_dates' in debug.data"
         mapping = debug.data["source_dates"]
 
-        # Basic shape checks
         assert isinstance(mapping, dict)
         assert len(mapping) == len(forecast_series)
 
         for target_date, source_date in mapping.items():
-            # Forecast date must be in the forecast index
             assert target_date in forecast_series.index
-            # Source date must be in the history index
             assert source_date in efectivo_series.index
-
-            # And the value must match exactly
             assert forecast_series.loc[target_date] == efectivo_series.loc[source_date], (
                 f"Forecast for {target_date} should copy value from {source_date}"
             )
 
         # Test the full forecasting pipeline
         forecast_config = ForecastConfig(horizon_days=7, branches=["Kavia"])
-        result = run_payments_forecast(payments_df, config=forecast_config)
+        result = run_payments_forecast(payments_df.reset_index(), config=forecast_config)
 
         # Validate result structure
         assert isinstance(result, ForecastResult)

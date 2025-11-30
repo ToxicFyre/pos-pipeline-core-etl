@@ -1,83 +1,80 @@
-"""Example 2: Main Payments ETL Workflow
+"""Example: Full Payments ETL Pipeline using new API
 
-This example demonstrates how to build a comprehensive aggregated payments dataset
-with one row per day per sucursal for a date range. At the end, you'll have a
-DataFrame ready for analysis or forecasting.
+This example demonstrates how to run the complete payments ETL pipeline
+using the new domain-oriented API. The API handles all stages automatically:
+1. Download raw data from Wansoft API (Bronze)
+2. Clean into fact_payments_ticket (Silver/Core)
+3. Aggregate into mart_payments_daily (Gold/Mart)
 
 Prerequisites:
-- Set WS_BASE environment variable (for online extraction)
+- Set WS_BASE, WS_USER, WS_PASS environment variables
 - Create utils/sucursales.json with branch configuration
 - Ensure data/ directory structure exists (or modify paths below)
-
-This example uses the high-level build_payments_dataset() API, which is the
-recommended way to process payments data.
 """
 
-from datetime import date, timedelta
 from pathlib import Path
 
-from pos_core.etl import PaymentsETLConfig, build_payments_dataset
+from pos_core import DataPaths
+from pos_core.payments import get_payments
+from pos_core.qa import run_payments_qa
 
-# Calculate date range (3 years ago to today) - MODIFY AS NEEDED
-end_date = date.today()
-start_date = end_date - timedelta(days=3 * 365)
-
-# Set up configuration - MODIFY PATHS AS NEEDED
+# Set up configuration with new unified DataPaths
 data_root = Path("data")
 sucursales_json = Path("utils/sucursales.json")
 
-config = PaymentsETLConfig.from_data_root(
-    data_root=data_root,
-    sucursales_json=sucursales_json,
-    chunk_size_days=180,  # Process in 6-month chunks
+paths = DataPaths.from_root(data_root, sucursales_json)
+
+# Define date range
+start_date = "2025-01-01"  # MODIFY AS NEEDED
+end_date = "2025-01-31"  # MODIFY AS NEEDED
+
+# Run full ETL pipeline with refresh=True to force all stages
+print(f"Running full payments ETL for {start_date} to {end_date}...")
+
+# Get payments at daily grain (the default mart)
+df_daily = get_payments(
+    paths=paths,
+    start_date=start_date,
+    end_date=end_date,
+    grain="daily",  # Daily mart (default)
+    refresh=True,  # Force re-run all stages
 )
 
-# Run the complete ETL pipeline
-# This will:
-# 1. Download missing payment reports from POS API
-# 2. Clean the raw Excel files into normalized CSVs
-# 3. Aggregate cleaned data into daily dataset
-print(f"Running ETL for {start_date} to {end_date}...")
-payments_df = build_payments_dataset(
-    start_date=start_date.strftime("%Y-%m-%d"),
-    end_date=end_date.strftime("%Y-%m-%d"),
-    config=config,
-    branches=None,  # Process all branches (or specify: ["Banana", "Queen"])
+print(f"\nDaily mart (mart_payments_daily): {len(df_daily)} rows")
+print(df_daily.head())
+
+# You can also get the core fact (ticket grain) if needed
+print("\nGetting ticket-level core fact...")
+df_ticket = get_payments(
+    paths=paths,
+    start_date=start_date,
+    end_date=end_date,
+    grain="ticket",  # Core fact: ticket × payment method
+    refresh=False,  # Use existing cleaned data
 )
 
-# The resulting DataFrame has one row per sucursal per day
-print("\nETL Complete!")
-print(f"Total rows: {len(payments_df)}")
-print(f"Date range: {payments_df['fecha'].min()} to {payments_df['fecha'].max()}")
-print(f"Branches: {payments_df['sucursal'].nunique()}")
-print(f"\nColumns: {list(payments_df.columns)}")
-print("\nFirst few rows:")
-print(payments_df.head())
+print(f"Ticket core fact (fact_payments_ticket): {len(df_ticket)} rows")
+print(df_ticket.head())
 
-# Save to CSV for future use
-output_path = data_root / "c_processed" / "payments" / "aggregated_payments_daily.csv"
-output_path.parent.mkdir(parents=True, exist_ok=True)
-payments_df.to_csv(output_path, index=False)
-print(f"\nSaved to: {output_path}")
+# Run QA checks on the daily mart
+print("\nRunning QA checks...")
+qa_result = run_payments_qa(df_daily, level=4)
 
-# Example: Filter for a specific branch
-if len(payments_df) > 0:
-    sample_branch = payments_df["sucursal"].iloc[0]
-    branch_payments = payments_df[payments_df["sucursal"] == sample_branch]
-    print(f"\n{sample_branch} payments: {len(branch_payments)} days")
+print("\nQA Summary:")
+print(f"  - Total rows: {qa_result.summary['total_rows']}")
+print(f"  - Total branches: {qa_result.summary['total_sucursales']}")
+print(f"  - Has missing days: {qa_result.summary['has_missing_days']}")
+print(f"  - Has duplicates: {qa_result.summary['has_duplicates']}")
+print(f"  - Has anomalies: {qa_result.summary['has_zscore_anomalies']}")
 
-# Example: Get summary statistics
-summary = payments_df.groupby("sucursal").agg(
-    {"ingreso_total": ["sum", "mean", "min", "max"], "fecha": ["min", "max", "count"]}
-)
-print("\nSummary by branch:")
-print(summary)
+if qa_result.missing_days is not None and not qa_result.missing_days.empty:
+    print("\nMissing days detected:")
+    print(qa_result.missing_days)
 
-print("\nThe resulting DataFrame contains columns such as:")
-print("- sucursal: Branch name")
-print("- fecha: Date (YYYY-MM-DD)")
-print("- ingreso_efectivo: Cash income")
-print("- ingreso_credito: Credit card income")
-print("- ingreso_debito: Debit card income")
-print("- ingreso_total: Total income")
-print("- Additional payment method columns (AMEX, UberEats, Rappi, etc.)")
+print("\n✓ ETL pipeline completed successfully!")
+
+# Show data layer summary
+print("\nData Layers Created:")
+print(f"  - Bronze (raw): {paths.raw_payments}")
+print(f"  - Silver (core): {paths.clean_payments}")
+print(f"  - Gold (mart): {paths.mart_payments}")
