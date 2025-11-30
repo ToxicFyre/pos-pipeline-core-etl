@@ -1,7 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""Marts (Gold) layer: Aggregate payments into daily branch-level summaries.
 
-"""
+This module is part of the Marts (Gold) layer in the ETL pipeline.
+It produces aggregated, analytics-ready tables consumed by forecasting and BI.
+
+Data directory mapping:
+    Input: data/b_clean/ → Staging (Silver) layer
+    Output: data/c_processed/ → Marts (Gold) - Aggregated tables for forecasting
+
 Aggregate POS 'Detalle por forma de pago' clean CSVs -> branch/day income table.
 
 USAGE GUIDE
@@ -141,7 +148,7 @@ from typing import Iterable, List, Optional, Set
 import pandas as pd
 import requests
 
-from pos_core.etl.b_transform.pos_cleaning_utils import normalize_spanish_name
+from pos_core.etl.staging.cleaning_utils import normalize_spanish_name
 
 # ------------------------------------------------------------
 # Normalization + payment-method bucketing

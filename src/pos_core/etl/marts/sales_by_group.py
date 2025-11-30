@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-r"""Aggregate POS sales details by consolidated category (CLI + library)
+r"""Marts (Gold) layer: Aggregate sales by category with branch pivot.
+
+This module is part of the Marts (Gold) layer in the ETL pipeline.
+It produces aggregated, analytics-ready category-level summaries.
+
+Data directory mapping:
+    Input: data/c_processed/ → Core models (from sales_by_ticket)
+    Output: data/c_processed/ → Marts (Gold) - Category pivot tables
 
 Overview
 --------

@@ -152,7 +152,7 @@ def test_debug_info_tracks_multiple_branches_and_metrics() -> None:
     kavia_dates = pd.date_range("2025-01-01", periods=num_days, freq="D")
     # CrediClub starts 5 days later, so it will have different forecast dates
     crediclub_dates = pd.date_range("2025-01-06", periods=num_days, freq="D")
-    
+
     data = {
         "sucursal": (["Kavia"] * num_days) + (["CrediClub"] * num_days),
         "fecha": list(kavia_dates) + list(crediclub_dates),

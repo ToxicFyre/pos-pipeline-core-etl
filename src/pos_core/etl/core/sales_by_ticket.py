@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Aggregate POS sales details by ticket (CLI + library)
+"""Core (Silver+) layer: Aggregate POS sales details by ticket.
+
+This module is part of the Core (Silver+) layer in the ETL pipeline.
+It produces granular, per-ticket data from cleaned line-item sales data.
+
+Data directory mapping:
+    Input: data/b_clean/ → Staging (Silver) layer
+    Output: data/c_processed/ → Core models (Silver+)
 
 Overview
 --------

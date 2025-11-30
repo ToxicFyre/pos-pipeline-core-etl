@@ -269,7 +269,7 @@ def test_get_payments_with_live_data() -> None:
         print(f"[Live Query Test] First call returned {len(result1)} rows")
 
         # Second call with refresh=False: should use cached data
-        print(f"[Live Query Test] Testing idempotence (refresh=False)...")
+        print("[Live Query Test] Testing idempotence (refresh=False)...")
         result2 = get_payments(
             start_date=start_date.strftime("%Y-%m-%d"),
             end_date=end_date.strftime("%Y-%m-%d"),
@@ -293,7 +293,7 @@ def test_get_payments_with_live_data() -> None:
                 assert (result1[col] >= 0).all(), f"{col} should be non-negative"
                 print(f"[Live Query Test] ✓ {col} values are valid")
 
-        print(f"[Live Query Test] ✓ All validations passed")
+        print("[Live Query Test] ✓ All validations passed")
 
 
 @pytest.mark.live
@@ -361,15 +361,15 @@ def test_get_payments_metadata_tracking() -> None:
 
         assert raw_meta is not None, "Raw stage should have metadata"
         assert raw_meta.status == "ok", "Raw stage should be marked as ok"
-        print(f"[Live Metadata Test] ✓ Raw stage metadata verified")
+        print("[Live Metadata Test] ✓ Raw stage metadata verified")
 
         assert clean_meta is not None, "Clean stage should have metadata"
         assert clean_meta.status == "ok", "Clean stage should be marked as ok"
         assert clean_meta.cleaner_version == "payments_cleaner_v1"
-        print(f"[Live Metadata Test] ✓ Clean stage metadata verified")
+        print("[Live Metadata Test] ✓ Clean stage metadata verified")
 
         assert proc_meta is not None, "Processed stage should have metadata"
         assert proc_meta.status == "ok", "Processed stage should be marked as ok"
-        print(f"[Live Metadata Test] ✓ Processed stage metadata verified")
+        print("[Live Metadata Test] ✓ Processed stage metadata verified")
 
-        print(f"[Live Metadata Test] ✓ All metadata checks passed")
+        print("[Live Metadata Test] ✓ All metadata checks passed")

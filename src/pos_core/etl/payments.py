@@ -1,9 +1,14 @@
-"""Payments ETL stage functions.
+"""Payments ETL stage functions - Orchestration layer.
 
-This module provides stage-level functions for the payments ETL pipeline:
-- download_payments: Download raw payments Excel files
-- clean_payments: Transform raw Excel files into clean CSVs
-- aggregate_payments: Aggregate clean CSVs into daily dataset
+This module orchestrates the payments ETL pipeline across data layers:
+- download_payments: Raw (Bronze) layer - Download from Wansoft HTTP API
+- clean_payments: Staging (Silver) layer - Transform raw Excel files into clean CSVs
+- aggregate_payments: Marts (Gold) layer - Aggregate clean CSVs into daily dataset
+
+Data directory mapping:
+    data/a_raw/      → Raw (Bronze) - Direct Wansoft exports
+    data/b_clean/    → Staging (Silver) - Cleaned and standardized
+    data/c_processed → Marts (Gold) - Aggregated tables for forecasting
 """
 
 from __future__ import annotations
@@ -51,7 +56,8 @@ def download_payments(
         >>> config = PaymentsETLConfig.from_root("data", "utils/sucursales.json")
         >>> download_payments("2025-01-01", "2025-01-31", config)
     """
-    from pos_core.etl.a_extract.HTTP_extraction import download_payments_reports
+    # Raw (Bronze) layer: Extract from Wansoft HTTP API
+    from pos_core.etl.raw.extraction import download_payments_reports
 
     # Check metadata for idempotence
     if should_skip_stage(
@@ -127,7 +133,8 @@ def clean_payments(
         >>> config = PaymentsETLConfig.from_root("data", "utils/sucursales.json")
         >>> clean_payments("2025-01-01", "2025-01-31", config)
     """
-    from pos_core.etl.b_transform.pos_excel_payments_cleaner import clean_payments_directory
+    # Staging (Silver) layer: Clean and normalize raw Excel files
+    from pos_core.etl.staging.payments_cleaner import clean_payments_directory
 
     # Check metadata for idempotence
     if should_skip_stage(
@@ -205,7 +212,8 @@ def aggregate_payments(
         >>> len(df)
         31
     """
-    from pos_core.etl.c_load.aggregate_payments_by_day import aggregate_payments_daily
+    # Marts (Gold) layer: Aggregate into daily branch-level summaries
+    from pos_core.etl.marts.payments_daily import aggregate_payments_daily
 
     # Check metadata for idempotence
     if should_skip_stage(

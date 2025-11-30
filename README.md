@@ -116,24 +116,52 @@ In practice, these are often stored in a `secrets.env` file and loaded into the 
 
 ### Directory Structure
 
-The package follows an ETL naming convention. Create the following directory structure:
+The package follows an ETL naming convention with industry-standard data layers:
 
 ```
 data/
-├── a_raw/          # Raw data files downloaded from POS API
+├── a_raw/          # Raw (Bronze) - Direct Wansoft exports, unchanged
 │   ├── payments/
 │   │   └── batch/
 │   └── sales/
 │       └── batch/
-├── b_clean/        # Cleaned and normalized data files
+├── b_clean/        # Staging (Silver) - Cleaned and standardized tables
 │   ├── payments/
 │   │   └── batch/
 │   └── sales/
 │       └── batch/
-└── c_processed/    # Aggregated and processed datasets
+└── c_processed/    # Core + Marts (Silver+/Gold) - Modeled and aggregated tables
     ├── payments/
     └── sales/
 ```
+
+## Data Layers
+
+The ETL pipeline follows industry-standard **bronze/silver/gold** data layer conventions, making it familiar to data engineers:
+
+| Layer | Code Location | Data Directory | Description |
+|-------|--------------|----------------|-------------|
+| **Raw (Bronze)** | `pos_core.etl.raw/` | `data/a_raw/` | Direct Wansoft exports, unchanged. Excel files as received from the POS API. |
+| **Staging (Silver)** | `pos_core.etl.staging/` | `data/b_clean/` | Cleaned and standardized tables. Normalized column names, data types, and encodings. |
+| **Core (Silver+)** | `pos_core.etl.core/` | `data/c_processed/` | Granular POS models. One row per ticket line or per branch/day at the most granular level. |
+| **Marts (Gold)** | `pos_core.etl.marts/` | `data/c_processed/` | Aggregated semantic tables. Daily/weekly branch-level summaries, group pivots, and forecast-ready datasets. |
+
+### Layer Flow
+
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│   Raw (Bronze)  │ ──▶ │ Staging (Silver)│ ──▶ │  Core (Silver+) │ ──▶ │  Marts (Gold)   │
+│                 │     │                 │     │                 │     │                 │
+│ a_raw/          │     │ b_clean/        │     │ c_processed/    │     │ c_processed/    │
+│ HTTP extraction │     │ Excel cleaning  │     │ Per-ticket data │     │ Daily aggregates│
+└─────────────────┘     └─────────────────┘     └─────────────────┘     └─────────────────┘
+```
+
+### API and Layers
+
+- **High-level functions** like `get_sales()` and `get_payments()` automatically orchestrate all layers, running only the stages that are needed.
+- **`pos_core.forecasting`** and **`pos_core.qa`** are consumers of the ETL outputs (core/marts layer).
+- The `level=` parameter in query functions controls whether you get core-grain (e.g., `level="ticket"`) or mart-grain (e.g., `level="group"`) DataFrames.
 
 ## Usage Examples
 
@@ -217,7 +245,7 @@ For complete API documentation, see:
 
 **Internal APIs**: Other modules, functions, and classes not explicitly exported are considered internal and may change between minor versions without notice. This includes:
 
-- Functions in `pos_core.etl.a_extract`, `pos_core.etl.b_transform`, `pos_core.etl.c_load`
+- Functions in `pos_core.etl.raw`, `pos_core.etl.staging`, `pos_core.etl.core`, `pos_core.etl.marts`
 - Internal helper functions and utilities
 - Any module or function not listed in a package's `__all__` attribute
 
