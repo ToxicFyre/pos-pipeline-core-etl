@@ -1,9 +1,14 @@
-"""Sales ETL stage functions.
+"""Sales ETL stage functions - Orchestration layer.
 
-This module provides stage-level functions for the sales ETL pipeline:
-- download_sales: Download raw sales Excel files
-- clean_sales: Transform raw Excel files into clean CSVs
-- aggregate_sales: Aggregate clean CSVs at specified level (ticket/group/day)
+This module orchestrates the sales ETL pipeline across data layers:
+- download_sales: Raw (Bronze) layer - Download from Wansoft HTTP API
+- clean_sales: Staging (Silver) layer - Transform raw Excel files into clean CSVs
+- aggregate_sales: Core/Marts layers - Aggregate at specified level (ticket/group/day)
+
+Data directory mapping:
+    data/a_raw/      → Raw (Bronze) - Direct Wansoft exports
+    data/b_clean/    → Staging (Silver) - Cleaned and standardized
+    data/c_processed → Core (ticket-level) + Marts (group pivots)
 """
 
 from __future__ import annotations
@@ -52,13 +57,14 @@ def download_sales(
         >>> config = SalesETLConfig.from_root("data", "utils/sucursales.json")
         >>> download_sales("2025-01-01", "2025-01-31", config)
     """
-    from pos_core.etl.a_extract.HTTP_extraction import (
+    # Raw (Bronze) layer: Extract from Wansoft HTTP API
+    from pos_core.etl.branch_config import load_branch_segments_from_json
+    from pos_core.etl.raw.extraction import (
         build_out_name,
         export_sales_report,
         login_if_needed,
         make_session,
     )
-    from pos_core.etl.branch_config import load_branch_segments_from_json
 
     # Check metadata for idempotence
     if should_skip_stage(
@@ -179,7 +185,8 @@ def clean_sales(
         >>> config = SalesETLConfig.from_root("data", "utils/sucursales.json")
         >>> clean_sales("2025-01-01", "2025-01-31", config)
     """
-    from pos_core.etl.b_transform.pos_excel_sales_details_cleaner import (
+    # Staging (Silver) layer: Clean and normalize raw Excel files
+    from pos_core.etl.staging.sales_cleaner import (
         output_name_for,
         transform_detalle_ventas,
     )
@@ -273,8 +280,11 @@ def aggregate_sales(
         >>> len(df)
         100
     """
-    from pos_core.etl.c_load.aggregate_sales_details_by_group import build_category_pivot
-    from pos_core.etl.c_load.aggregate_sales_details_by_ticket import aggregate_by_ticket
+    # Core (Silver+) layer: Per-ticket granular aggregation
+    from pos_core.etl.core.sales_by_ticket import aggregate_by_ticket
+
+    # Marts (Gold) layer: Category pivot tables
+    from pos_core.etl.marts.sales_by_group import build_category_pivot
 
     # Check metadata for idempotence (level-specific)
     meta_key = f"aggregate_{level}_v1"

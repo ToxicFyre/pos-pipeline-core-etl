@@ -1,4 +1,13 @@
-"""POS transfer report cleaner -> normalized CSV.
+"""Staging (Silver) layer: POS transfer report cleaner.
+
+This module is part of the Staging (Silver) layer in the ETL pipeline.
+It transforms raw transfer Excel files into clean, normalized CSV files.
+
+Data directory mapping:
+    Input: data/a_raw/ → Raw (Bronze) layer
+    Output: data/b_clean/ → Staging (Silver) layer
+
+POS transfer report cleaner -> normalized CSV.
 
 This module cleans and normalizes POS inventory transfer Excel reports
 (Inventory ▸ Transfers ▸ Issued) into standardized CSV format.
@@ -30,7 +39,7 @@ from typing import Optional, Union
 import numpy as np
 import pandas as pd
 
-from .pos_cleaning_utils import neutralize, strip_invisibles, to_float, to_snake, uniquify
+from .cleaning_utils import neutralize, strip_invisibles, to_float, to_snake, uniquify
 
 NBSP = "\u00a0"
 NNBSP = "\u202f"

@@ -1,7 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""Staging (Silver) layer: POS "Detalle por forma de pago" cleaner.
 
-"""
+This module is part of the Staging (Silver) layer in the ETL pipeline.
+It transforms raw payment Excel files into clean, normalized CSV files.
+
+Data directory mapping:
+    Input: data/a_raw/ → Raw (Bronze) layer
+    Output: data/b_clean/ → Staging (Silver) layer
+
 POS "Detalle por forma de pago" cleaner -> normalized CSV.
 
 Single file:
@@ -57,10 +64,10 @@ import pandas as pd
 # Reuse your existing utils from the other cleaner
 from pos_core.etl.utils import get_raw_file_date_range, slugify
 
-from .pos_cleaning_utils import (
+from .cleaning_utils import (
     neutralize as neutralize_formula_injection,
 )
-from .pos_cleaning_utils import (
+from .cleaning_utils import (
     normalize_spanish_name,
     strip_invisibles,
     to_date,

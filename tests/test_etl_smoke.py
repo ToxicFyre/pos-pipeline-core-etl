@@ -118,7 +118,13 @@ def test_etl_pipeline_with_live_data() -> None:
         print(f"[Live ETL Test] ETL completed successfully: {len(result_df)} rows")
 
         # Validate columns
-        expected_columns = ["sucursal", "fecha", "ingreso_efectivo", "ingreso_credito", "ingreso_debito"]
+        expected_columns = [
+            "sucursal",
+            "fecha",
+            "ingreso_efectivo",
+            "ingreso_credito",
+            "ingreso_debito",
+        ]
         for col in expected_columns:
             assert col in result_df.columns, f"Missing expected column: {col}"
 
@@ -134,5 +140,5 @@ def test_etl_pipeline_with_live_data() -> None:
                 assert (result_df[col] >= 0).all(), f"{col} should be non-negative"
 
         print(f"[Live ETL Test] ✓ Validated {len(kavia_data)} days of data for Kavia")
-        print(f"[Live ETL Test] ✓ All data quality checks passed")
+        print("[Live ETL Test] ✓ All data quality checks passed")
         print(f"[Live ETL Test] Sample data:\n{kavia_data.head()}")

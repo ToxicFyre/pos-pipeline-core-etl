@@ -1,7 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""Staging (Silver) layer: POS "Detalle de Ventas" cleaner.
 
-"""POS "Detalle de Ventas" cleaner -> normalized CSV.
+This module is part of the Staging (Silver) layer in the ETL pipeline.
+It transforms raw sales Excel files into clean, normalized CSV files.
+
+Data directory mapping:
+    Input: data/a_raw/ → Raw (Bronze) layer
+    Output: data/b_clean/ → Staging (Silver) layer
+
+POS "Detalle de Ventas" cleaner -> normalized CSV.
 
 This module cleans and normalizes POS sales detail Excel reports into
 standardized CSV format. It handles the detailed variant of sales reports
@@ -46,10 +54,10 @@ import pandas as pd
 
 from pos_core.etl.utils import slugify
 
-from .pos_cleaning_utils import (
+from .cleaning_utils import (
     neutralize as neutralize_formula_injection,
 )
-from .pos_cleaning_utils import (
+from .cleaning_utils import (
     strip_invisibles,
     to_date,
     to_float,

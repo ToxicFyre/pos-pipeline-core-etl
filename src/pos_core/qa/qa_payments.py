@@ -66,8 +66,6 @@ from typing import List, Optional, Tuple
 import numpy as np
 import pandas as pd
 
-from pos_core.etl.api import PaymentsETLConfig
-
 REQUIRED_COLUMNS = [
     "sucursal",
     "fecha",
@@ -1009,7 +1007,7 @@ def run_qa(
     if proc_payments_dir is None:
         # Default to standard directory structure
         proc_payments_dir = Path("data/c_processed/payments")
-    
+
     csv_path = proc_payments_dir / file_name
     df = load_payments(csv_path)
 
@@ -1037,7 +1035,8 @@ def main(argv: Optional[List[str]] = None) -> None:
     and random month samples.
 
     Command-line arguments:
-        --file: CSV file name in processed payments directory (default: aggregated_payments_daily.csv)
+        --file: CSV file name in processed payments directory
+            (default: aggregated_payments_daily.csv)
         --sucursal: Optional sucursal name to filter sampling (default: None)
         --sample-months: Number of random months to sample (default: 3)
         --seed: Random seed for sampling (default: 42)
@@ -1055,13 +1054,15 @@ def main(argv: Optional[List[str]] = None) -> None:
     parser.add_argument(
         "--file",
         default="aggregated_payments_daily.csv",
-        help=("CSV file name inside processed payments directory. Default: aggregated_payments_daily.csv"),
+        help="CSV file name inside processed payments directory. Default: "
+        "aggregated_payments_daily.csv",
     )
     parser.add_argument(
         "--data-root",
         type=str,
         default="data",
-        help="Root directory for ETL data (default: 'data'). Processed payments will be in <data-root>/c_processed/payments",
+        help="Root directory for ETL data (default: 'data'). "
+        "Processed payments will be in <data-root>/c_processed/payments",
     )
     parser.add_argument(
         "--sucursal",

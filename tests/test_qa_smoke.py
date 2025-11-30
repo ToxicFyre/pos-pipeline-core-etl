@@ -157,7 +157,8 @@ def test_qa_with_live_data() -> None:
 
             print(f"[Live QA Test] Level {level} - Total rows: {qa_result.summary['total_rows']}")
             print(
-                f"[Live QA Test] Level {level} - Total branches: {qa_result.summary['total_sucursales']}"
+                f"[Live QA Test] Level {level} - Total branches: "
+                f"{qa_result.summary['total_sucursales']}"
             )
 
             # Validate checks were run
@@ -175,7 +176,7 @@ def test_qa_with_live_data() -> None:
                 else:
                     print(f"[Live QA Test] Level {level} - No issues found ✓")
 
-        print(f"\n[Live QA Test] ✓ Successfully validated QA pipeline with live data")
+        print("\n[Live QA Test] ✓ Successfully validated QA pipeline with live data")
 
 
 @pytest.mark.live
@@ -224,9 +225,7 @@ def test_qa_detects_data_quality_issues() -> None:
         end_date = date.today() - timedelta(days=1)
         start_date = end_date - timedelta(days=6)
 
-        print(
-            f"\n[Live QA Issue Test] Testing issue detection from {start_date} to {end_date}"
-        )
+        print(f"\n[Live QA Issue Test] Testing issue detection from {start_date} to {end_date}")
 
         try:
             payments_df = get_payments(
@@ -239,14 +238,14 @@ def test_qa_detects_data_quality_issues() -> None:
         except Exception as e:
             pytest.skip(f"Failed to download data: {e}")
 
-        print(f"[Live QA Issue Test] Running comprehensive QA (level 4)...")
+        print("[Live QA Issue Test] Running comprehensive QA (level 4)...")
 
         # Run highest level QA for thorough checking
         qa_result = run_payments_qa(payments_df, level=4)
 
         # Validate result
         assert isinstance(qa_result, PaymentsQAResult)
-        print(f"[Live QA Issue Test] QA completed")
+        print("[Live QA Issue Test] QA completed")
 
         # Check data completeness
         assert qa_result.summary["total_rows"] > 0
@@ -256,8 +255,8 @@ def test_qa_detects_data_quality_issues() -> None:
         # (real data may or may not have issues)
         if hasattr(qa_result, "issues") and qa_result.issues:
             print(f"[Live QA Issue Test] ✓ QA detected {len(qa_result.issues)} issues")
-            print(f"[Live QA Issue Test] Issues are being tracked and can be reviewed")
+            print("[Live QA Issue Test] Issues are being tracked and can be reviewed")
         else:
-            print(f"[Live QA Issue Test] ✓ No data quality issues detected")
+            print("[Live QA Issue Test] ✓ No data quality issues detected")
 
-        print(f"[Live QA Issue Test] ✓ QA issue detection validated")
+        print("[Live QA Issue Test] ✓ QA issue detection validated")

@@ -13,10 +13,11 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 # Import directly to avoid importing full module chain
-from pos_core.etl import PaymentsETLConfig, get_payments
-
 # Import naive model directly without triggering arima imports
 import importlib.util
+
+from pos_core.etl import PaymentsETLConfig, get_payments
+
 naive_path = Path(__file__).parent / "src" / "pos_core" / "forecasting" / "models" / "naive.py"
 spec = importlib.util.spec_from_file_location("naive", naive_path)
 naive_module = importlib.util.module_from_spec(spec)
@@ -77,6 +78,7 @@ with TemporaryDirectory() as tmpdir:
         )
     except Exception as e:
         import traceback
+
         print(f"\n[Live Test] Error downloading data: {e}")
         print(f"[Live Test] Full traceback:\n{traceback.format_exc()}")
         sys.exit(1)
@@ -104,7 +106,10 @@ with TemporaryDirectory() as tmpdir:
     kavia_df.set_index("fecha", inplace=True)
     efectivo_series = kavia_df["ingreso_efectivo"]
 
-    print(f"\n[Live Test] Historical data range: {efectivo_series.index.min()} to {efectivo_series.index.max()}")
+    print(
+        f"\n[Live Test] Historical data range: "
+        f"{efectivo_series.index.min()} to {efectivo_series.index.max()}"
+    )
     print(f"[Live Test] Historical data points: {len(efectivo_series)}")
 
     # Train naive model
@@ -114,13 +119,13 @@ with TemporaryDirectory() as tmpdir:
     # Forecast next 7 days
     forecast_series = naive_model.forecast(model_state, steps=7)
 
-    print(f"\n[Live Test] Generated 7-day forecast:")
+    print("\n[Live Test] Generated 7-day forecast:")
     print(forecast_series)
 
     # Show debug information
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("DEBUG INFORMATION")
-    print("="*80)
+    print("=" * 80)
 
     assert naive_model.debug_ is not None, "Model should populate debug_ after forecast"
 
@@ -131,12 +136,15 @@ with TemporaryDirectory() as tmpdir:
 
     if "source_dates" in debug.data:
         source_dates = debug.data["source_dates"]
-        print(f"\nSource Dates Mapping (forecast_date -> source_date):")
+        print("\nSource Dates Mapping (forecast_date -> source_date):")
         print("-" * 80)
         for target_date, source_date in sorted(source_dates.items()):
             target_value = forecast_series.loc[target_date]
             source_value = efectivo_series.loc[source_date]
-            print(f"  {target_date.date()} -> {source_date.date()}  (value: {target_value:.2f} from {source_value:.2f})")
+            print(
+                f"  {target_date.date()} -> {source_date.date()}  "
+                f"(value: {target_value:.2f} from {source_value:.2f})"
+            )
 
         print(f"\nTotal mappings: {len(source_dates)}")
         print(f"Forecast dates: {len(forecast_series)}")
@@ -144,9 +152,9 @@ with TemporaryDirectory() as tmpdir:
     if "horizon_steps" in debug.data:
         print(f"\nHorizon Steps: {debug.data['horizon_steps']}")
 
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("VALIDATION")
-    print("="*80)
+    print("=" * 80)
 
     # Validate the mapping
     mapping = debug.data["source_dates"]

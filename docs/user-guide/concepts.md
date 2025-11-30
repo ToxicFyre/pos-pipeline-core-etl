@@ -26,18 +26,30 @@ During extraction, the package automatically selects the correct code for each d
 
 **Note**: For branches with code changes over time, the package automatically selects the correct code based on validity windows. The current format supports a single code per branch entry. If you need to track multiple code changes, ensure your `sucursales.json` has separate entries or use the validity windows appropriately.
 
-## ETL Directory Convention
+## Data Layers (Bronze/Silver/Gold)
 
-The package uses a three-stage directory structure:
+The package follows industry-standard data engineering conventions with explicit data layers:
 
-- **`a_raw/`**: Raw data files downloaded from POS API (Excel files)
-- **`b_clean/`**: Cleaned and normalized data (CSV files)
-- **`c_processed/`**: Aggregated and processed datasets (CSV files)
+| Layer | Code Location | Data Directory | Description |
+|-------|--------------|----------------|-------------|
+| **Raw (Bronze)** | `pos_core.etl.raw/` | `data/a_raw/` | Direct Wansoft exports, unchanged. Excel files as received from the POS API. |
+| **Staging (Silver)** | `pos_core.etl.staging/` | `data/b_clean/` | Cleaned and standardized tables. Normalized column names, data types, and encodings. |
+| **Core (Silver+)** | `pos_core.etl.core/` | `data/c_processed/` | Granular POS models. One row per ticket line or per branch/day at the most granular level. |
+| **Marts (Gold)** | `pos_core.etl.marts/` | `data/c_processed/` | Aggregated semantic tables. Daily/weekly branch-level summaries, category pivots, and forecast-ready datasets. |
+
+### Directory Convention
+
+The package uses a layered directory structure:
+
+- **`a_raw/`**: Raw (Bronze) - Data files downloaded from POS API (Excel files)
+- **`b_clean/`**: Staging (Silver) - Cleaned and normalized data (CSV files)
+- **`c_processed/`**: Core + Marts (Silver+/Gold) - Modeled and aggregated datasets (CSV files)
 
 This convention makes it easy to:
-- Identify which stage each file belongs to
+- Identify which layer each file belongs to
 - Re-run specific stages without re-processing everything
-- Debug issues at each stage
+- Debug issues at each layer
+- Apply industry-standard data engineering practices
 
 ## API Layers
 
@@ -90,7 +102,12 @@ clean_payments("2025-01-01", "2025-01-31", config)
 
 ### Low-Level Functions (Advanced)
 
-**Low-level functions** in `pos_core.etl.a_extract`, `pos_core.etl.b_transform`, and `pos_core.etl.c_load` provide direct access to extraction, transformation, and aggregation logic.
+**Low-level functions** in the layer subpackages provide direct access to extraction, transformation, and aggregation logic:
+
+- `pos_core.etl.raw/` - HTTP extraction from Wansoft API
+- `pos_core.etl.staging/` - Excel cleaning and normalization
+- `pos_core.etl.core/` - Per-ticket granular aggregation
+- `pos_core.etl.marts/` - Daily/category-level aggregated tables
 
 **Use when**:
 - You need to customize the ETL logic

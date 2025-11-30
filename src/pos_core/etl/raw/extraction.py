@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
-# ruff: noqa: N999  # Module name kept as HTTP_extraction for backward compatibility
-"""POS exporter — Sales (Detail/Consolidated) + Inventory ▸ Transfers ▸ Issued
+"""Raw (Bronze) layer: POS HTTP extraction.
+
+This module is part of the Raw (Bronze) layer in the ETL pipeline.
+It handles direct data extraction from the POS system via HTTP API.
+
+Data directory mapping:
+    data/a_raw/ → Raw (Bronze) layer - Direct Wansoft exports, unchanged.
+
+POS exporter — Sales (Detail/Consolidated) + Inventory ▸ Transfers ▸ Issued
 
 Implements the "Aplicar" handover you recorded: runs the batch of default POSTs,
 then calls the export endpoint. Works for both "Detail" and "Consolidated".

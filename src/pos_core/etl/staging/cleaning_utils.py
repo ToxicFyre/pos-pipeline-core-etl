@@ -1,8 +1,12 @@
-"""Shared utilities for cleaning POS Excel data.
+"""Staging (Silver) layer: Shared utilities for cleaning POS Excel data.
 
-This module provides common functions used across all Excel cleaning modules
+This module is part of the Staging (Silver) layer in the ETL pipeline.
+It provides common functions used across all Excel cleaning modules
 for normalizing text, parsing numbers, handling dates, and preventing formula
 injection attacks.
+
+Data directory mapping:
+    data/b_clean/ → Staging (Silver) layer - Cleaned and standardized tables.
 
 Key utilities:
 - Text normalization: strip invisible characters, remove accents

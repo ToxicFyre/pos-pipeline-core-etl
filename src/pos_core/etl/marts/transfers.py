@@ -1,6 +1,13 @@
-"""Aggregate CEDIS transfer data into weekly sucursal table.
+"""Marts (Gold) layer: Aggregate transfer data into weekly sucursal table.
 
-This module processes cleaned transfer CSV files (from pos_excel_transfer_cleaner.py)
+This module is part of the Marts (Gold) layer in the ETL pipeline.
+It produces aggregated transfer cost summaries by branch and category.
+
+Data directory mapping:
+    Input: data/b_clean/ → Staging (Silver) layer (cleaned transfers)
+    Output: data/c_processed/ → Marts (Gold) - Transfer pivot tables
+
+This module processes cleaned transfer CSV files (from staging/transfer_cleaner.py)
 and creates a pivot table showing transfer costs by branch and product category.
 
 The aggregation:
@@ -166,6 +173,33 @@ def build_table(csv_path: str, include_cedis: bool = False) -> tuple[pd.DataFram
     piv = piv.round(2)
 
     return piv, unmapped[["Almacén origen", "Departamento", "Sucursal destino", "Costo"]]
+
+
+def aggregate_transfers(
+    csv_path: str, output_path: str | None = None, include_cedis: bool = False
+) -> pd.DataFrame:
+    """Aggregate transfer data into pivot table.
+
+    High-level wrapper for build_table that handles output writing.
+
+    Args:
+        csv_path: Path to cleaned transfer CSV file.
+        output_path: Optional output path (Excel or CSV based on extension).
+        include_cedis: If True, include rows where destination is CEDIS.
+
+    Returns:
+        DataFrame with the aggregated pivot table.
+    """
+    table, _ = build_table(csv_path, include_cedis=include_cedis)
+
+    if output_path:
+        if output_path.lower().endswith(".xlsx"):
+            with pd.ExcelWriter(output_path, engine="xlsxwriter") as xw:
+                table.to_excel(xw, sheet_name="Tabla", index=True)
+        else:
+            table.to_csv(output_path, index=True)
+
+    return table
 
 
 def main() -> None:
