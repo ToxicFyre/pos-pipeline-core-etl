@@ -5,10 +5,18 @@ This module orchestrates the payments ETL pipeline across data layers:
 - clean_payments: Staging (Silver) layer - Transform raw Excel files into clean CSVs
 - aggregate_payments: Marts (Gold) layer - Aggregate clean CSVs into daily dataset
 
+Grain and Layers
+----------------
+- **Core Fact (Silver+)**: The staging output IS the core payments fact
+  (``fact_payments_ticket``) at ticket × payment method grain. The POS payments
+  export does not expose deeper item-level payment data, so this is the atomic fact.
+- **Marts (Gold)**: The ``aggregate_payments()`` function produces daily-level
+  aggregates (``mart_payments_daily``) from the ticket-grain core fact.
+
 Data directory mapping:
     data/a_raw/      → Raw (Bronze) - Direct Wansoft exports
-    data/b_clean/    → Staging (Silver) - Cleaned and standardized
-    data/c_processed → Marts (Gold) - Aggregated tables for forecasting
+    data/b_clean/    → Staging (Silver) - Cleaned data = core fact (ticket × method grain)
+    data/c_processed → Marts (Gold) - Daily aggregated tables for forecasting
 """
 
 from __future__ import annotations

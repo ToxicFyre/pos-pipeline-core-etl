@@ -1,13 +1,22 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Core (Silver+) layer: Aggregate POS sales details by ticket.
+"""Marts (Gold) layer: Aggregate POS sales details by ticket.
 
-This module is part of the Core (Silver+) layer in the ETL pipeline.
-It produces granular, per-ticket data from cleaned line-item sales data.
+This module is part of the Marts (Gold) layer in the ETL pipeline.
+It produces **ticket-level aggregates** from the item/modifier-line core facts.
+
+Grain and Layers Context
+------------------------
+- **Core fact (Silver+)**: Sales at item/modifier-line grain - one row per item or
+  modifier on a ticket. This comes from the Staging layer output (``b_clean/``).
+  The item-line is the atomic unit for sales data.
+- **This module (Gold/Mart)**: Aggregates item-lines up to ticket level - one row
+  per ticket (order_id). This is useful for ticket-level analytics and as input
+  to downstream category pivots.
 
 Data directory mapping:
-    Input: data/b_clean/ → Staging (Silver) layer
-    Output: data/c_processed/ → Core models (Silver+)
+    Input: data/b_clean/ → Staging (Silver) layer - item/modifier line grain
+    Output: data/c_processed/ → Marts (Gold) - ticket-level aggregates
 
 Overview
 --------
@@ -18,10 +27,10 @@ groups items by ticket (order_id), and creates a ticket-wise CSV with:
 - Total ticket cost
 
 Key columns expected in the input CSV(s):
-- `order_id`      : ticket identifier
-- `group`         : item category/group
-- `subtotal_item` : numeric line subtotal
-- `total_item`    : numeric line total
+- ``order_id``      : ticket identifier
+- ``group``         : item category/group
+- ``subtotal_item`` : numeric line subtotal
+- ``total_item``    : numeric line total
 - Ticket-level fields: sucursal, operating_date, day_name, closing_time,
   captured_time, week_number, pdv_txn_id, order_type, table_number,
   party_size, server, terminal
@@ -32,7 +41,7 @@ Basic:
     python aggregate_sales_details_by_ticket.py --input-dir ./b_clean/sales -o ./sales_by_ticket.csv
 
 With recursion:
-    python aggregate_sales_details_by_ticket.py \
+    python aggregate_sales_details_by_ticket.py \\
         --input-dir ./b_clean/sales --recursive -o ./sales_by_ticket.csv
 
 Single file:
@@ -113,18 +122,21 @@ def aggregate_by_ticket(
     pattern: str = "*.csv",
     verbose: bool = False,
 ) -> pd.DataFrame:
-    """
-    Aggregate item-wise sales data by ticket.
+    """Aggregate item-wise sales data by ticket.
+
+    This is a **Marts (Gold)** function that aggregates item/modifier-line
+    sales data (the core fact) into ticket-level summaries. The output has
+    one row per ticket with group-specific subtotal/total columns.
 
     Args:
-        input_csv: Input CSV file(s) or glob pattern(s)
-        output_csv: Output CSV path
+        input_csv: Input CSV file(s) or glob pattern(s) - item-line grain data
+        output_csv: Output CSV path - will contain ticket-level aggregates
         input_dir: Optional directory to search for CSVs
         recursive: If True, search subdirectories recursively
         pattern: Glob pattern for files under input_dir
 
     Returns:
-        DataFrame with one row per ticket
+        DataFrame with one row per ticket (mart_sales_by_ticket)
     """
     # Resolve input files
     file_specs: List[str] = []
