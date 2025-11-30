@@ -4,6 +4,12 @@
 
 - Python 3.10 or higher
 - POS system with Wansoft-style HTTP exports (see [Concepts](concepts.md) for details)
+- **Credentials for POS system** (required for extraction):
+  - `WS_BASE`: Base URL of your POS instance
+  - `WS_USER`: Username for authentication
+  - `WS_PASS`: Password for authentication
+
+Set these environment variables before running extraction operations.
 
 ## Install from PyPI
 
