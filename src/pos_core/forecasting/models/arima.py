@@ -40,8 +40,12 @@ class LogARIMAModel(ForecastModel):
 
         Args:
             seasonal_period: Seasonal period (default: 7 for weekly seasonality)
-            p_range, d_range, q_range: ARIMA order parameter ranges
-            P_range, D_range, Q_range: Seasonal order parameter ranges
+            p_range: AR order parameter range (default: (0, 1, 2))
+            d_range: Differencing order parameter range (default: (0, 1))
+            q_range: MA order parameter range (default: (0, 1, 2))
+            p_seasonal_range: Seasonal AR order parameter range (default: (0, 1))
+            d_seasonal_range: Seasonal differencing order parameter range (default: (0, 1))
+            q_seasonal_range: Seasonal MA order parameter range (default: (0, 1))
 
         """
         self.seasonal_period = seasonal_period
@@ -52,12 +56,12 @@ class LogARIMAModel(ForecastModel):
         self.d_seasonal_range = d_seasonal_range
         self.q_seasonal_range = q_seasonal_range
 
-    def train(self, series: pd.Series, **kwargs: Any) -> Any:
+    def train(self, series: pd.Series, **_kwargs: Any) -> Any:
         """Train log ARIMA model on a time series.
 
         Args:
             series: Time series with DateTimeIndex (raw values, not log-transformed)
-            **kwargs: Additional parameters (unused, for interface compatibility)
+            **_kwargs: Additional parameters (unused, for interface compatibility)
 
         Returns:
             Fitted SARIMAX model object
@@ -193,8 +197,12 @@ def train_log_arima(
         series: Time series with DateTimeIndex (raw values, not log-transformed)
         steps: Number of days to forecast
         seasonal_period: Seasonal period (default: 7 for weekly seasonality)
-        p_range, d_range, q_range: ARIMA order parameter ranges
-        P_range, D_range, Q_range: Seasonal order parameter ranges
+        p_range: AR order parameter range (default: (0, 1, 2))
+        d_range: Differencing order parameter range (default: (0, 1))
+        q_range: MA order parameter range (default: (0, 1, 2))
+        p_seasonal_range: Seasonal AR order parameter range (default: (0, 1))
+        d_seasonal_range: Seasonal differencing order parameter range (default: (0, 1))
+        q_seasonal_range: Seasonal MA order parameter range (default: (0, 1))
 
     Returns:
         Tuple of (fitted_model, forecast_series) where forecast is

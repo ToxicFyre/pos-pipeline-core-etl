@@ -485,6 +485,15 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    """Run sales by group aggregation CLI.
+
+    Args:
+        argv: Optional command-line arguments. If None, uses sys.argv.
+
+    Returns:
+        Exit code (0 for success, non-zero for error).
+
+    """
     args = _build_parser().parse_args(argv)
 
     # Set up logging
