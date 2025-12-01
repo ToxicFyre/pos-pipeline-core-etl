@@ -1,3 +1,14 @@
+# IMPORTANT: AI ASSISTANTS - DO NOT MODIFY THIS FILE
+# This pyproject.toml contains carefully configured tool settings (mypy, ruff, pytest, etc.)
+# Do NOT modify this file unless the user explicitly requests changes to tool configuration.
+# This includes:
+# - Tool version constraints
+# - Linter/formatter rules and ignores
+# - Type checker settings
+# - Test configuration
+# - Package metadata
+# If you need to change tool behavior, ask the user first or wait for explicit instructions.
+
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
