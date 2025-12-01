@@ -14,7 +14,7 @@ from pathlib import Path
 
 from pos_core import DataPaths
 from pos_core.forecasting import ForecastConfig, run_payments_forecast
-from pos_core.payments import get_payments
+from pos_core.payments import marts as payments_marts
 
 # Set up configuration with new unified DataPaths
 data_root = Path("data")
@@ -24,12 +24,11 @@ paths = DataPaths.from_root(data_root, sucursales_json)
 
 # Get historical payment data (daily mart)
 print("Getting historical payment data...")
-payments_df = get_payments(
+payments_df = payments_marts.fetch_daily(
     paths=paths,
     start_date="2022-01-01",
     end_date="2025-11-24",  # MODIFY AS NEEDED
-    grain="daily",  # Daily mart for forecasting
-    refresh=False,  # Use existing data if available
+    mode="missing",  # Use existing data if available
 )
 
 print(f"Loaded {len(payments_df)} rows of historical data")
