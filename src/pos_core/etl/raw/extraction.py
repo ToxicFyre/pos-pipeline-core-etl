@@ -352,7 +352,7 @@ def make_session(
         kwargs.setdefault("timeout", timeout)
         return orig_request(method, url, **kwargs)
 
-    s.request = timed_request  # type: ignore[method-assign,assignment]
+    s.request = timed_request  # type: ignore[method-assign, assignment]
     return s
 
 
