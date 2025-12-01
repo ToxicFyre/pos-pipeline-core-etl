@@ -82,14 +82,14 @@ def test_qa_with_live_data() -> None:
         )
 
     # Strip quotes from environment variables if present
-    ws_base = ws_base.strip('"').strip("'") if ws_base else None
-    ws_user = ws_user.strip('"').strip("'") if ws_user else None
-    ws_pass = ws_pass.strip('"').strip("'") if ws_pass else None
+    ws_base_cleaned = ws_base.strip('"').strip("'") if ws_base else ""
+    ws_user_cleaned = ws_user.strip('"').strip("'") if ws_user else ""
+    ws_pass_cleaned = ws_pass.strip('"').strip("'") if ws_pass else ""
 
     # Set cleaned values back
-    os.environ["WS_BASE"] = ws_base
-    os.environ["WS_USER"] = ws_user
-    os.environ["WS_PASS"] = ws_pass
+    os.environ["WS_BASE"] = ws_base_cleaned
+    os.environ["WS_USER"] = ws_user_cleaned
+    os.environ["WS_PASS"] = ws_pass_cleaned
 
     # Import new ETL API
     from pos_core import DataPaths
@@ -184,13 +184,13 @@ def test_qa_detects_data_quality_issues() -> None:
         pytest.skip("Live test skipped: credentials required")
 
     # Strip quotes
-    ws_base = ws_base.strip('"').strip("'") if ws_base else None
-    ws_user = ws_user.strip('"').strip("'") if ws_user else None
-    ws_pass = ws_pass.strip('"').strip("'") if ws_pass else None
+    ws_base_cleaned = ws_base.strip('"').strip("'") if ws_base else ""
+    ws_user_cleaned = ws_user.strip('"').strip("'") if ws_user else ""
+    ws_pass_cleaned = ws_pass.strip('"').strip("'") if ws_pass else ""
 
-    os.environ["WS_BASE"] = ws_base
-    os.environ["WS_USER"] = ws_user
-    os.environ["WS_PASS"] = ws_pass
+    os.environ["WS_BASE"] = ws_base_cleaned
+    os.environ["WS_USER"] = ws_user_cleaned
+    os.environ["WS_PASS"] = ws_pass_cleaned
 
     from pos_core import DataPaths
     from pos_core.payments import marts as payments_marts
