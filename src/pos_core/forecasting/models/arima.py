@@ -7,16 +7,25 @@ and heteroscedasticity common in payment/sales data.
 
 from __future__ import annotations
 
+import warnings
 from datetime import timedelta
 from itertools import product
 from typing import Any
 
 import numpy as np
 import pandas as pd
+from statsmodels.tools.sm_exceptions import ConvergenceWarning, HessianInversionWarning
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 
 from pos_core.forecasting.config import FORECAST_DAYS, SEASONAL_PERIOD
 from pos_core.forecasting.models.base import ForecastModel
+
+# Suppress frivolous warnings from statsmodels ARIMA fitting
+# These warnings are common during grid search when trying many parameter combinations
+warnings.filterwarnings("ignore", category=ConvergenceWarning)
+warnings.filterwarnings("ignore", category=HessianInversionWarning)
+warnings.filterwarnings("ignore", message=".*invertible.*", category=RuntimeWarning)
+warnings.filterwarnings("ignore", message=".*non-stationary.*", category=RuntimeWarning)
 
 
 class LogARIMAModel(ForecastModel):
