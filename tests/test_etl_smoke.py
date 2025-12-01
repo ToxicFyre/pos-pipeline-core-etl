@@ -19,6 +19,7 @@ from pos_core.payments import core as payments_core
 from pos_core.payments import marts as payments_marts
 from pos_core.sales import core as sales_core
 from pos_core.sales import marts as sales_marts
+from tests.test_utils import verify_data_retrieval
 
 
 def test_imports_work() -> None:
@@ -190,3 +191,12 @@ def test_etl_pipeline_with_live_data() -> None:
         print(f"[Live ETL Test] ✓ Validated {len(kavia_data)} days of data for Kavia")
         print("[Live ETL Test] ✓ All data quality checks passed")
         print(f"[Live ETL Test] Sample data:\n{kavia_data.head()}")
+
+        # Verify data retrieval: HTTP requests, file downloads, and file contents
+        print("\n[Live ETL Test] Verifying data retrieval...")
+        verify_data_retrieval(
+            paths=paths,
+            start_date=start_date.strftime("%Y-%m-%d"),
+            end_date=end_date.strftime("%Y-%m-%d"),
+            data_type="payments",
+        )

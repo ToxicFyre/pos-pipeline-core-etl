@@ -28,6 +28,7 @@ from pos_core.sales.metadata import (
 from pos_core.sales.metadata import (
     write_metadata as write_sales_metadata,
 )
+from tests.test_utils import verify_data_retrieval
 
 
 @pytest.fixture
@@ -285,6 +286,15 @@ def test_get_payments_with_live_data() -> None:
 
         print("[Live Query Test] ✓ All validations passed")
 
+        # Verify data retrieval: HTTP requests, file downloads, and file contents
+        print("\n[Live Query Test] Verifying data retrieval...")
+        verify_data_retrieval(
+            paths=paths,
+            start_date=start_date.strftime("%Y-%m-%d"),
+            end_date=end_date.strftime("%Y-%m-%d"),
+            data_type="payments",
+        )
+
 
 @pytest.mark.live
 def test_get_payments_metadata_tracking() -> None:
@@ -370,3 +380,12 @@ def test_get_payments_metadata_tracking() -> None:
         print("[Live Metadata Test] ✓ Mart stage metadata verified")
 
         print("[Live Metadata Test] ✓ All metadata checks passed")
+
+        # Verify data retrieval: HTTP requests, file downloads, and file contents
+        print("\n[Live Metadata Test] Verifying data retrieval...")
+        verify_data_retrieval(
+            paths=paths,
+            start_date=start_str,
+            end_date=end_str,
+            data_type="payments",
+        )
