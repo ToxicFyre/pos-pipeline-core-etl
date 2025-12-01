@@ -28,7 +28,7 @@ warnings.filterwarnings("ignore", message=".*invertible.*", category=RuntimeWarn
 warnings.filterwarnings("ignore", message=".*non-stationary.*", category=RuntimeWarning)
 
 
-class LogARIMAModel(ForecastModel):
+class LogARIMAModel(ForecastModel):  # type: ignore[misc]
     """Log-transformed ARIMA model for time series forecasting.
 
     Uses log1p transformation to handle zero values correctly, then applies

@@ -56,7 +56,7 @@ def find_equivalent_historical_weekday(
     return None
 
 
-class NaiveLastWeekModel(ForecastModel):
+class NaiveLastWeekModel(ForecastModel):  # type: ignore[misc]
     """Naive forecasting model that uses equivalent historical weekdays.
 
     This model forecasts by:

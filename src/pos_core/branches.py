@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from pos_core.etl.branch_config import load_branch_segments_from_json
+from pos_core.etl.branch_config import CodeWindow, load_branch_segments_from_json
 from pos_core.etl.utils import parse_date
 
 if TYPE_CHECKING:
@@ -87,12 +87,12 @@ class BranchRegistry:
 
         target_date = parse_date(date_str) if isinstance(date_str, str) else date_str
 
-        windows = self._segments[branch]
+        windows: list[CodeWindow] = self._segments[branch]
         for window in windows:
             if window.valid_from <= target_date and (
                 window.valid_to is None or window.valid_to >= target_date
             ):
-                return window.code
+                return str(window.code)
 
         raise ValueError(
             f"No valid code found for branch '{branch}' on date {date_str}. "
