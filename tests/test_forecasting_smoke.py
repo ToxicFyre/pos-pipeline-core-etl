@@ -260,6 +260,7 @@ def test_naive_forecasting_with_live_data() -> None:
         print(f"\n[Live Test] Downloading payments data from {start_date} to {end_date}")
 
         # Get payments data (this will download, clean, and aggregate)
+        # If credentials are provided, test MUST succeed - any failure is a test failure
         try:
             payments_df = payments_marts.fetch_daily(
                 paths=paths,
@@ -274,7 +275,10 @@ def test_naive_forecasting_with_live_data() -> None:
             error_details = traceback.format_exc()
             print(f"\n[Live Test] Error downloading data: {e}")
             print(f"[Live Test] Full traceback:\n{error_details}")
-            pytest.skip(f"Failed to download live data: {e}")
+            pytest.fail(
+                f"Live test FAILED: Data download failed with credentials provided. "
+                f"This indicates authentication or data retrieval failure. Error: {e}"
+            )
 
         # Validate the downloaded data
         assert not payments_df.empty, (

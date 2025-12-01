@@ -112,6 +112,7 @@ def test_qa_with_live_data() -> None:
         print(f"\n[Live QA Test] Downloading payments data from {start_date} to {end_date}")
 
         # Get payments data
+        # If credentials are provided, test MUST succeed - any failure is a test failure
         try:
             payments_df = payments_marts.fetch_daily(
                 paths=paths,
@@ -126,7 +127,10 @@ def test_qa_with_live_data() -> None:
             error_details = traceback.format_exc()
             print(f"\n[Live QA Test] Error downloading data: {e}")
             print(f"[Live QA Test] Full traceback:\n{error_details}")
-            pytest.skip(f"Failed to download live data: {e}")
+            pytest.fail(
+                f"Live test FAILED: Data download failed with credentials provided. "
+                f"This indicates authentication or data retrieval failure. Error: {e}"
+            )
 
         # Validate data was downloaded
         assert not payments_df.empty, (
@@ -211,6 +215,7 @@ def test_qa_detects_data_quality_issues() -> None:
 
         print(f"\n[Live QA Issue Test] Testing issue detection from {start_date} to {end_date}")
 
+        # If credentials are provided, test MUST succeed - any failure is a test failure
         try:
             payments_df = payments_marts.fetch_daily(
                 paths=paths,
@@ -220,7 +225,15 @@ def test_qa_detects_data_quality_issues() -> None:
                 mode="force",
             )
         except Exception as e:
-            pytest.skip(f"Failed to download data: {e}")
+            import traceback
+
+            error_details = traceback.format_exc()
+            print(f"\n[Live QA Issue Test] Error downloading data: {e}")
+            print(f"[Live QA Issue Test] Full traceback:\n{error_details}")
+            pytest.fail(
+                f"Live test FAILED: Data download failed with credentials provided. "
+                f"This indicates authentication or data retrieval failure. Error: {e}"
+            )
 
         print("[Live QA Issue Test] Running comprehensive QA (level 4)...")
 

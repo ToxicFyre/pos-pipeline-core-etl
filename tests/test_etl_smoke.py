@@ -129,6 +129,7 @@ def test_etl_pipeline_with_live_data() -> None:
         print(f"\n[Live ETL Test] Testing ETL pipeline from {start_date} to {end_date}")
 
         # Run full ETL pipeline using new API
+        # If credentials are provided, test MUST succeed - any failure is a test failure
         try:
             result_df = payments_marts.fetch_daily(
                 paths=paths,
@@ -143,7 +144,10 @@ def test_etl_pipeline_with_live_data() -> None:
             error_details = traceback.format_exc()
             print(f"\n[Live ETL Test] Error running ETL: {e}")
             print(f"[Live ETL Test] Full traceback:\n{error_details}")
-            pytest.skip(f"Failed to run ETL pipeline: {e}")
+            pytest.fail(
+                f"Live test FAILED: ETL pipeline failed with credentials provided. "
+                f"This indicates authentication or data retrieval failure. Error: {e}"
+            )
 
         # Validate the result
         assert result_df is not None, "ETL should return a DataFrame"
