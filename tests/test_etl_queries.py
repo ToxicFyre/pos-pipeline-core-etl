@@ -267,11 +267,11 @@ def test_get_payments_with_live_data() -> None:
                 f"[Live Query Test] ✓ Found {len(kavia_data)} days for Kavia-related branch(es): {kavia_related}"
             )
         else:
-            print(
-                f"[Live Query Test] ⚠ No Kavia-related branches found. Available branches: {unique_branches}"
+            pytest.fail(
+                f"No Kavia-related branches found in payment data. "
+                f"Available branches: {unique_branches}. "
+                f"This indicates the branch filter may be incorrect or data is missing."
             )
-            # Still check that we have some data
-            assert not result1.empty, "Should have some payment data"
 
         # Check numeric columns are reasonable
         for col in ["ingreso_efectivo", "ingreso_credito", "ingreso_debito"]:

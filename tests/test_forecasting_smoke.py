@@ -277,7 +277,10 @@ def test_naive_forecasting_with_live_data() -> None:
             pytest.skip(f"Failed to download live data: {e}")
 
         # Validate the downloaded data
-        assert not payments_df.empty, "Downloaded payments data should not be empty"
+        assert not payments_df.empty, (
+            f"Expected payment data for date range {start_date} to {end_date}, but got empty result. "
+            f"This indicates a failure in data retrieval or aggregation."
+        )
         assert "sucursal" in payments_df.columns
         assert "fecha" in payments_df.columns
         assert "ingreso_efectivo" in payments_df.columns
@@ -300,8 +303,20 @@ def test_naive_forecasting_with_live_data() -> None:
             print("[Live Test] Added ingreso_total column (sum of payment types)")
 
         # Filter to Kavia branch only
-        kavia_df = payments_df[payments_df["sucursal"] == "Kavia"].copy()
-        assert not kavia_df.empty, "Should have data for Kavia branch"
+        # Check for Kavia-related branches (might be "Panem - Hotel Kavia N" or similar)
+        unique_branches = sorted(payments_df["sucursal"].unique().tolist())
+        kavia_related = [b for b in unique_branches if "kavia" in b.lower() or "Kavia" in b]
+        if kavia_related:
+            kavia_df = payments_df[payments_df["sucursal"].isin(kavia_related)].copy()
+            assert not kavia_df.empty, (
+                f"Should have data for Kavia-related branch(es): {kavia_related}"
+            )
+        else:
+            pytest.fail(
+                f"No Kavia-related branches found in payment data. "
+                f"Available branches: {unique_branches}. "
+                f"This indicates the branch filter may be incorrect or data is missing."
+            )
 
         print(f"[Live Test] Kavia branch has {len(kavia_df)} days of data")
 

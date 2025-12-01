@@ -129,7 +129,10 @@ def test_qa_with_live_data() -> None:
             pytest.skip(f"Failed to download live data: {e}")
 
         # Validate data was downloaded
-        assert not payments_df.empty, "Should have downloaded data"
+        assert not payments_df.empty, (
+            f"Expected payment data for date range {start_date} to {end_date}, but got empty result. "
+            f"This indicates a failure in data retrieval or aggregation."
+        )
         print(f"[Live QA Test] Downloaded {len(payments_df)} rows of payment data")
 
         # Run QA checks at different levels
