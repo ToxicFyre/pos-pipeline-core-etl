@@ -420,13 +420,19 @@ def login_if_needed(
     Args:
         s: Requests session object.
         base_url: Base URL of POS instance.
-        user: Username for authentication (from WS_USER env var).
-        pwd: Password for authentication (from WS_PASS env var).
+        user: Username for authentication (from WS_USER env var if None).
+        pwd: Password for authentication (from WS_PASS env var if None).
 
     Raises:
         SystemExit: If login is required but credentials are missing, or if
             login fails after submission.
     """
+    # Get credentials from environment if not provided
+    if user is None:
+        user = os.environ.get("WS_USER")
+    if pwd is None:
+        pwd = os.environ.get("WS_PASS")
+    
     # Seed the session on tenant root (sets cookies that some auth flows expect)
     seed = s.get(f"{base_url}/")
     if seed.status_code not in (200, 302):
