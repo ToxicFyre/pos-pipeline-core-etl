@@ -256,7 +256,7 @@ def clean_to_minimal_csv(input_path: Path, output_csv: Path) -> Path:
     # Neutralize Excel formula injection on ALL object columns
     obj_cols = df.select_dtypes(include=["object"]).columns
     if len(obj_cols) > 0:
-        df[obj_cols] = df[obj_cols].applymap(
+        df[obj_cols] = df[obj_cols].map(
             lambda v: ("'" + v) if isinstance(v, str) and v and v[0] in ("=", "+", "-", "@") else v
         )
 

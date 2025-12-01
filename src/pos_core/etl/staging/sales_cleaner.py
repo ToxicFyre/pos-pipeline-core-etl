@@ -139,7 +139,7 @@ def parse_sucursal_from_top(df_no_header: pd.DataFrame) -> str | None:
 
     """
     # Typically appears near C3 or around first rows
-    head = df_no_header.iloc[:6, :6].astype(str).applymap(strip_invisibles)
+    head = df_no_header.iloc[:6, :6].astype(str).map(strip_invisibles)
     flat = " | ".join(head.fillna("").astype(str).values.ravel().tolist())
     # e.g., "Sucursal: CEDIS"
     m = re.search(r"Sucursal\s*:\s*([A-Za-z0-9\-\._\s]+)", flat, re.IGNORECASE)
