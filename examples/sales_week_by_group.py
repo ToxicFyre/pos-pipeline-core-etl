@@ -12,7 +12,8 @@ Prerequisites:
 from pathlib import Path
 
 from pos_core import DataPaths
-from pos_core.sales import get_sales
+from pos_core.sales import core as sales_core
+from pos_core.sales import marts as sales_marts
 
 # Define the week (Monday to Sunday)
 week_start = "2025-01-06"  # Monday - MODIFY AS NEEDED
@@ -26,12 +27,11 @@ paths = DataPaths.from_root(data_root, sucursales_json)
 
 # Get sales data at item-line grain (core fact) - default grain
 print(f"Getting sales item-line data for {week_start} to {week_end}...")
-df_item = get_sales(
+df_item = sales_core.fetch(
     paths=paths,
     start_date=week_start,
     end_date=week_end,
-    grain="item",  # Core fact: one row per item/modifier line
-    refresh=True,  # Force re-run all stages
+    mode="force",  # Force re-run all stages
 )
 
 print(f"Item-line core fact: {len(df_item)} rows")
@@ -40,12 +40,11 @@ print("\nThis is the atomic grain - one row per item or modifier on a ticket.")
 
 # Get sales data aggregated by ticket (mart)
 print("\nGetting sales data aggregated by ticket (mart)...")
-df_ticket = get_sales(
+df_ticket = sales_marts.fetch_ticket(
     paths=paths,
     start_date=week_start,
     end_date=week_end,
-    grain="ticket",  # Mart: one row per ticket
-    refresh=False,  # Use existing data if available
+    mode="missing",  # Use existing data if available
 )
 
 print(f"Ticket mart: {len(df_ticket)} rows")
@@ -53,12 +52,11 @@ print(df_ticket.head())
 
 # Get sales data aggregated by group (pivot mart)
 print("\nGetting sales data aggregated by group (pivot mart)...")
-df_group = get_sales(
+df_group = sales_marts.fetch_group(
     paths=paths,
     start_date=week_start,
     end_date=week_end,
-    grain="group",  # Mart: category pivot table
-    refresh=False,  # Use existing data if available
+    mode="missing",  # Use existing data if available
 )
 
 print(f"Group mart (pivot): {len(df_group)} rows")

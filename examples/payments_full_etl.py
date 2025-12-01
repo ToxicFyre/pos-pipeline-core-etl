@@ -15,7 +15,8 @@ Prerequisites:
 from pathlib import Path
 
 from pos_core import DataPaths
-from pos_core.payments import get_payments
+from pos_core.payments import core as payments_core
+from pos_core.payments import marts as payments_marts
 from pos_core.qa import run_payments_qa
 
 # Set up configuration with new unified DataPaths
@@ -28,16 +29,15 @@ paths = DataPaths.from_root(data_root, sucursales_json)
 start_date = "2025-01-01"  # MODIFY AS NEEDED
 end_date = "2025-01-31"  # MODIFY AS NEEDED
 
-# Run full ETL pipeline with refresh=True to force all stages
+# Run full ETL pipeline with mode="force" to force all stages
 print(f"Running full payments ETL for {start_date} to {end_date}...")
 
 # Get payments at daily grain (the default mart)
-df_daily = get_payments(
+df_daily = payments_marts.fetch_daily(
     paths=paths,
     start_date=start_date,
     end_date=end_date,
-    grain="daily",  # Daily mart (default)
-    refresh=True,  # Force re-run all stages
+    mode="force",  # Force re-run all stages
 )
 
 print(f"\nDaily mart (mart_payments_daily): {len(df_daily)} rows")
@@ -45,12 +45,11 @@ print(df_daily.head())
 
 # You can also get the core fact (ticket grain) if needed
 print("\nGetting ticket-level core fact...")
-df_ticket = get_payments(
+df_ticket = payments_core.fetch(
     paths=paths,
     start_date=start_date,
     end_date=end_date,
-    grain="ticket",  # Core fact: ticket × payment method
-    refresh=False,  # Use existing cleaned data
+    mode="missing",  # Use existing cleaned data
 )
 
 print(f"Ticket core fact (fact_payments_ticket): {len(df_ticket)} rows")
