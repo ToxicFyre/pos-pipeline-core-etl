@@ -168,12 +168,12 @@ def test_get_sales_uses_existing_data_when_refresh_false(test_paths: DataPaths) 
 
 @pytest.mark.live
 def test_get_payments_with_live_data() -> None:
-    """Live test: Test get_payments with real credentials and data.
+    """Live test: Test payments ETL with real credentials and data.
 
-    This test validates the get_payments query function with actual POS data:
-    1. Downloads payment data via the query API
+    This test validates the payments ETL pipeline with actual POS data:
+    1. Downloads payment data via the new API
     2. Validates idempotence (calling again should use cached data)
-    3. Tests different grains (ticket vs daily)
+    3. Tests daily mart aggregation
 
     Prerequisites:
         - WS_BASE: POS API base URL (required)
@@ -218,7 +218,7 @@ def test_get_payments_with_live_data() -> None:
         end_date = date.today() - timedelta(days=1)
         start_date = end_date - timedelta(days=6)
 
-        print(f"\n[Live Query Test] Testing get_payments from {start_date} to {end_date}")
+        print(f"\n[Live Query Test] Testing payments ETL from {start_date} to {end_date}")
 
         # First call: should download and process
         try:
@@ -233,7 +233,7 @@ def test_get_payments_with_live_data() -> None:
             import traceback
 
             error_details = traceback.format_exc()
-            print(f"\n[Live Query Test] Error in get_payments: {e}")
+            print(f"\n[Live Query Test] Error in payments ETL: {e}")
             print(f"[Live Query Test] Full traceback:\n{error_details}")
             pytest.skip(f"Failed to get payments: {e}")
 

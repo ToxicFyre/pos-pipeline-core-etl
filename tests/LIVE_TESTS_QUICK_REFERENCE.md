@@ -28,7 +28,7 @@ pytest tests/
 |-----------|-----------|---------------|-----------|
 | `test_forecasting_smoke.py` | `test_naive_forecasting_with_live_data` | Naive forecasting model + full pipeline | 45 days |
 | `test_etl_smoke.py` | `test_etl_pipeline_with_live_data` | Complete ETL (download, clean, aggregate) | 14 days |
-| `test_etl_queries.py` | `test_get_payments_with_live_data` | Query function + idempotence | 7 days |
+| `test_etl_queries.py` | `test_get_payments_with_live_data` | Payments ETL + idempotence | 7 days |
 | `test_etl_queries.py` | `test_get_payments_metadata_tracking` | Metadata tracking across stages | 5 days |
 | `test_qa_smoke.py` | `test_qa_with_live_data` | QA checks at all levels (1-4) | 14 days |
 | `test_qa_smoke.py` | `test_qa_detects_data_quality_issues` | Issue detection and reporting | 7 days |
