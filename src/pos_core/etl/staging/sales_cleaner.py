@@ -89,11 +89,11 @@ def find_sheet_case_insensitive(xls: pd.ExcelFile, target: str) -> str:
     """
     t = target.lower()
     for n in xls.sheet_names:
-        if n.lower().strip() == t:
-            return n
+        if str(n).lower().strip() == t:
+            return str(n)
     for n in xls.sheet_names:
-        if t in n.lower():
-            return n
+        if t in str(n).lower():
+            return str(n)
     raise ValueError(f"Sheet like '{target}' not found. Available: {xls.sheet_names}")
 
 

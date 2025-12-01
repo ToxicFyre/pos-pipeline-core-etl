@@ -215,11 +215,11 @@ def to_int(val: Any) -> int | float:
     """
     f = to_float(val)
     if f is None or pd.isna(f):
-        return np.nan
+        return float("nan")
     try:
         return round(f)
     except Exception:
-        return np.nan
+        return float("nan")
 
 
 def to_date(val: Any) -> pd.Timestamp:
