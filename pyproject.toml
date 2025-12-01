@@ -79,6 +79,12 @@ python_files = ["test_*.py"]
 markers = [
     "live: marks tests that require live credentials and network access (deselect with '-m \"not live\"')",
 ]
+filterwarnings = [
+    "ignore::statsmodels.tools.sm_exceptions.ConvergenceWarning",
+    "ignore::statsmodels.tools.sm_exceptions.HessianInversionWarning",
+    "ignore:.*invertible.*:RuntimeWarning",
+    "ignore:.*non-stationary.*:RuntimeWarning",
+]
 
 [tool.mypy]
 python_version = "3.10"
