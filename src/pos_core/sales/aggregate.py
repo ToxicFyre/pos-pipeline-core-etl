@@ -167,6 +167,10 @@ def aggregate_to_ticket(
         if branches and "sucursal" in result_df.columns:
             result_df = result_df[result_df["sucursal"].isin(branches)]
 
+        # Write the filtered DataFrame back to the file
+        # (aggregate_by_ticket wrote the unfiltered version, so we need to overwrite it)
+        result_df.to_csv(output_path, index=False, encoding="utf-8")
+
         # Write success metadata
         metadata = StageMetadata(
             start_date=start_date,
