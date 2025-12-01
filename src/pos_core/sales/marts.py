@@ -172,7 +172,7 @@ def fetch_group(
             col_lower = str(col).lower()
             if any(branch_lower in col_lower for branch_lower in branches_lower):
                 matching_cols.append(col)
-        
+
         if matching_cols:
             df = df[matching_cols]
         else:
@@ -229,7 +229,7 @@ def load_group(
             col_lower = str(col).lower()
             if any(branch_lower in col_lower for branch_lower in branches_lower):
                 matching_cols.append(col)
-        
+
         if matching_cols:
             df = df[matching_cols]
         else:
