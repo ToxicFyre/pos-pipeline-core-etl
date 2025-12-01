@@ -227,12 +227,15 @@ def test_fetch_group_date_filtering_edge_case() -> None:
 
         # Define two non-overlapping date ranges
         # Range A: 7 days ending 14 days ago
-        # Range B: 7 days ending 7 days ago
+        # Range B: 7 days ending 7 days ago (starts 1 day after Range A ends)
+        end_date_a = date.today() - timedelta(days=14)
+        start_date_a = end_date_a - timedelta(days=6)  # 7 days total
+
         end_date_b = date.today() - timedelta(days=7)
         start_date_b = end_date_b - timedelta(days=6)  # 7 days total
 
-        end_date_a = end_date_b - timedelta(days=1)  # 1 day before range B starts
-        start_date_a = end_date_a - timedelta(days=6)  # 7 days total
+        # Verify ranges don't overlap
+        assert end_date_a < start_date_b, "Ranges should not overlap"
 
         start_a_str = start_date_a.strftime("%Y-%m-%d")
         end_a_str = end_date_a.strftime("%Y-%m-%d")
