@@ -8,14 +8,14 @@ This module orchestrates the payments ETL pipeline across data layers:
 Grain and Layers
 ----------------
 - **Core Fact (Silver+)**: The staging output IS the core payments fact
-  (``fact_payments_ticket``) at ticket × payment method grain. The POS payments
+  (``fact_payments_ticket``) at ticket x payment method grain. The POS payments
   export does not expose deeper item-level payment data, so this is the atomic fact.
 - **Marts (Gold)**: The ``aggregate_payments()`` function produces daily-level
   aggregates (``mart_payments_daily``) from the ticket-grain core fact.
 
 Data directory mapping:
     data/a_raw/      → Raw (Bronze) - Direct Wansoft exports
-    data/b_clean/    → Staging (Silver) - Cleaned data = core fact (ticket × method grain)
+    data/b_clean/    → Staging (Silver) - Cleaned data = core fact (ticket x method grain)
     data/c_processed → Marts (Gold) - Daily aggregated tables for forecasting
 """
 
@@ -23,7 +23,6 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import List, Optional
 
 import pandas as pd
 
@@ -44,7 +43,7 @@ def download_payments(
     start_date: str,
     end_date: str,
     config: PaymentsETLConfig,
-    branches: Optional[List[str]] = None,
+    branches: list[str] | None = None,
     force: bool = False,
 ) -> None:
     """Download raw payments Excel for the given range.
@@ -63,6 +62,7 @@ def download_payments(
         >>> from pos_core.etl.api import PaymentsETLConfig
         >>> config = PaymentsETLConfig.from_root("data", "utils/sucursales.json")
         >>> download_payments("2025-01-01", "2025-01-31", config)
+
     """
     # Raw (Bronze) layer: Extract from Wansoft HTTP API
     from pos_core.etl.raw.extraction import download_payments_reports
@@ -121,7 +121,7 @@ def clean_payments(
     start_date: str,
     end_date: str,
     config: PaymentsETLConfig,
-    branches: Optional[List[str]] = None,
+    branches: list[str] | None = None,
     force: bool = False,
 ) -> None:
     """Transform raw payments files into clean CSV/Parquet.
@@ -140,6 +140,7 @@ def clean_payments(
         >>> from pos_core.etl.api import PaymentsETLConfig
         >>> config = PaymentsETLConfig.from_root("data", "utils/sucursales.json")
         >>> clean_payments("2025-01-01", "2025-01-31", config)
+
     """
     # Staging (Silver) layer: Clean and normalize raw Excel files
     from pos_core.etl.staging.payments_cleaner import clean_payments_directory
@@ -195,7 +196,7 @@ def aggregate_payments(
     start_date: str,
     end_date: str,
     config: PaymentsETLConfig,
-    branches: Optional[List[str]] = None,
+    branches: list[str] | None = None,
     force: bool = False,
 ) -> pd.DataFrame:
     """Aggregate clean payments into the canonical dataset and return it.
@@ -219,6 +220,7 @@ def aggregate_payments(
         >>> df = aggregate_payments("2025-01-01", "2025-01-31", config)
         >>> len(df)
         31
+
     """
     # Marts (Gold) layer: Aggregate into daily branch-level summaries
     from pos_core.etl.marts.payments_daily import aggregate_payments_daily

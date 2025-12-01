@@ -19,6 +19,7 @@ Example:
     >>> # Access results
     >>> print(result.forecast.head())  # Per-branch/metric forecasts
     >>> print(result.deposit_schedule.head())  # Cash-flow deposits
+
 """
 
 from pos_core.forecasting.api import ForecastConfig, ForecastResult, run_payments_forecast

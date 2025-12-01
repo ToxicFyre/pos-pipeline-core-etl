@@ -36,6 +36,7 @@ Notes:
 - If login is required in your tenant, populate WS_USER/WS_PASS.
 - CSRF token is auto-detected.
 - For Sales, the "Aplicar" sequence is posted before the export to match the browser.
+
 """
 
 from __future__ import annotations
@@ -50,7 +51,7 @@ import re
 import sys
 from datetime import date
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 from urllib.parse import urlparse
 
 import requests
@@ -115,9 +116,8 @@ APLICAR_ENDPOINTS = [
 
 
 # ------------------------- Helpers -------------------------
-def load_sucursal_map() -> Dict[str, str]:
-    """
-    Load sucursales mapping from WS_SUCURSALES.
+def load_sucursal_map() -> dict[str, str]:
+    """Load sucursales mapping from WS_SUCURSALES.
 
     Supports two JSON shapes:
 
@@ -151,7 +151,7 @@ def load_sucursal_map() -> Dict[str, str]:
             if not isinstance(raw, dict):
                 raise ValueError("WS_SUCURSALES must be a JSON object mapping name -> value")
 
-            mapping: Dict[str, str] = {}
+            mapping: dict[str, str] = {}
             for k, v in raw.items():
                 name = str(k)
                 if isinstance(v, str):
@@ -170,7 +170,7 @@ def load_sucursal_map() -> Dict[str, str]:
 
             return mapping
 
-        except (ValueError, json.JSONDecodeError, OSError, IOError) as e:
+        except (ValueError, json.JSONDecodeError, OSError) as e:
             logging.warning("Failed to load WS_SUCURSALES (%s): %s", path, e)
 
     # Fallback to in-code mapping if file/env is missing or invalid
@@ -186,6 +186,7 @@ def ensure_ok(resp: requests.Response, msg: str) -> None:
 
     Raises:
         SystemExit: If response status code is not in 200-299 range.
+
     """
     if not (200 <= resp.status_code < 300):
         raise SystemExit(f"{msg}. HTTP {resp.status_code} — {resp.text[:400]}")
@@ -200,7 +201,7 @@ def _attr_to_str(attr: Any) -> str:
     return str(attr)
 
 
-def get_csrf_from_html(html: str) -> Optional[str]:
+def get_csrf_from_html(html: str) -> str | None:
     """Extract CSRF token from HTML page.
 
     Searches for ASP.NET AntiForgery tokens in common locations:
@@ -213,6 +214,7 @@ def get_csrf_from_html(html: str) -> Optional[str]:
 
     Returns:
         CSRF token string if found, None otherwise.
+
     """
     soup = BeautifulSoup(html, "html.parser")
     # Common names used by ASP.NET AntiForgery
@@ -241,7 +243,7 @@ def get_csrf_from_html(html: str) -> Optional[str]:
 
 
 def require_csrf_token(
-    token: Optional[str],
+    token: str | None,
     *,
     context: str,
     response: requests.Response,
@@ -266,6 +268,7 @@ def require_csrf_token(
         SystemExit: If token is missing or empty, with detailed diagnostics
             to help debug the root cause. The pipeline will NOT proceed without
             a valid token.
+
     """
     if token and token.strip():
         return token
@@ -325,6 +328,7 @@ def make_session(
 
     Returns:
         Configured requests.Session object.
+
     """
     s = requests.Session()
     s.headers.update({"User-Agent": "Mozilla/5.0"})
@@ -352,7 +356,7 @@ def make_session(
     return s
 
 
-def choose_user_field(fields: Dict[str, str]) -> Optional[str]:
+def choose_user_field(fields: dict[str, str]) -> str | None:
     """Identify the username field name from form fields.
 
     Searches for common username field names in order of preference.
@@ -362,6 +366,7 @@ def choose_user_field(fields: Dict[str, str]) -> Optional[str]:
 
     Returns:
         Field name if found, None otherwise.
+
     """
     for cand in ("UserName", "Email", "Login", "Username"):
         if cand in fields:
@@ -369,7 +374,7 @@ def choose_user_field(fields: Dict[str, str]) -> Optional[str]:
     return None
 
 
-def choose_password_field(fields: Dict[str, str], html: str) -> Optional[str]:
+def choose_password_field(fields: dict[str, str], html: str) -> str | None:
     """Identify the password field name from form fields or HTML.
 
     First searches form fields dictionary, then parses HTML for
@@ -381,6 +386,7 @@ def choose_password_field(fields: Dict[str, str], html: str) -> Optional[str]:
 
     Returns:
         Field name if found, None otherwise.
+
     """
     for cand in ("Password", "Pass", "Pwd"):
         if cand in fields:
@@ -403,14 +409,13 @@ def _origin_for(base_url: str) -> str:
 
     Returns:
         Origin string (e.g., from WS_BASE environment variable).
+
     """
     p = urlparse(base_url)
     return f"{p.scheme}://{p.netloc}"
 
 
-def login_if_needed(
-    s: requests.Session, base_url: str, user: Optional[str], pwd: Optional[str]
-) -> None:
+def login_if_needed(s: requests.Session, base_url: str, user: str | None, pwd: str | None) -> None:
     """Authenticate with POS if login is required.
 
     Attempts to access a protected page. If redirected to login, automatically
@@ -426,6 +431,7 @@ def login_if_needed(
     Raises:
         SystemExit: If login is required but credentials are missing, or if
             login fails after submission.
+
     """
     # Get credentials from environment if not provided
     if user is None:
@@ -454,7 +460,7 @@ def login_if_needed(
         action = _attr_to_str(action_attr) if action_attr else page_url
         action_url = action if action.startswith("http") else f"{_origin_for(base_url)}{action}"
 
-        fields: Dict[str, str] = {}
+        fields: dict[str, str] = {}
         for inp in form.find_all("input"):
             if isinstance(inp, Tag):
                 name = _attr_to_str(inp.get("name"))
@@ -504,6 +510,7 @@ def _set_subsidiary_cookie(s: requests.Session, base_url: str, subsidiary_id: st
         s: Requests session object.
         base_url: Base URL to extract domain from.
         subsidiary_id: Subsidiary/branch ID to set in cookie.
+
     """
     try:
         dom = urlparse(base_url).hostname
@@ -544,6 +551,7 @@ def aplicar_warmup(
     Raises:
         SystemExit: If token is missing/empty, authentication fails (401),
             or CSRF/policy blocks (400/403).
+
     """
     if not token or not token.strip():
         raise SystemExit(
@@ -593,7 +601,7 @@ def export_sales_report(
     subsidiary_id: str,
     start: date,
     end: date,
-) -> Tuple[str, bytes]:
+) -> tuple[str, bytes]:
     """Export a sales report from POS API.
 
     Handles the complete export workflow:
@@ -617,6 +625,7 @@ def export_sales_report(
     Raises:
         SystemExit: If report type is unknown, export fails, or response
             format is unexpected.
+
     """
     report = report.capitalize()
     endpoint = REPORT_ENDPOINTS.get(report)
@@ -690,7 +699,7 @@ def export_sales_report(
     )
 
 
-def _content_disposition_filename(h: Optional[str]) -> Optional[str]:
+def _content_disposition_filename(h: str | None) -> str | None:
     """Extract filename from Content-Disposition header.
 
     Args:
@@ -698,6 +707,7 @@ def _content_disposition_filename(h: Optional[str]) -> Optional[str]:
 
     Returns:
         Filename if found, None otherwise.
+
     """
     if not h:
         return None
@@ -711,7 +721,7 @@ def export_transfers_issued(
     subsidiary_id: str,
     start: date,
     end: date,
-) -> Tuple[str, bytes]:
+) -> tuple[str, bytes]:
     """Export Inventory ▸ Transfers ▸ Issued report from POS.
 
     Exports transfer data for issued transfers within the date range.
@@ -730,6 +740,7 @@ def export_transfers_issued(
     Raises:
         SystemExit: If export fails, authentication is lost, or response
             format is unexpected.
+
     """
     # 1) Open page to get CSRF + set cookie
     page_url = f"{base_url}{INVENTORY_TRANSFERS_PAGE}"
@@ -805,11 +816,11 @@ def download_payments_reports(
     end_date: str,
     output_dir: Path | str,
     sucursales_json: Path | str,
-    branches: Optional[List[str]] = None,
+    branches: list[str] | None = None,
     chunk_size_days: int = 180,
-    base_url: Optional[str] = None,
-    user: Optional[str] = None,
-    password: Optional[str] = None,
+    base_url: str | None = None,
+    user: str | None = None,
+    password: str | None = None,
 ) -> None:
     """Download payments reports for all branches within a date range.
 
@@ -841,6 +852,7 @@ def download_payments_reports(
         ...     Path("utils/sucursales.json"),
         ...     chunk_size_days=90
         ... )
+
     """
     # Convert string paths to Path
     if isinstance(output_dir, str):
@@ -856,7 +868,7 @@ def download_payments_reports(
         global_start = parse_date(start_date)
         global_end = parse_date(end_date)
     except ValueError as e:
-        raise ValueError(f"Invalid date format. Expected YYYY-MM-DD: {e}")
+        raise ValueError(f"Invalid date format. Expected YYYY-MM-DD: {e}") from e
 
     if global_start > global_end:
         raise ValueError(f"Start date {start_date} is after end date {end_date}")
@@ -961,13 +973,13 @@ def download_payments_reports(
 class Args:
     report: str
     base: str
-    sucursal: Optional[str]
-    sucursal_id: Optional[str]
+    sucursal: str | None
+    sucursal_id: str | None
     start: date
     end: date
     outdir: Path
-    user: Optional[str]
-    password: Optional[str]
+    user: str | None
+    password: str | None
     verbose: bool
 
 
@@ -985,14 +997,15 @@ def build_out_name(kind: str, sucursal_name: str, start: date, end: date, _sugge
 
     Returns:
         Filename string with .xlsx extension.
+
     """
     base = f"{kind}_{slugify(sucursal_name)}_{start.isoformat()}_{end.isoformat()}"
     return base + ".xlsx"
 
 
 def choose_sucursal_id(
-    suc_map: Dict[str, str], name: Optional[str], explicit_id: Optional[str]
-) -> Tuple[str, str]:
+    suc_map: dict[str, str], name: str | None, explicit_id: str | None
+) -> tuple[str, str]:
     """Resolve sucursal ID and friendly name from arguments.
 
     Determines the numeric ID and friendly name to use based on provided
@@ -1008,6 +1021,7 @@ def choose_sucursal_id(
 
     Raises:
         SystemExit: If name is provided but not found in suc_map and is not numeric.
+
     """
     if explicit_id:
         # Find a friendly name for logs/filename if possible
@@ -1059,7 +1073,7 @@ def parse_args() -> Args:
 
 
 def main() -> None:
-    """Main entry point for HTTP extraction command-line tool.
+    """Execute the HTTP extraction command-line tool.
 
     Orchestrates the complete export workflow:
     1. Parses command-line arguments
@@ -1070,6 +1084,7 @@ def main() -> None:
 
     Raises:
         SystemExit: On various error conditions (authentication, export failure, etc.).
+
     """
     args = parse_args()
     logging.basicConfig(

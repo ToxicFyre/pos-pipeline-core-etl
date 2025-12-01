@@ -9,10 +9,11 @@ real credentials and actual POS data.
 
 import os
 import tempfile
+from collections.abc import Generator
 from datetime import date, timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Any, Generator
+from typing import Any
 
 import pandas as pd
 import pytest
@@ -95,17 +96,15 @@ def test_get_sales_refresh_runs_all_stages(test_paths: DataPaths, monkeypatch: A
         )
         # Create dummy clean files in the correct location
         paths.clean_sales.mkdir(parents=True, exist_ok=True)
-        pd.DataFrame(
-            {
-                "sucursal": ["TestBranch"],
-                "operating_date": ["2025-01-15"],
-                "order_id": [1001],
-                "item_key": ["ITEM01"],
-                "group": ["GROUP1"],
-                "subtotal_item": [100.0],
-                "total_item": [116.0],
-            }
-        ).to_csv(paths.clean_sales / "test.csv", index=False)
+        pd.DataFrame({
+            "sucursal": ["TestBranch"],
+            "operating_date": ["2025-01-15"],
+            "order_id": [1001],
+            "item_key": ["ITEM01"],
+            "group": ["GROUP1"],
+            "subtotal_item": [100.0],
+            "total_item": [116.0],
+        }).to_csv(paths.clean_sales / "test.csv", index=False)
 
     # Patch both where it's defined and where it's imported
     monkeypatch.setattr("pos_core.sales.extract.download_sales", mock_download)
@@ -126,17 +125,15 @@ def test_get_sales_uses_existing_data_when_refresh_false(test_paths: DataPaths) 
     """Test that refresh=False uses existing data when available."""
     # Pre-create clean files and metadata
     test_paths.clean_sales.mkdir(parents=True, exist_ok=True)
-    test_df = pd.DataFrame(
-        {
-            "sucursal": ["TestBranch", "TestBranch"],
-            "operating_date": ["2025-01-15", "2025-01-15"],
-            "order_id": [1001, 1002],
-            "item_key": ["ITEM01", "ITEM02"],
-            "group": ["GROUP1", "GROUP1"],
-            "subtotal_item": [100.0, 50.0],
-            "total_item": [116.0, 58.0],
-        }
-    )
+    test_df = pd.DataFrame({
+        "sucursal": ["TestBranch", "TestBranch"],
+        "operating_date": ["2025-01-15", "2025-01-15"],
+        "order_id": [1001, 1002],
+        "item_key": ["ITEM01", "ITEM02"],
+        "group": ["GROUP1", "GROUP1"],
+        "subtotal_item": [100.0, 50.0],
+        "total_item": [116.0, 58.0],
+    })
     test_df.to_csv(test_paths.clean_sales / "test.csv", index=False)
 
     # Write metadata for all stages

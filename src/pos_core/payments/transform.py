@@ -1,7 +1,7 @@
 """Silver layer: Clean payment Excel files into fact_payments_ticket.
 
 This module transforms raw Excel files into the core fact table
-(fact_payments_ticket) with one row per ticket × payment method.
+(fact_payments_ticket) with one row per ticket x payment method.
 """
 
 from __future__ import annotations
@@ -26,7 +26,7 @@ def clean_payments(
 ) -> None:
     """Clean raw payment Excel files into fact_payments_ticket CSVs.
 
-    The output is the core fact at ticket × payment method grain:
+    The output is the core fact at ticket x payment method grain:
     - Key: (sucursal, operating_date, order_index, payment_method)
     - One row per payment line on a ticket
 
@@ -35,6 +35,7 @@ def clean_payments(
         start_date: Start date in YYYY-MM-DD format.
         end_date: End date in YYYY-MM-DD format.
         branches: Optional list of branches (for metadata tracking).
+
     """
     # Import the actual cleaning logic
     from pos_core.etl.staging.payments_cleaner import clean_payments_directory

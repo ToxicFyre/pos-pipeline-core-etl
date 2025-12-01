@@ -44,10 +44,11 @@ def fetch_daily(
         mode: Processing mode - "missing" (default) or "force".
 
     Returns:
-        DataFrame with mart_payments_daily structure (sucursal × date grain).
+        DataFrame with mart_payments_daily structure (sucursal x date grain).
 
     Raises:
         ValueError: If mode is not "missing" or "force".
+
     """
     if mode not in ("missing", "force"):
         raise ValueError(f"Invalid mode '{mode}'. Must be 'missing' or 'force'.")
@@ -93,6 +94,7 @@ def load_daily(
 
     Raises:
         FileNotFoundError: If the daily mart file is missing.
+
     """
     mart_path = paths.mart_payments / "mart_payments_daily.csv"
     meta = read_metadata(paths.mart_payments, start_date, end_date)

@@ -21,6 +21,7 @@ Examples:
     >>> # Load sucursales configuration
     >>> import json
     >>> sucursales = json.loads(config.SUCURSALES_PATH.read_text())
+
 """
 
 from pathlib import Path

@@ -1,7 +1,7 @@
 """Silver layer: Core payment fact table (fact_payments_ticket).
 
 This module provides fetch/load functions for the silver layer core fact table
-at ticket × payment method grain.
+at ticket x payment method grain.
 """
 
 from __future__ import annotations
@@ -33,7 +33,7 @@ def fetch(
     """Ensure fact_payments_ticket exists for the given range, then return it.
 
     Runs extraction + transformation as needed (depending on mode), then returns
-    the core fact DataFrame at ticket × payment method grain.
+    the core fact DataFrame at ticket x payment method grain.
 
     Args:
         paths: DataPaths configuration.
@@ -43,10 +43,11 @@ def fetch(
         mode: Processing mode - "missing" (default) or "force".
 
     Returns:
-        DataFrame with fact_payments_ticket structure (ticket × payment method grain).
+        DataFrame with fact_payments_ticket structure (ticket x payment method grain).
 
     Raises:
         ValueError: If mode is not "missing" or "force".
+
     """
     if mode not in ("missing", "force"):
         raise ValueError(f"Invalid mode '{mode}'. Must be 'missing' or 'force'.")
@@ -93,6 +94,7 @@ def load(
 
     Raises:
         FileNotFoundError: If required clean payment CSVs are missing.
+
     """
     # Check if clean data exists
     meta = read_metadata(paths.clean_payments, start_date, end_date)

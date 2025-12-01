@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""Marts (Gold) layer: Aggregate POS sales details by ticket.
+r"""Marts (Gold) layer: Aggregate POS sales details by ticket.
 
 This module is part of the Marts (Gold) layer in the ETL pipeline.
 It produces **ticket-level aggregates** from the item/modifier-line core facts.
@@ -66,8 +65,8 @@ import argparse
 import glob
 import logging
 import sys
+from collections.abc import Sequence
 from pathlib import Path
-from typing import List, Optional, Sequence
 
 import pandas as pd
 
@@ -80,12 +79,7 @@ def _read_any(paths: Sequence[str]) -> pd.DataFrame:
     files: list[str] = []
     for p in paths:
         # Check if pattern contains ** for recursive globbing
-        if "**" in p:
-            # Use recursive glob
-            found = glob.glob(p, recursive=True)
-        else:
-            # Regular glob
-            found = glob.glob(p)
+        found = glob.glob(p, recursive=True) if "**" in p else glob.glob(p)
         files.extend(sorted(found))
     if not files:
         raise FileNotFoundError(f"No input files matched: {paths!r}")
@@ -117,7 +111,7 @@ def _sanitize_group_name(group: str) -> str:
 def aggregate_by_ticket(
     input_csv: str | Sequence[str],
     output_csv: str,
-    input_dir: Optional[str] = None,
+    input_dir: str | None = None,
     recursive: bool = False,
     pattern: str = "*.csv",
     verbose: bool = False,
@@ -137,13 +131,11 @@ def aggregate_by_ticket(
 
     Returns:
         DataFrame with one row per ticket (mart_sales_by_ticket)
+
     """
     # Resolve input files
-    file_specs: List[str] = []
-    if isinstance(input_csv, str):
-        file_specs = [input_csv]
-    else:
-        file_specs = list(input_csv)
+    file_specs: list[str] = []
+    file_specs = [input_csv] if isinstance(input_csv, str) else list(input_csv)
 
     if input_dir:
         base = Path(input_dir)
@@ -272,17 +264,15 @@ def aggregate_by_ticket(
     # Aggregate subtotal_item and total_item by group within each ticket
     # Create pivot-like structure: for each ticket, sum subtotal/total per group
     if verbose:
-        logger.info(f"Aggregating by: {groupby_cols + [group_col]}")
+        logger.info(f"Aggregating by: {[*groupby_cols, group_col]}")
         logger.info(f"  Using columns: subtotal={subtotal_col}, total={total_col}")
 
     ticket_groups = (
-        df.groupby(groupby_cols + [group_col], dropna=False)
-        .agg(
-            {
-                subtotal_col: "sum",
-                total_col: "sum",
-            }
-        )
+        df.groupby([*groupby_cols, group_col], dropna=False)
+        .agg({
+            subtotal_col: "sum",
+            total_col: "sum",
+        })
         .reset_index()
     )
 

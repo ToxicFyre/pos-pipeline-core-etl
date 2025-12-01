@@ -24,6 +24,7 @@ def format_telegram_message(result: ForecastResult) -> str:
 
     Raises:
         ValueError: If ForecastResult is empty or invalid
+
     """
     if result.forecast.empty:
         raise ValueError("No forecasts to format: forecast DataFrame is empty")

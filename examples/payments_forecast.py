@@ -1,4 +1,4 @@
-"""Example: Forecasting Workflow using new API
+"""Example: Forecasting Workflow using new API.
 
 This example demonstrates how to generate forecasts for the next 7 days using
 the new domain-oriented API. The API automatically handles getting historical

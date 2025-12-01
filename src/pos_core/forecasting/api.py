@@ -9,7 +9,6 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from datetime import date
-from typing import Dict, List, Optional, Set
 
 import numpy as np
 import pandas as pd
@@ -36,10 +35,11 @@ class ForecastConfig:
         metrics: List of metrics to forecast (default: cash, credit, debit, total).
         branches: Optional list of branch names to forecast. If None, infers from payments_df.
         model: Optional forecast model instance. If None, uses LogARIMAModel.
+
     """
 
     horizon_days: int = 7
-    metrics: List[str] = field(
+    metrics: list[str] = field(
         default_factory=lambda: [
             "ingreso_efectivo",
             "ingreso_credito",
@@ -47,8 +47,8 @@ class ForecastConfig:
             "ingreso_total",
         ]
     )
-    branches: Optional[List[str]] = None  # if None, infer from payments_df
-    model: Optional[ForecastModel] = None  # if None, use LogARIMAModel
+    branches: list[str] | None = None  # if None, infer from payments_df
+    model: ForecastModel | None = None  # if None, use LogARIMAModel
 
 
 @dataclass
@@ -63,17 +63,18 @@ class ForecastResult:
             Structure: debug[model_name][branch][metric] = ModelDebugInfo
             Only populated when run_payments_forecast is called with debug=True.
             Allows tracking debug info per model, branch, and metric combination.
+
     """
 
     forecast: pd.DataFrame  # per branch/metric/date forecast
     deposit_schedule: pd.DataFrame  # cash-flow / banking schedule view
-    metadata: Dict[str, object] = field(default_factory=dict)
+    metadata: dict[str, object] = field(default_factory=dict)
     # Debug info structure: debug[model_name][branch][metric] = ModelDebugInfo
     # Allows tracking debug info per model, branch, and metric combination
-    debug: Optional[Dict[str, Dict[str, Dict[str, ModelDebugInfo]]]] = None
+    debug: dict[str, dict[str, dict[str, ModelDebugInfo]]] | None = None
 
 
-def _forecast_dict_to_dataframe(forecasts: Dict[str, Dict[str, pd.Series]]) -> pd.DataFrame:
+def _forecast_dict_to_dataframe(forecasts: dict[str, dict[str, pd.Series]]) -> pd.DataFrame:
     """Convert nested forecast dictionary to a structured DataFrame.
 
     Args:
@@ -81,6 +82,7 @@ def _forecast_dict_to_dataframe(forecasts: Dict[str, Dict[str, pd.Series]]) -> p
 
     Returns:
         DataFrame with columns: sucursal, fecha, metric, valor
+
     """
     rows = []
     for branch, metrics_dict in forecasts.items():
@@ -88,14 +90,12 @@ def _forecast_dict_to_dataframe(forecasts: Dict[str, Dict[str, pd.Series]]) -> p
             for fecha, valor in forecast_series.items():
                 # Convert Timestamp to date if needed
                 fecha_date = fecha.date() if isinstance(fecha, pd.Timestamp) else fecha
-                rows.append(
-                    {
-                        "sucursal": branch,
-                        "fecha": fecha_date,
-                        "metric": metric,
-                        "valor": float(valor),
-                    }
-                )
+                rows.append({
+                    "sucursal": branch,
+                    "fecha": fecha_date,
+                    "metric": metric,
+                    "valor": float(valor),
+                })
 
     if not rows:
         # Return empty DataFrame with correct columns
@@ -109,29 +109,30 @@ def _forecast_dict_to_dataframe(forecasts: Dict[str, Dict[str, pd.Series]]) -> p
 def _build_deposit_schedule_dataframe(
     forecast_df: pd.DataFrame,
     historical_df: pd.DataFrame,
-    horizon_days: int,
+    horizon_days: int,  # Unused: date range determined from forecast_df instead
 ) -> pd.DataFrame:
     """Build deposit schedule DataFrame from forecast and historical data.
 
     Args:
         forecast_df: DataFrame with forecast data (columns: sucursal, fecha, metric, valor)
         historical_df: DataFrame with historical payment data
-        horizon_days: Number of forecast days (to determine date range)
+        horizon_days: Number of forecast days (to determine date range). Currently unused.
 
     Returns:
         DataFrame with columns: fecha, efectivo, credito, debito, total
+
     """
     # Get forecast dates
     if forecast_df.empty:
         return pd.DataFrame(columns=["fecha", "efectivo", "credito", "debito", "total"])
 
-    forecast_dates = sorted(list(forecast_df["fecha"].dt.date.unique()))
+    forecast_dates = sorted(forecast_df["fecha"].dt.date.unique())
     last_historical_date = (
         historical_df["fecha"].max().date() if not historical_df.empty else date.today()
     )
 
     # Build daily_totals dictionary: {metric: {date: total_value}}
-    daily_totals: Dict[str, Dict[date, float]] = {}
+    daily_totals: dict[str, dict[date, float]] = {}
     for metric in ["ingreso_efectivo", "ingreso_credito", "ingreso_debito"]:
         daily_totals[metric] = {}
         metric_forecasts = forecast_df[forecast_df["metric"] == metric]
@@ -159,15 +160,13 @@ def _build_deposit_schedule_dataframe(
         credito = deposits.get("credito", 0.0)
         debito = deposits.get("debito", 0.0)
         total = efectivo + credito + debito
-        deposit_rows.append(
-            {
-                "fecha": deposit_date,
-                "efectivo": efectivo,
-                "credito": credito,
-                "debito": debito,
-                "total": total,
-            }
-        )
+        deposit_rows.append({
+            "fecha": deposit_date,
+            "efectivo": efectivo,
+            "credito": credito,
+            "debito": debito,
+            "total": total,
+        })
 
     if not deposit_rows:
         return pd.DataFrame(columns=["fecha", "efectivo", "credito", "debito", "total"])
@@ -179,7 +178,7 @@ def _build_deposit_schedule_dataframe(
 
 def run_payments_forecast(
     payments_df: pd.DataFrame,
-    config: Optional[ForecastConfig] = None,
+    config: ForecastConfig | None = None,
     debug: bool = False,
 ) -> ForecastResult:
     """Run the payments forecasting pipeline in memory.
@@ -211,12 +210,13 @@ def run_payments_forecast(
     Raises:
         DataQualityError: If required columns are missing.
         DataQualityError: If no forecasts are generated.
+
     """
     if config is None:
         config = ForecastConfig()
 
     # Validate input DataFrame
-    required_columns = ["sucursal", "fecha"] + config.metrics
+    required_columns = ["sucursal", "fecha", *config.metrics]
     missing_columns = [col for col in required_columns if col not in payments_df.columns]
     if missing_columns:
         raise DataQualityError(
@@ -258,7 +258,7 @@ def run_payments_forecast(
     model = config.model if config.model is not None else LogARIMAModel()
 
     # Extract holidays from payments_df if is_national_holiday column exists
-    holidays: Set[date] = set()
+    holidays: set[date] = set()
     if "is_national_holiday" in df.columns:
         holiday_rows = df[df["is_national_holiday"] == True]  # noqa: E712
         for fecha in holiday_rows["fecha"].unique():
@@ -270,10 +270,10 @@ def run_payments_forecast(
     # Collect debug info if requested
     # Structure: debug_info[model_name][branch][metric] = ModelDebugInfo
     # This allows tracking debug info per model, branch, and metric combination
-    debug_info: Optional[Dict[str, Dict[str, Dict[str, ModelDebugInfo]]]] = {} if debug else None
+    debug_info: dict[str, dict[str, dict[str, ModelDebugInfo]]] | None = {} if debug else None
 
     # Generate forecasts: {branch: {metric: forecast_series}}
-    forecasts: Dict[str, Dict[str, pd.Series]] = {}
+    forecasts: dict[str, dict[str, pd.Series]] = {}
     successful_forecasts = 0
     failed_forecasts = 0
 

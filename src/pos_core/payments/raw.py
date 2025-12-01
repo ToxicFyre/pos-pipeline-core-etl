@@ -40,6 +40,7 @@ def fetch(
 
     Raises:
         ValueError: If mode is not "missing" or "force".
+
     """
     if mode not in ("missing", "force"):
         raise ValueError(f"Invalid mode '{mode}'. Must be 'missing' or 'force'.")
@@ -63,7 +64,7 @@ def load(
     paths: DataPaths,
     start_date: str,
     end_date: str,
-    branches: list[str] | None = None,
+    # branches parameter removed: unused, kept for API compatibility in load_group only
 ) -> None:
     """Verify that raw payment data exists for the given range.
 
@@ -74,10 +75,10 @@ def load(
         paths: DataPaths configuration.
         start_date: Start date in YYYY-MM-DD format (inclusive).
         end_date: End date in YYYY-MM-DD format (inclusive).
-        branches: Optional list of branch names (for validation).
 
     Raises:
         FileNotFoundError: If required raw payment files are missing.
+
     """
     from pos_core.payments.metadata import read_metadata
 

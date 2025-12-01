@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""Staging (Silver) layer: POS "Detalle de Ventas" cleaner.
+r"""Staging (Silver) layer: POS "Detalle de Ventas" cleaner.
 
 This module is part of the Staging (Silver) layer in the ETL pipeline.
 It transforms raw sales Excel files into clean, normalized CSV files.
@@ -37,6 +36,7 @@ Notes:
     - Normalizes headers to snake_case, coerces dates/numbers
     - Strips invisible chars and neutralizes spreadsheet formulas
     - Expects 4 amount blocks: ticket, item, cortesia_cancel, anulacion
+
 """
 
 from __future__ import annotations
@@ -46,9 +46,10 @@ import csv
 import logging
 import re
 import sys
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Union
+from typing import Any
 
 import pandas as pd
 
@@ -84,6 +85,7 @@ def find_sheet_case_insensitive(xls: pd.ExcelFile, target: str) -> str:
 
     Raises:
         ValueError: If no matching sheet is found.
+
     """
     t = target.lower()
     for n in xls.sheet_names:
@@ -112,6 +114,7 @@ def detect_header_row(
 
     Returns:
         Row index (0-based) where header is found, or 0 as fallback.
+
     """
     max_scan = min(30, len(df_no_header))
     for i in range(max_scan):
@@ -121,7 +124,7 @@ def detect_header_row(
     return 0  # fallback
 
 
-def parse_sucursal_from_top(df_no_header: pd.DataFrame) -> Optional[str]:
+def parse_sucursal_from_top(df_no_header: pd.DataFrame) -> str | None:
     """Extract branch name from the top rows of the Excel sheet.
 
     POS reports often include branch metadata in cells near the top
@@ -133,6 +136,7 @@ def parse_sucursal_from_top(df_no_header: pd.DataFrame) -> Optional[str]:
 
     Returns:
         Branch name if found, None otherwise.
+
     """
     # Typically appears near C3 or around first rows
     head = df_no_header.iloc[:6, :6].astype(str).applymap(strip_invisibles)
@@ -144,7 +148,7 @@ def parse_sucursal_from_top(df_no_header: pd.DataFrame) -> Optional[str]:
 
 # --------------------------- normalization map ---------------------------
 # Spanish header -> normalized snake_case
-HEADER_MAP: Dict[str, str] = {
+HEADER_MAP: dict[str, str] = {
     "Día": "day_name",
     "Fecha de operación": "operating_date",
     "Hora de cierre": "closing_time",
@@ -240,7 +244,7 @@ EXPECTED_AMOUNT_COLS = [
 
 
 # --------------------------- transform core ---------------------------
-def normalize_headers(cols: List[str]) -> List[str]:
+def normalize_headers(cols: list[str]) -> list[str]:
     """Normalize column headers to snake_case and handle duplicates.
 
     POS reports have duplicate column names (Subtotal, IVA, IEPS, Total
@@ -258,6 +262,7 @@ def normalize_headers(cols: List[str]) -> List[str]:
 
     Raises:
         Warning: If expected 4 amount blocks are not found (logged, not raised).
+
     """
     # Raw headers as strings
     raw = [str(c) for c in cols]
@@ -309,7 +314,7 @@ def normalize_headers(cols: List[str]) -> List[str]:
     block_labels = ["ticket", "item", "cortesia_cancel", "anulacion"]
 
     # Index -> final amount column name
-    amount_map_by_index: Dict[int, str] = {}
+    amount_map_by_index: dict[int, str] = {}
 
     max_blocks = min(
         len(subtotal_idx), len(iva_idx), len(ieps_idx), len(total_idx), len(block_labels)
@@ -323,7 +328,7 @@ def normalize_headers(cols: List[str]) -> List[str]:
         amount_map_by_index[total_idx[j]] = f"total_{label}"
 
     # Now build normalized names, preserving original column order
-    normed: List[str] = []
+    normed: list[str] = []
     for i, c0 in enumerate(cleaned):
         if i in amount_map_by_index:
             mapped = amount_map_by_index[i]
@@ -390,7 +395,7 @@ def transform_detalle_ventas(xlsx_in: Path) -> pd.DataFrame:
     # is_modifier to boole-ish
     if "is_modifier" in df.columns:
 
-        def _coerce_bool(val: Any) -> Union[bool, float]:
+        def _coerce_bool(val: Any) -> bool | float:
             if pd.isna(val):
                 return float("nan")
             s = str(val).strip().lower()
@@ -466,8 +471,8 @@ def transform_detalle_ventas(xlsx_in: Path) -> pd.DataFrame:
 # --------------------------- CLI ---------------------------
 @dataclass
 class Args:
-    input: Optional[Path]
-    input_dir: Optional[Path]
+    input: Path | None
+    input_dir: Path | None
     outdir: Path
     recursive: bool
     quiet: bool
@@ -496,7 +501,7 @@ def parse_args() -> Args:
     )
 
 
-def output_name_for(xlsx_path: Path, df: pd.DataFrame) -> Path:
+def output_name_for(df: pd.DataFrame) -> Path:  # xlsx_path parameter removed: unused
     suc = (df["sucursal"].iloc[0] if "sucursal" in df.columns and len(df) else "") or "unknown"
     # Try to include a date span if present (best effort)
     if "operating_date" in df.columns and df["operating_date"].notna().any():
@@ -520,7 +525,7 @@ def write_csv(df: pd.DataFrame, out_path: Path) -> None:
 def run_single(xlsx: Path, outdir: Path) -> Path:
     logger.info("Processing %s", xlsx)
     df = transform_detalle_ventas(xlsx)
-    out_name = output_name_for(xlsx, df)
+    out_name = output_name_for(df)
     out_path = outdir / out_name
     write_csv(df, out_path)
     logger.info("Wrote %s (%d rows, %d cols)", out_path, len(df), len(df.columns))

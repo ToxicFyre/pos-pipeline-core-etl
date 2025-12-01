@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Marts (Gold) layer: Aggregate payments into daily branch-level summaries.
 
 This module is part of the Marts (Gold) layer in the ETL pipeline.
@@ -140,10 +139,10 @@ import argparse
 import csv
 import logging
 import sys
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
-from typing import Iterable, List, Optional, Set
 
 import pandas as pd
 import requests
@@ -156,8 +155,8 @@ from pos_core.etl.staging.cleaning_utils import normalize_spanish_name
 
 
 def bucket_for_payment_method(method: str) -> str:
-    """
-    Map raw payment_method to one of the ingreso_* columns.
+    """Map raw payment_method to one of the ingreso_* columns.
+
     Falls back to 'ingreso_otros' if none of the patterns match.
     """
     s = normalize_spanish_name(method)
@@ -213,12 +212,12 @@ BUCKET_COLS = [
 # ------------------------------------------------------------
 
 # Cache for holiday dates (key: year, value: set of date objects)
-_HOLIDAY_CACHE: dict[int, Set[date]] = {}
+_HOLIDAY_CACHE: dict[int, set[date]] = {}
 
 
-def fetch_mexican_holidays(year: int) -> Set[date]:
-    """
-    Fetch Mexican national holidays for a given year using the Nager.Date API.
+def fetch_mexican_holidays(year: int) -> set[date]:
+    """Fetch Mexican national holidays for a given year using the Nager.Date API.
+
     Uses caching to avoid redundant API calls.
 
     Args:
@@ -230,6 +229,7 @@ def fetch_mexican_holidays(year: int) -> Set[date]:
     Raises:
         requests.RequestException: If the API request fails
         ValueError: If the API response is invalid
+
     """
     # Check cache first
     if year in _HOLIDAY_CACHE:
@@ -274,15 +274,15 @@ def fetch_mexican_holidays(year: int) -> Set[date]:
         return set()
 
 
-def get_all_mexican_holidays(df: pd.DataFrame) -> Set[date]:
-    """
-    Fetch Mexican holidays for all years present in the dataframe.
+def get_all_mexican_holidays(df: pd.DataFrame) -> set[date]:
+    """Fetch Mexican holidays for all years present in the dataframe.
 
     Args:
         df: DataFrame with 'operating_date' column
 
     Returns:
         A set of all holiday dates across all years in the dataframe
+
     """
     if "operating_date" not in df.columns:
         return set()
@@ -311,27 +311,20 @@ def get_all_mexican_holidays(df: pd.DataFrame) -> Set[date]:
 # ------------------------------------------------------------
 
 
-def aggregate_payments(dfs: List[pd.DataFrame]) -> pd.DataFrame:
-    """
+def aggregate_payments(dfs: list[pd.DataFrame]) -> pd.DataFrame:
+    """Aggregate payments data from multiple clean CSVs.
+
     Main aggregation:
     - concat all clean CSVs
     - group by sucursal + fecha + payment bucket
     - pivot to wide ingreso_* columns
     - sum tips into 'propinas'
     - derive num_tickets
-    - validate that tips per day align with total_day_tips from source
+    - validate that tips per day align with total_day_tips from source.
     """
     if not dfs:
         return pd.DataFrame(
-            columns=["sucursal", "fecha"]
-            + BUCKET_COLS
-            + [
-                "propinas",
-                "num_tickets",
-                "tickets_with_eliminations",
-                "pct_tickets_with_eliminations",
-                "is_national_holiday",
-            ]
+            columns=["sucursal", "fecha", *BUCKET_COLS, "propinas", "num_tickets", "tickets_with_eliminations", "pct_tickets_with_eliminations", "is_national_holiday"]
         )
 
     df = pd.concat(dfs, ignore_index=True)
@@ -480,15 +473,7 @@ def aggregate_payments(dfs: List[pd.DataFrame]) -> pd.DataFrame:
 
     # Order columns
     final_cols = (
-        ["sucursal", "fecha"]
-        + BUCKET_COLS
-        + [
-            "propinas",
-            "num_tickets",
-            "tickets_with_eliminations",
-            "pct_tickets_with_eliminations",
-            "is_national_holiday",
-        ]
+        ["sucursal", "fecha", *BUCKET_COLS, "propinas", "num_tickets", "tickets_with_eliminations", "pct_tickets_with_eliminations", "is_national_holiday"]
     )
     result = result[final_cols].sort_values(["sucursal", "fecha"]).reset_index(drop=True)
 
@@ -501,8 +486,8 @@ def aggregate_payments(dfs: List[pd.DataFrame]) -> pd.DataFrame:
 
 
 def read_clean_csv(path: Path) -> pd.DataFrame:
-    """
-    Read a clean payments CSV.
+    """Read a clean payments CSV.
+
     Uses utf-8-sig to handle BOM safely.
     """
     return pd.read_csv(path, encoding="utf-8-sig")
@@ -552,6 +537,7 @@ def aggregate_payments_daily(
         ... )
         >>> len(df)
         365
+
     """
     # Convert string paths to Path
     if isinstance(clean_dir, str):
@@ -567,7 +553,7 @@ def aggregate_payments_daily(
     logger.info(f"Aggregating payments from {clean_dir} -> {output_path}")
 
     # Collect all CSV files
-    dfs: List[pd.DataFrame] = []
+    dfs: list[pd.DataFrame] = []
     any_found = False
 
     for csv_path in iter_csv_files(clean_dir, recursive=True):
@@ -598,8 +584,8 @@ def aggregate_payments_daily(
 
 @dataclass
 class Args:
-    input: Optional[Path]
-    input_dir: Optional[Path]
+    input: Path | None
+    input_dir: Path | None
     out: Path
     recursive: bool
     quiet: bool
@@ -643,7 +629,7 @@ def main() -> None:
         format="%(levelname)s: %(message)s",
     )
 
-    dfs: List[pd.DataFrame] = []
+    dfs: list[pd.DataFrame] = []
 
     if args.input:
         if not args.input.exists():

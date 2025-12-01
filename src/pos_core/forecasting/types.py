@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional, Protocol
+from typing import Any, Protocol
 
 
 @dataclass(frozen=True)
@@ -23,11 +23,12 @@ class ModelDebugInfo:
         This dataclass is frozen to prevent accidental mutations after creation.
         The ModelDebugInfo instance cannot be reassigned, and the data dict
         should be populated at creation time with all required information.
+
     """
 
     model_name: str
-    version: Optional[str] = None
-    data: Dict[str, Any] = field(default_factory=dict)
+    version: str | None = None
+    data: dict[str, Any] = field(default_factory=dict)
 
 
 class HasDebugInfo(Protocol):
@@ -39,6 +40,7 @@ class HasDebugInfo(Protocol):
     Example:
         def inspect_model_debug(model: HasDebugInfo) -> Optional[ModelDebugInfo]:
             return model.debug_
+
     """
 
-    debug_: Optional[ModelDebugInfo]
+    debug_: ModelDebugInfo | None

@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Optional
 
 import pandas as pd
 
@@ -38,6 +37,7 @@ class PaymentsQAResult:
         zscore_anomalies: DataFrame with z-score anomalies, or None if none found.
         zero_method_flags: DataFrame with rows where tickets > 0 but payment methods
             are zero, or None if none found.
+
     """
 
     summary: dict
@@ -51,8 +51,7 @@ def run_payments_qa(
     payments_df: pd.DataFrame,
     level: int = 4,
 ) -> PaymentsQAResult:
-    """Run the existing QA checks (from qa_payments.py) in memory,
-    without reading or writing any files.
+    """Run the existing QA checks (from qa_payments.py) in memory, without reading or writing any files.
 
     This function:
     - does NOT read or write any files,
@@ -83,6 +82,7 @@ def run_payments_qa(
 
     Raises:
         DataQualityError: If required columns are missing.
+
     """
     # Prepare DataFrame (ensure fecha is datetime, compute helper columns)
     df = prepare_payments_df(payments_df.copy())
@@ -97,10 +97,10 @@ def run_payments_qa(
     logger.info(f"Running QA checks at level {level} for {len(df)} rows")
 
     # Initialize results
-    missing_days_df: Optional[pd.DataFrame] = None
-    duplicate_days_df: Optional[pd.DataFrame] = None
-    zscore_anomalies_df: Optional[pd.DataFrame] = None
-    zero_method_flags_df: Optional[pd.DataFrame] = None
+    missing_days_df: pd.DataFrame | None = None
+    duplicate_days_df: pd.DataFrame | None = None
+    zscore_anomalies_df: pd.DataFrame | None = None
+    zero_method_flags_df: pd.DataFrame | None = None
 
     # Level 0: Schema validation (always run)
     # Check for nulls in critical columns
@@ -112,7 +112,7 @@ def run_payments_qa(
 
     # Check for negative values
     negative_errors = []
-    for col in MONEY_COLUMNS + [TICKET_COLUMN]:
+    for col in [*MONEY_COLUMNS, TICKET_COLUMN]:
         neg_count = (df[col] < -1e-6).sum()
         if neg_count > 0:
             negative_errors.append(f"{col}: {neg_count} negative values")

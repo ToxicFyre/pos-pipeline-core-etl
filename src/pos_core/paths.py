@@ -32,6 +32,7 @@ class DataPaths:
         └── c_processed/     # Gold: marts (aggregated tables)
             ├── payments/    # mart_payments_daily
             └── sales/       # mart_sales_by_ticket, mart_sales_by_group
+
     """
 
     data_root: Path
@@ -56,6 +57,7 @@ class DataPaths:
             >>> paths = DataPaths.from_root("data", "utils/sucursales.json")
             >>> paths.data_root
             PosixPath('data')
+
         """
         if isinstance(data_root, str):
             data_root = Path(data_root)

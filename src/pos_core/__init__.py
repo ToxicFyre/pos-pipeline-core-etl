@@ -36,8 +36,8 @@ Quick Start:
 
 Grain Reference:
     Payments:
-        - core: fact_payments_ticket - ticket × payment method
-        - marts.daily: mart_payments_daily - sucursal × date
+        - core: fact_payments_ticket - ticket x payment method
+        - marts.daily: mart_payments_daily - sucursal x date
 
     Sales:
         - core: fact_sales_item_line - item/modifier line
@@ -51,9 +51,9 @@ from pos_core.config import DataPaths
 from pos_core.exceptions import ConfigError, ETLError, ExtractionError
 
 __all__ = [
-    "__version__",
-    "DataPaths",
     "ConfigError",
+    "DataPaths",
     "ETLError",
     "ExtractionError",
+    "__version__",
 ]

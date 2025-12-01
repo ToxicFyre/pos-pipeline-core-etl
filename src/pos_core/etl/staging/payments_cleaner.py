@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Staging (Silver) layer: POS "Detalle por forma de pago" cleaner.
 
 This module is part of the Staging (Silver) layer in the ETL pipeline.
@@ -55,9 +54,10 @@ import csv
 import logging
 import re
 import sys
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterable, List, Optional
+from typing import Any
 
 import pandas as pd
 
@@ -94,8 +94,8 @@ def find_sheet_case_insensitive(xls: pd.ExcelFile, target: str) -> str:
 def detect_header_row(
     df_no_header: pd.DataFrame, sentinels: Iterable[str] = ("Forma de pago",)
 ) -> int:
-    """
-    Scan the top rows and find the one that looks like the header.
+    """Scan the top rows and find the one that looks like the header.
+
     For this report, the row containing 'Forma de pago' is the header.
     """
     max_scan = min(40, len(df_no_header))
@@ -107,9 +107,9 @@ def detect_header_row(
     return 0
 
 
-def _to_int_or_none(x: Any) -> Optional[int]:
-    """
-    Safely convert to int, or return None if blank/non-numeric.
+def _to_int_or_none(x: Any) -> int | None:
+    """Safely convert to int, or return None if blank/non-numeric.
+
     Used for order_index / Orden keys to avoid merge dtype issues.
     """
     if pd.isna(x):
@@ -152,15 +152,14 @@ NUMERIC_COLUMNS = {
 }
 
 
-def normalize_headers(cols: List[str]) -> List[str]:
-    """
-    Apply HEADER_MAP (with special handling for duplicated 'Propina'),
-    then snake_case + de-duplicate.
+def normalize_headers(cols: list[str]) -> list[str]:
+    """Apply HEADER_MAP (with special handling for duplicated 'Propina'), then snake_case + de-duplicate.
+
     - First 'Propina'  -> total_day_tips
-    - Second 'Propina' -> ticket_tip
+    - Second 'Propina' -> ticket_tip.
     """
     propina_seen = 0
-    mapped_list: List[str] = []
+    mapped_list: list[str] = []
 
     for c in cols:
         c0 = strip_invisibles(str(c) if c is not None else "")
@@ -169,10 +168,7 @@ def normalize_headers(cols: List[str]) -> List[str]:
         # Special logic for 'Propina'
         if raw_no_invisibles == "Propina":
             propina_seen += 1
-            if propina_seen == 1:
-                logical = "total_day_tips"
-            else:
-                logical = "ticket_tip"
+            logical = "total_day_tips" if propina_seen == 1 else "ticket_tip"
         else:
             logical = HEADER_MAP.get(c0, c0) if c0 is not None else ""
 
@@ -183,7 +179,7 @@ def normalize_headers(cols: List[str]) -> List[str]:
 
     # De-duplicate: total, total_2, etc.
     seen = {}
-    out: List[str] = []
+    out: list[str] = []
     for h in mapped_list:
         if h not in seen:
             seen[h] = 1
@@ -222,8 +218,8 @@ DROP_COLS_NORMALIZED = {normalize_spanish_name(c) for c in DROP_COLS_LOGICAL_RAW
 
 
 def extract_sucursal_like(df: pd.DataFrame) -> str:
-    """
-    Fallback heuristic for sucursal from data:
+    """Fallback heuristic for sucursal from data.
+
     - Try 'Cajero' or 'Mesero' columns before we drop them.
     - Take the most frequent non-empty value.
     If nothing sensible is found, return empty string.
@@ -252,13 +248,13 @@ def extract_sucursal_like(df: pd.DataFrame) -> str:
     return candidates[0]
 
 
-def normalize_branch_name(raw: Optional[str]) -> str:
-    """
-    Normalize folder/CLI branch names for 'sucursal':
+def normalize_branch_name(raw: str | None) -> str:
+    """Normalize folder/CLI branch names for 'sucursal'.
+
     - Kavia -> Kavia
     - Kavia_OLD -> Kavia
     - Punto-Valle -> Punto Valle
-    - punto valle -> Punto valle (you can later force title-case if you want)
+    - punto valle -> Punto valle (you can later force title-case if you want).
     """
     if not raw:
         return ""
@@ -276,12 +272,10 @@ def normalize_branch_name(raw: Optional[str]) -> str:
 
 def transform_detalle_por_forma_pago(
     xlsx_in: Path,
-    sucursal_hint: Optional[str] = None,
+    sucursal_hint: str | None = None,
     verbose: bool = False,
 ) -> pd.DataFrame:
-    """
-    Transform a single Excel into a cleaned DataFrame with one row per payment.
-    """
+    """Transform a single Excel into a cleaned DataFrame with one row per payment."""
     # Log immediately at function entry - this helps catch hangs before any operations
     logging.info("Processing file: %s (sucursal_hint=%r)", xlsx_in, sucursal_hint)
 
@@ -621,7 +615,7 @@ def transform_detalle_por_forma_pago(
             # Log sample of what will be marked as eliminated
             if len(key_elim) > 0:
                 logging.debug("  - Sample elimination keys (first 5):")
-                for idx, row in key_elim.head(5).iterrows():
+                for _idx, row in key_elim.head(5).iterrows():
                     logging.debug(
                         "    Date=%s, Order=%s", row["operating_date"], row["order_index"]
                     )
@@ -698,7 +692,8 @@ def transform_detalle_por_forma_pago(
 
 
 def output_name_for(xlsx_path: Path, df: pd.DataFrame) -> Path:
-    """
+    """Build output filename from DataFrame.
+
     Build something like:
       forma_pago_panem_kavia_2025-01-01_2025-01-01.csv
     Fallbacks if sucursal or dates are missing.
@@ -731,13 +726,13 @@ def write_csv(df: pd.DataFrame, out_path: Path) -> None:
 
 @dataclass
 class Args:
-    input: Optional[Path]
-    input_dir: Optional[Path]
+    input: Path | None
+    input_dir: Path | None
     outdir: Path
     recursive: bool
     quiet: bool
     verbose: bool
-    sucursal: Optional[str]
+    sucursal: str | None
 
 
 def parse_args() -> Args:
@@ -806,6 +801,7 @@ def clean_payments_directory(
         ...     Path("data/b_clean/payments/batch"),
         ...     recursive=True
         ... )
+
     """
     # Convert string paths to Path
     if isinstance(input_dir, str):
@@ -854,20 +850,18 @@ def iter_xlsx_files(root: Path, recursive: bool, verbose: bool = False) -> Itera
     if verbose:
         logging.debug("Starting to find .xlsx files in: %s (recursive=%s)", root, recursive)
     if recursive:
-        files = list(p for p in root.rglob("*.xlsx") if p.is_file())
+        files = [p for p in root.rglob("*.xlsx") if p.is_file()]
         if verbose:
             logging.debug("Found %d files recursively", len(files))
         yield from files
     else:
-        files = list(p for p in root.glob("*.xlsx") if p.is_file())
+        files = [p for p in root.glob("*.xlsx") if p.is_file()]
         if verbose:
             logging.debug("Found %d files (non-recursive)", len(files))
         yield from files
 
 
-def run_single(
-    xlsx: Path, outdir: Path, sucursal_hint: Optional[str], verbose: bool = False
-) -> Path:
+def run_single(xlsx: Path, outdir: Path, sucursal_hint: str | None, verbose: bool = False) -> Path:
     logging.info("Processing %s (sucursal_hint=%r)", xlsx, sucursal_hint)
 
     try:

@@ -37,6 +37,7 @@ def format_date_spanish(d: date) -> str:
 
     Returns:
         Formatted date string in Spanish (e.g., "Jueves 20 de Noviembre")
+
     """
     return f"{SPANISH_DAYS[d.weekday()]} {d.day} de {SPANISH_MONTHS[d.month - 1]}"
 
@@ -49,6 +50,7 @@ def format_date_short(d: date) -> str:
 
     Returns:
         Formatted date string in short Spanish format (e.g., "Jue 20")
+
     """
     day_abbrev = SPANISH_DAY_ABBREVIATIONS[d.weekday()]
     return f"{day_abbrev} {d.day}"

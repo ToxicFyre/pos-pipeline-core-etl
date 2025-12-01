@@ -14,15 +14,16 @@ Examples:
     ...              (date(2023, 1, 3), date(2023, 1, 10))]
     >>> merge_intervals(intervals)
     [(date(2023, 1, 1), date(2023, 1, 10))]
+
 """
 
 from __future__ import annotations
 
 import re
 import unicodedata
+from collections.abc import Iterable
 from datetime import date, datetime, timedelta
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Tuple
 
 # Regex patterns for parsing date ranges from file paths and names
 
@@ -62,6 +63,7 @@ def parse_date(s: str) -> date:
     Examples:
         >>> parse_date("2023-01-15")
         datetime.date(2023, 1, 15)
+
     """
     return datetime.strptime(s, "%Y-%m-%d").date()
 
@@ -80,6 +82,7 @@ def format_duration(seconds: float) -> str:
         '1m 30.5s'
         >>> format_duration(45.2)
         '45.2s'
+
     """
     mins, secs = divmod(seconds, 60.0)
     if mins >= 1:
@@ -88,7 +91,7 @@ def format_duration(seconds: float) -> str:
         return f"{secs:.1f}s"
 
 
-def iter_chunks(start: date, end: date, max_days: int = 180) -> Iterable[Tuple[date, date]]:
+def iter_chunks(start: date, end: date, max_days: int = 180) -> Iterable[tuple[date, date]]:
     """Yield date chunks covering a range in windows of at most max_days.
 
     Splits a date range into non-overlapping chunks, each containing at most
@@ -107,6 +110,7 @@ def iter_chunks(start: date, end: date, max_days: int = 180) -> Iterable[Tuple[d
         >>> list(iter_chunks(date(2023, 1, 1), date(2023, 1, 5), max_days=2))
         [(date(2023, 1, 1), date(2023, 1, 2)), (date(2023, 1, 3), date(2023, 1, 4)),
          (date(2023, 1, 5), date(2023, 1, 5))]
+
     """
     cur = start
     step = timedelta(days=max_days)
@@ -118,7 +122,7 @@ def iter_chunks(start: date, end: date, max_days: int = 180) -> Iterable[Tuple[d
         cur = chunk_end + timedelta(days=1)
 
 
-def merge_intervals(intervals: List[Tuple[date, date]]) -> List[Tuple[date, date]]:
+def merge_intervals(intervals: list[tuple[date, date]]) -> list[tuple[date, date]]:
     """Merge overlapping or contiguous date intervals.
 
     Takes a list of date intervals and merges any that overlap or are
@@ -137,11 +141,12 @@ def merge_intervals(intervals: List[Tuple[date, date]]) -> List[Tuple[date, date
         ...              (date(2023, 1, 15), date(2023, 1, 20))]
         >>> merge_intervals(intervals)
         [(date(2023, 1, 1), date(2023, 1, 10)), (date(2023, 1, 15), date(2023, 1, 20))]
+
     """
     if not intervals:
         return []
     intervals = sorted(intervals, key=lambda x: x[0])
-    merged: List[Tuple[date, date]] = []
+    merged: list[tuple[date, date]] = []
     cur_start, cur_end = intervals[0]
     for s, e in intervals[1:]:
         if s <= cur_end + timedelta(days=1):  # overlap or touch
@@ -155,9 +160,9 @@ def merge_intervals(intervals: List[Tuple[date, date]]) -> List[Tuple[date, date
 
 
 def subtract_intervals(
-    target: Tuple[date, date],
-    covered: List[Tuple[date, date]],
-) -> List[Tuple[date, date]]:
+    target: tuple[date, date],
+    covered: list[tuple[date, date]],
+) -> list[tuple[date, date]]:
     """Find gaps in a target interval that are not covered.
 
     Given a target date range and a list of already-covered intervals,
@@ -179,13 +184,14 @@ def subtract_intervals(
         >>> subtract_intervals(target, covered)
         [(date(2023, 1, 1), date(2023, 1, 4)), (date(2023, 1, 11), date(2023, 1, 19)),
          (date(2023, 1, 26), date(2023, 1, 31))]
+
     """
     ts, te = target
     if not covered:
         return [(ts, te)]
 
     covered = merge_intervals(covered)
-    gaps: List[Tuple[date, date]] = []
+    gaps: list[tuple[date, date]] = []
 
     cur = ts
     for cs, ce in covered:
@@ -206,8 +212,8 @@ def subtract_intervals(
 
 
 def is_interval_covered(
-    target: Tuple[date, date],
-    covered: List[Tuple[date, date]],
+    target: tuple[date, date],
+    covered: list[tuple[date, date]],
 ) -> bool:
     """Check if a target date interval is fully covered by existing intervals.
 
@@ -227,15 +233,13 @@ def is_interval_covered(
         >>> target2 = (date(2023, 1, 1), date(2023, 1, 20))
         >>> is_interval_covered(target2, covered)
         False
+
     """
     if not covered:
         return False
 
     ts, te = target
-    for cs, ce in covered:
-        if cs <= ts and ce >= te:
-            return True
-    return False
+    return any(cs <= ts and ce >= te for cs, ce in covered)
 
 
 # ============================================================================
@@ -245,7 +249,7 @@ def is_interval_covered(
 
 def discover_existing_intervals(
     raw_payments_root: Path,
-) -> Dict[str, List[Tuple[date, date]]]:
+) -> dict[str, list[tuple[date, date]]]:
     """Scan raw payments directory tree for existing date intervals.
 
     Recursively searches for Payments_*.xlsx files and extracts the date
@@ -272,8 +276,9 @@ def discover_existing_intervals(
         >>> intervals = discover_existing_intervals(Path("data/a_raw/payments"))
         >>> intervals.get("6161", [])
         [(date(2023, 1, 1), date(2023, 1, 31))]
+
     """
-    found: Dict[str, List[Tuple[date, date]]] = {}
+    found: dict[str, list[tuple[date, date]]] = {}
     if not raw_payments_root.exists():
         return found
 
@@ -313,7 +318,7 @@ def discover_existing_intervals(
 
 def discover_existing_clean_intervals(
     clean_payments_root: Path,
-) -> List[Tuple[date, date]]:
+) -> list[tuple[date, date]]:
     """Scan clean payments directory for existing date intervals.
 
     Recursively searches for forma_pago_*.csv files and extracts the date
@@ -335,8 +340,9 @@ def discover_existing_clean_intervals(
         >>> intervals = discover_existing_clean_intervals(Path("data/b_clean/payments/batch"))
         >>> intervals
         [(date(2023, 1, 1), date(2023, 6, 30))]
+
     """
-    found: List[Tuple[date, date]] = []
+    found: list[tuple[date, date]] = []
     if not clean_payments_root.exists():
         return found
 
@@ -354,7 +360,7 @@ def discover_existing_clean_intervals(
     return merge_intervals(found)
 
 
-def get_raw_file_date_range(raw_file: Path) -> Optional[Tuple[date, date]]:
+def get_raw_file_date_range(raw_file: Path) -> tuple[date, date] | None:
     """Extract date range from a raw payment Excel file path.
 
     Tries to extract dates from:
@@ -373,6 +379,7 @@ def get_raw_file_date_range(raw_file: Path) -> Optional[Tuple[date, date]]:
         ...     Path("data/a_raw/payments/Kavia/6161/2023-01-01_2023-01-31/"
         ...          "Payments_kavia_2023-01-01_2023-01-31.xlsx"))
         (date(2023, 1, 1), date(2023, 1, 31))
+
     """
     # Try chunk directory first
     chunk_dir = raw_file.parent
@@ -419,6 +426,7 @@ def slugify(value: str) -> str:
         'kavia_old'
         >>> slugify("Café")
         'cafe'
+
     """
     value = unicodedata.normalize("NFKD", value)
     value = "".join(ch for ch in value if not unicodedata.combining(ch))

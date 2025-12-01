@@ -40,6 +40,7 @@ def aggregate_to_ticket(
 
     Returns:
         DataFrame with mart_sales_by_ticket structure.
+
     """
     # Import the actual aggregation logic
     from pos_core.etl.marts.sales_by_ticket import aggregate_by_ticket
@@ -109,6 +110,7 @@ def aggregate_to_group(
 
     Returns:
         DataFrame with mart_sales_by_group structure.
+
     """
     # Import the actual aggregation logic
     from pos_core.etl.marts.sales_by_group import build_category_pivot

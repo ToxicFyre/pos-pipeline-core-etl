@@ -19,6 +19,7 @@ Example:
     >>> print(result.summary)
     >>> if result.has_anomalies:
     ...     print(result.zscore_anomalies)
+
 """
 
 from pos_core.qa.api import PaymentsQAResult, run_payments_qa

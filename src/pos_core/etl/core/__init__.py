@@ -7,7 +7,7 @@ the cleaned and normalized representations of the source data at its natural gra
 Grain Definitions (Ground Truth)
 --------------------------------
 1. **Payments Core Fact** (``fact_payments_ticket``):
-   - Grain: ticket × payment method
+   - Grain: ticket x payment method
    - One row per payment line on a ticket
    - The POS payments export does not expose deeper item-level payment data
    - Located in: staging layer output (``b_clean/payments/``)
@@ -28,7 +28,7 @@ Data Flow
 Key Rule
 --------
 - For **sales**: anything aggregated beyond item/modifier line is **gold**, not silver/core
-- For **payments**: ticket × payment method is the atomic fact (silver/core)
+- For **payments**: ticket x payment method is the atomic fact (silver/core)
 
 Note: The ``aggregate_by_ticket`` function has been moved to the **marts** layer
 since it produces ticket-level aggregates (beyond the item-line core grain).

@@ -7,7 +7,6 @@ combining historical and forecasted payment data.
 from __future__ import annotations
 
 from datetime import date
-from typing import Dict, List
 
 import pandas as pd
 
@@ -18,11 +17,11 @@ from pos_core.forecasting.deposit_schedule import (
 
 
 def calculate_cash_flow_deposits(
-    forecast_dates: List[date],
-    daily_totals: Dict[str, Dict[date, float]],
+    forecast_dates: list[date],
+    daily_totals: dict[str, dict[date, float]],
     historical_df: pd.DataFrame,
     last_historical_date: date,
-) -> Dict[date, Dict[str, float]]:
+) -> dict[date, dict[str, float]]:
     """Calculate cash flow deposits for forecast dates using banking schedule.
 
     Args:
@@ -33,6 +32,7 @@ def calculate_cash_flow_deposits(
 
     Returns:
         Dictionary {deposit_date: {"efectivo": float, "credito": float, "debito": float}}
+
     """
     # Get historical data for dates before/on last_historical_date
     historical_by_date = {}

@@ -23,6 +23,7 @@ Examples:
     Timestamp('2023-01-15 00:00:00')
     >>> to_snake("Fecha de Operación")
     'fecha_de_operacion'
+
 """
 
 from __future__ import annotations
@@ -30,7 +31,8 @@ from __future__ import annotations
 import math
 import re
 import unicodedata
-from typing import Any, Iterable, List, Optional, Union
+from collections.abc import Iterable
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -47,8 +49,8 @@ DANGEROUS_PREFIXES = ("=", "+", "@", "-")
 _CURRENCY_RE = re.compile(r"[^\d,.\-\(\)\s]")
 
 
-def strip_invisibles(x: Any) -> Optional[str]:
-    """Remove invisible and problematic whitespace characters from text.
+def strip_invisibles(x: Any) -> str | None:
+    r"""Remove invisible and problematic whitespace characters from text.
 
     Strips:
     - Carriage returns (\r)
@@ -68,12 +70,13 @@ def strip_invisibles(x: Any) -> Optional[str]:
         'Hello World'
         >>> strip_invisibles(None)
         None
+
     """
     if x is None or (isinstance(x, float) and pd.isna(x)):
         return None
     s = str(x)
     s = s.replace("\r", "").replace("\t", " ").replace(NBSP, " ").replace(NNBSP, " ")
-    s = re.sub(r"[%s]" % re.escape(ZW), "", s)  # zero-width
+    s = re.sub(rf"[{re.escape(ZW)}]", "", s)  # zero-width
     s = re.sub(r"\s+", " ", s).strip()
     return s
 
@@ -97,6 +100,7 @@ def neutralize(text: Any) -> Any:
         "'=SUM(A1:A10)"
         >>> neutralize("Hello")
         'Hello'
+
     """
     if text is None or (isinstance(text, float) and pd.isna(text)):
         return text
@@ -104,7 +108,7 @@ def neutralize(text: Any) -> Any:
     return "'" + s if s.startswith(DANGEROUS_PREFIXES) else s
 
 
-def to_float(x: Any) -> Optional[float]:
+def to_float(x: Any) -> float | None:
     """Robustly parse numbers in various formats.
 
     Handles multiple number formats commonly found in Excel exports:
@@ -129,6 +133,7 @@ def to_float(x: Any) -> Optional[float]:
         -1234.56
         >>> to_float("$ 1 234,56")
         1234.56
+
     """
     if x is None or (isinstance(x, float) and (math.isnan(x) or math.isinf(x))):
         return None
@@ -151,7 +156,7 @@ def to_float(x: Any) -> Optional[float]:
     has_dot = "." in s
     has_com = "," in s
 
-    def _finalize(num_str: str, negative: bool) -> Optional[float]:
+    def _finalize(num_str: str, negative: bool) -> float | None:
         try:
             v = float(num_str)
             return -v if negative else v
@@ -192,7 +197,7 @@ def to_float(x: Any) -> Optional[float]:
     return _finalize(s.replace(",", "."), neg)
 
 
-def to_int(val: Any) -> Union[int, float]:
+def to_int(val: Any) -> int | float:
     """Convert value to integer via float parsing and rounding.
 
     Args:
@@ -206,12 +211,13 @@ def to_int(val: Any) -> Union[int, float]:
         124
         >>> to_int("1,234.56")
         1235
+
     """
     f = to_float(val)
     if f is None or pd.isna(f):
         return np.nan
     try:
-        return int(round(f))
+        return round(f)
     except Exception:
         return np.nan
 
@@ -237,6 +243,7 @@ def to_date(val: Any) -> pd.Timestamp:
         Timestamp('2023-01-15 00:00:00')
         >>> to_date("15/01/2023")
         Timestamp('2023-01-15 00:00:00')
+
     """
     if val is None or (isinstance(val, float) and pd.isna(val)):
         return pd.NaT
@@ -268,6 +275,7 @@ def remove_accents(s: str) -> str:
         'Operacion'
         >>> remove_accents("José")
         'Jose'
+
     """
     return "".join(c for c in unicodedata.normalize("NFD", s) if unicodedata.category(c) != "Mn")
 
@@ -292,6 +300,7 @@ def normalize_spanish_name(s: str) -> str:
         'forma de pago'
         >>> normalize_spanish_name("Participación del día")
         'participacion del dia'
+
     """
     base = strip_invisibles(s or "")
     if base is None:
@@ -326,6 +335,7 @@ def to_snake(s: str) -> str:
         'fecha_de_operacion'
         >>> to_snake("No. Mesa")
         'no_mesa'
+
     """
     s0 = strip_invisibles(s) or ""
     s1 = remove_accents(s0).lower()
@@ -334,7 +344,7 @@ def to_snake(s: str) -> str:
     return s1
 
 
-def uniquify(cols: Iterable[str]) -> List[str]:
+def uniquify(cols: Iterable[str]) -> list[str]:
     """Make column names unique by appending .1, .2, etc. to duplicates.
 
     Args:
@@ -346,6 +356,7 @@ def uniquify(cols: Iterable[str]) -> List[str]:
     Examples:
         >>> uniquify(["col", "col", "other", "col"])
         ['col', 'col.1', 'other', 'col.2']
+
     """
     seen: dict[str, int] = {}
     out = []

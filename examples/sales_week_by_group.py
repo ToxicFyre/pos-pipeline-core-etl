@@ -1,4 +1,4 @@
-"""Example: Sales Detail ETL using new API
+"""Example: Sales Detail ETL using new API.
 
 This example demonstrates how to use the new domain-oriented API to get sales data
 for a specific week, at different grains (item-line, ticket, group).

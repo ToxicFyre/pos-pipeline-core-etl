@@ -20,6 +20,7 @@ class SalesPaths:
         proc_sales: Directory for processed/aggregated sales data
             (e.g., data/c_processed/sales).
         sucursales_json: Path to sucursales.json configuration file.
+
     """
 
     raw_sales: Path
@@ -36,6 +37,7 @@ class SalesETLConfig:
         paths: All filesystem paths used by the pipeline.
         chunk_days: Maximum number of days per HTTP request chunk (default: 180).
             Only used if chunking is needed for sales extraction.
+
     """
 
     paths: SalesPaths
@@ -67,6 +69,7 @@ class SalesETLConfig:
             >>> config = SalesETLConfig.from_root(Path("data"), Path("utils/sucursales.json"))
             >>> config.paths.raw_sales
             PosixPath('data/a_raw/sales/batch')
+
         """
         # Convert string to Path if needed
         if isinstance(data_root, str):

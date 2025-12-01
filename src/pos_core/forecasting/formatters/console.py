@@ -20,6 +20,7 @@ def sanitize_for_console(text: str) -> str:
 
     Returns:
         Sanitized text safe for console output
+
     """
     # Remove emojis (Unicode characters outside ASCII range)
     # This regex matches emojis and other non-ASCII characters
@@ -30,14 +31,14 @@ def sanitize_for_console(text: str) -> str:
 
 
 def format_forecast_for_console(result: ForecastResult) -> str:
-    """Build a human-readable string representation of the forecast and deposit schedule
-    for console output.
+    """Build a human-readable string representation of the forecast and deposit schedule for console output.
 
     Args:
         result: ForecastResult containing forecast and deposit_schedule DataFrames
 
     Returns:
         Human-readable text string for console output
+
     """
     if result.forecast.empty:
         return "No forecasts available."

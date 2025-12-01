@@ -29,7 +29,7 @@ def aggregate_to_daily(
     """Aggregate fact_payments_ticket into mart_payments_daily.
 
     Creates a daily-level summary with:
-    - One row per sucursal × date
+    - One row per sucursal x date
     - Columns: ingreso_efectivo, ingreso_credito, ingreso_debito, etc.
     - propinas, num_tickets, tickets_with_eliminations
 
@@ -41,6 +41,7 @@ def aggregate_to_daily(
 
     Returns:
         DataFrame with mart_payments_daily structure.
+
     """
     # Import the actual aggregation logic
     from pos_core.etl.marts.payments_daily import aggregate_payments_daily

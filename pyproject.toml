@@ -71,10 +71,28 @@ markers = [
 
 [tool.mypy]
 python_version = "3.10"
+pretty = true
+show_error_codes = true
+warn_unused_configs = true
+
+ignore_missing_imports = true  # keep the global default
+
+# Global defaults: fairly strict
 disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_calls = true
+disallow_subclassing_any = true
+no_implicit_optional = true
+
+warn_redundant_casts = true
 warn_unused_ignores = true
-ignore_missing_imports = true
-# Ignore statsmodels and other untyped dependencies
+warn_return_any = true
+warn_unreachable = true
+strict_equality = true
+allow_redefinition = false
+
+# Third-party overrides (keep what you already had)
 [[tool.mypy.overrides]]
 module = [
     "statsmodels.*",
@@ -84,14 +102,65 @@ module = [
 ]
 ignore_missing_imports = true
 
+# Tests: let them be more relaxed
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+disallow_untyped_defs = false
+check_untyped_defs = false
+disallow_untyped_calls = false
+
+[[tool.mypy.overrides]]
+module = ["pos_core.*"]
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_calls = true
+
+
 [tool.ruff]
 line-length = 100
 target-version = "py310"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "N", "W"]
-ignore = []
+select = [
+  "E",   # pycodestyle errors
+  "F",   # pyflakes
+  "W",   # pycodestyle warnings
+  "I",   # import sorting
+  "N",   # pep8-naming
+  "UP",  # pyupgrade (modern Python)
+  "B",   # flake8-bugbear (bug-prone code)
+  "C4",  # flake8-comprehensions
+  "SIM", # flake8-simplify
+  "ARG", # unused arguments
+  "T10", # debugger usage (pdb, etc.)
+  "D",   # docstrings (pydocstyle)
+  "RUF", # Ruff-specific rules (incl. unused noqa)
+]
+ignore = [
+  "E203",  # slice formatting compatibility
+  "E266",
+  "E501",  # line length handled by formatter
+]
+
 
 [tool.ruff.lint.per-file-ignores]
-"__init__.py" = ["F401"]  # Allow unused imports in __init__.py
+"__init__.py" = ["F401"]  # Allow re-export imports in package __init__.py
+"tests/*" = [
+  "D100", "D101", "D102", "D103", "D104",  # no docstring police in tests
+  "T20",                                   # allow print in tests
+]
+"scripts/*" = [
+  "D100", "D101", "D102", "D103", "D104",
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.format]
+line-ending = "lf"
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+preview = true
 

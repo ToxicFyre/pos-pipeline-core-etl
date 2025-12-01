@@ -48,6 +48,7 @@ def fetch_ticket(
 
     Raises:
         ValueError: If mode is not "missing" or "force".
+
     """
     if mode not in ("missing", "force"):
         raise ValueError(f"Invalid mode '{mode}'. Must be 'missing' or 'force'.")
@@ -93,6 +94,7 @@ def load_ticket(
 
     Raises:
         FileNotFoundError: If the ticket mart file is missing.
+
     """
     mart_path = paths.mart_sales / f"mart_sales_by_ticket_{start_date}_{end_date}.csv"
     meta = read_metadata(paths.mart_sales, start_date, end_date)
@@ -139,6 +141,7 @@ def fetch_group(
 
     Raises:
         ValueError: If mode is not "missing" or "force".
+
     """
     if mode not in ("missing", "force"):
         raise ValueError(f"Invalid mode '{mode}'. Must be 'missing' or 'force'.")
@@ -163,7 +166,7 @@ def load_group(
     paths: DataPaths,
     start_date: str,
     end_date: str,
-    branches: list[str] | None = None,
+    branches: list[str] | None = None,  # Unused but kept for API compatibility
 ) -> pd.DataFrame:
     """Load the group-level sales mart from disk without running ETL.
 
@@ -173,13 +176,14 @@ def load_group(
         paths: DataPaths configuration.
         start_date: Start date in YYYY-MM-DD format (inclusive).
         end_date: End date in YYYY-MM-DD format (inclusive).
-        branches: Optional list of branch names (for validation).
+        branches: Optional list of branch names (for validation). Currently unused but kept for API compatibility.
 
     Returns:
         DataFrame with mart_sales_by_group structure.
 
     Raises:
         FileNotFoundError: If the group mart file is missing.
+
     """
     mart_path = paths.mart_sales / f"mart_sales_by_group_{start_date}_{end_date}.csv"
 

@@ -36,8 +36,8 @@ def get_payments(
         start_date: Start date in YYYY-MM-DD format (inclusive).
         end_date: End date in YYYY-MM-DD format (inclusive).
         grain: Data grain to return:
-            - "ticket": Core fact (fact_payments_ticket). One row per ticket × payment method.
-            - "daily": Daily mart (mart_payments_daily). One row per sucursal × date.
+            - "ticket": Core fact (fact_payments_ticket). One row per ticket x payment method.
+            - "daily": Daily mart (mart_payments_daily). One row per sucursal x date.
               This is the default and most common use case.
         branches: Optional list of branch names to filter. If None, returns all branches.
         refresh: If True, force re-run all ETL stages. Default False uses cached data.
@@ -53,6 +53,7 @@ def get_payments(
         >>> paths = DataPaths.from_root("data", "utils/sucursales.json")
         >>> df = get_payments(paths, "2025-01-01", "2025-01-31")  # daily mart
         >>> df = get_payments(paths, "2025-01-01", "2025-01-31", grain="ticket")  # core fact
+
     """
     if grain not in ("ticket", "daily"):
         raise ValueError(f"Invalid grain '{grain}'. Must be 'ticket' or 'daily'.")

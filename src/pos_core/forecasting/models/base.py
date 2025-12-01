@@ -32,6 +32,7 @@ class ForecastModel(ABC):
 
         Raises:
             ValueError: If training fails (e.g., insufficient data)
+
         """
         pass
 
@@ -46,5 +47,6 @@ class ForecastModel(ABC):
 
         Returns:
             Forecast series with DateTimeIndex, back-transformed to original scale
+
         """
         pass
