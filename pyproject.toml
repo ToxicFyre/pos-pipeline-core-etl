@@ -141,6 +141,8 @@ ignore = [
   "E203",  # slice formatting compatibility
   "E266",
   "E501",  # line length handled by formatter
+  "D203",  # incompatible with D211 (no-blank-line-before-class); prefer D211 per PEP 257
+  "D213",  # incompatible with D212 (multi-line-summary-first-line); prefer D212 per PEP 257
 ]
 
 
