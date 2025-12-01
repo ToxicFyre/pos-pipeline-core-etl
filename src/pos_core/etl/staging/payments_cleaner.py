@@ -83,11 +83,11 @@ def find_sheet_case_insensitive(xls: pd.ExcelFile, target: str) -> str:
     """Find a sheet by name (case-insensitive, allowing partial match)."""
     t = target.lower()
     for n in xls.sheet_names:
-        if n.lower().strip() == t:
-            return n
+        if str(n).lower().strip() == t:
+            return str(n)
     for n in xls.sheet_names:
-        if t in n.lower():
-            return n
+        if t in str(n).lower():
+            return str(n)
     raise ValueError(f"Sheet like '{target}' not found. Available: {xls.sheet_names}")
 
 
@@ -245,7 +245,7 @@ def extract_sucursal_like(df: pd.DataFrame) -> str:
         return (numeric_like, len(v))  # prefer non-numeric, shorter
 
     candidates.sort(key=score)
-    return candidates[0]
+    return str(candidates[0])
 
 
 def normalize_branch_name(raw: str | None) -> str:
