@@ -3,8 +3,6 @@
 This module provides common verification functions used across multiple test files.
 """
 
-from pathlib import Path
-
 import pandas as pd
 import pytest
 
@@ -13,8 +11,8 @@ from pos_core.config import DataPaths
 
 def verify_data_retrieval(
     paths: DataPaths,
-    start_date: str,
-    end_date: str,
+    start_date: str,  # noqa: ARG001
+    end_date: str,  # noqa: ARG001
     data_type: str = "payments",
 ) -> None:
     """Verify that data was actually retrieved from the API and saved to disk.
@@ -26,12 +24,13 @@ def verify_data_retrieval(
 
     Args:
         paths: DataPaths configuration
-        start_date: Start date string (YYYY-MM-DD)
-        end_date: End date string (YYYY-MM-DD)
+        start_date: Start date string (YYYY-MM-DD) - kept for API consistency
+        end_date: End date string (YYYY-MM-DD) - kept for API consistency
         data_type: Type of data to verify ("payments" or "sales")
 
     Raises:
         AssertionError: If any verification fails
+
     """
     if data_type == "payments":
         raw_dir = paths.raw_payments
@@ -51,7 +50,7 @@ def verify_data_retrieval(
     if raw_dir.exists():
         for ext in file_extensions:
             raw_files.extend(list(raw_dir.rglob(f"*{ext}")))
-    
+
     assert len(raw_files) > 0, (
         f"Live test FAILED: No raw {data_type} files found in {raw_dir}. "
         f"This indicates HTTP requests were not made or files were not downloaded."
@@ -68,14 +67,14 @@ def verify_data_retrieval(
             f"This indicates the download failed or returned no data."
         )
         total_size += file_size
-    
+
     print(f"[Data Retrieval Verification] ✓ Raw files total size: {total_size:,} bytes")
 
     # 3. Verify files contain data - check clean files exist and have data
     clean_files = []
     if clean_dir.exists():
         clean_files = list(clean_dir.rglob("*.csv"))
-    
+
     assert len(clean_files) > 0, (
         f"Live test FAILED: No clean {data_type} CSV files found in {clean_dir}. "
         f"This indicates the cleaning stage failed or produced no output."
@@ -91,7 +90,7 @@ def verify_data_retrieval(
             f"Live test FAILED: Clean file is empty: {clean_file}. "
             f"This indicates the cleaning stage produced no data."
         )
-        
+
         # Read CSV and verify it has rows
         try:
             df = pd.read_csv(clean_file, nrows=1)  # Just check header + 1 row
@@ -104,10 +103,10 @@ def verify_data_retrieval(
                 f"Live test FAILED: Could not read clean file {clean_file}: {e}. "
                 f"This indicates the file is corrupted or invalid."
             )
-    
+
     assert total_rows > 0, (
-        f"Live test FAILED: Clean files contain no data rows. "
-        f"This indicates the cleaning stage produced empty output."
+        "Live test FAILED: Clean files contain no data rows. "
+        "This indicates the cleaning stage produced empty output."
     )
     print(f"[Data Retrieval Verification] ✓ Clean files contain {total_rows:,} total rows")
 
@@ -115,7 +114,7 @@ def verify_data_retrieval(
     mart_files = []
     if mart_dir.exists():
         mart_files = list(mart_dir.rglob("*.csv"))
-    
+
     if mart_files:
         print(f"[Data Retrieval Verification] ✓ Found {len(mart_files)} mart {data_type} file(s)")
         for mart_file in mart_files:
