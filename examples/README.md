@@ -66,31 +66,32 @@ python examples/payments_forecast.py
 ```python
 from pathlib import Path
 from pos_core import DataPaths
-from pos_core.payments import get_payments
-from pos_core.sales import get_sales
+from pos_core.payments import marts as payments_marts
+from pos_core.sales import core as sales_core
+from pos_core.sales import marts as sales_marts
 
 # Configure paths
 paths = DataPaths.from_root(Path("data"), Path("utils/sucursales.json"))
 
-# Get payment data (daily mart by default)
-payments_df = get_payments(paths, "2025-01-01", "2025-01-31")
+# Get payment data (daily mart)
+payments_df = payments_marts.fetch_daily(paths, "2025-01-01", "2025-01-31")
 
-# Get sales data (item-line core fact by default)
-sales_df = get_sales(paths, "2025-01-01", "2025-01-31")
+# Get sales data (item-line core fact)
+sales_df = sales_core.fetch(paths, "2025-01-01", "2025-01-31")
 
 # Get sales data at ticket grain
-ticket_df = get_sales(paths, "2025-01-01", "2025-01-31", grain="ticket")
+ticket_df = sales_marts.fetch_ticket(paths, "2025-01-01", "2025-01-31")
 ```
 
 ## Grain Reference
 
 **Payments:**
-- `grain="ticket"`: Core fact (fact_payments_ticket) - ticket × payment method
-- `grain="daily"`: Daily mart (mart_payments_daily) - sucursal × date (default)
+- `payments.core.fetch()`: Core fact (fact_payments_ticket) - ticket × payment method
+- `payments.marts.fetch_daily()`: Daily mart (mart_payments_daily) - sucursal × date
 
 **Sales:**
-- `grain="item"`: Core fact (fact_sales_item_line) - item/modifier line (default)
-- `grain="ticket"`: Ticket mart (mart_sales_by_ticket) - one row per ticket
-- `grain="group"`: Group mart (mart_sales_by_group) - category pivot
+- `sales.core.fetch()`: Core fact (fact_sales_item_line) - item/modifier line
+- `sales.marts.fetch_ticket()`: Ticket mart (mart_sales_by_ticket) - one row per ticket
+- `sales.marts.fetch_group()`: Group mart (mart_sales_by_group) - category pivot
 
 For more details, see the main [README.md](../README.md) in the project root.
