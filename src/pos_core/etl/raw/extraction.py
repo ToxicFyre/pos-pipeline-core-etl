@@ -971,6 +971,8 @@ def download_payments_reports(
 # ------------------------- CLI -------------------------
 @dataclasses.dataclass
 class Args:
+    """Command-line arguments for POS report extraction script."""
+
     report: str
     base: str
     sucursal: str | None
@@ -1043,6 +1045,12 @@ def choose_sucursal_id(
 
 
 def parse_args() -> Args:
+    """Parse command-line arguments.
+
+    Returns:
+        Args object containing parsed arguments.
+
+    """
     p = argparse.ArgumentParser(description="POS report exporter")
     p.add_argument(
         "--report", required=True, choices=["Detail", "Consolidated", "TransfersIssued", "Payments"]

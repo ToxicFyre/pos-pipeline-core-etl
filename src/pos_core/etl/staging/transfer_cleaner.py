@@ -49,6 +49,15 @@ DANGEROUS_PREFIXES = ("=", "+", "@", "-")
 
 
 def remove_accents(s: str) -> str:
+    """Remove accents from a string.
+
+    Args:
+        s: Input string.
+
+    Returns:
+        String with accents removed.
+
+    """
     return "".join(c for c in unicodedata.normalize("NFD", s) if unicodedata.category(c) != "Mn")
 
 
@@ -257,6 +266,7 @@ def clean_to_minimal_csv(input_path: Path, output_csv: Path) -> Path:
 
 
 def main() -> None:
+    """Run transfer cleaner CLI."""
     import argparse
 
     p = argparse.ArgumentParser(description="Clean CEDIS transfers Excel to ONE minimal CSV")

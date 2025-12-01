@@ -146,7 +146,9 @@ def build_table(csv_path: str, include_cedis: bool = False) -> tuple[pd.DataFram
         df = df[df["SUC"].notna()].copy()
 
     # Bucket
-    df["BUCKET"] = [bucket_row(o, d) for o, d in zip(df["Almacén origen"], df["Departamento"], strict=False)]
+    df["BUCKET"] = [
+        bucket_row(o, d) for o, d in zip(df["Almacén origen"], df["Departamento"], strict=False)
+    ]
 
     # Unmapped report
     unmapped = df[df["BUCKET"].isna()].copy()

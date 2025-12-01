@@ -354,6 +354,15 @@ def normalize_headers(cols: list[str]) -> list[str]:
 
 
 def transform_detalle_ventas(xlsx_in: Path) -> pd.DataFrame:
+    """Transform 'Detalle de Ventas' Excel file into cleaned DataFrame.
+
+    Args:
+        xlsx_in: Path to input XLSX file.
+
+    Returns:
+        Cleaned DataFrame with normalized columns and data types.
+
+    """
     xls = pd.ExcelFile(xlsx_in)
     sheet = find_sheet_case_insensitive(xls, "Detalle de Ventas")
     df0 = pd.read_excel(xlsx_in, sheet_name=sheet, header=None, dtype=object)
@@ -471,6 +480,8 @@ def transform_detalle_ventas(xlsx_in: Path) -> pd.DataFrame:
 # --------------------------- CLI ---------------------------
 @dataclass
 class Args:
+    """Command-line arguments for sales cleaner script."""
+
     input: Path | None
     input_dir: Path | None
     outdir: Path
@@ -479,6 +490,12 @@ class Args:
 
 
 def parse_args() -> Args:
+    """Parse command-line arguments.
+
+    Returns:
+        Args object containing parsed arguments.
+
+    """
     p = argparse.ArgumentParser(description="Clean POS 'Detalle de Ventas' Excel into CSV")
     g = p.add_mutually_exclusive_group(required=True)
     g.add_argument("--input", type=Path, help="Single .xlsx file")
@@ -502,6 +519,15 @@ def parse_args() -> Args:
 
 
 def output_name_for(df: pd.DataFrame) -> Path:  # xlsx_path parameter removed: unused
+    """Generate output filename based on DataFrame content.
+
+    Args:
+        df: DataFrame containing sales data.
+
+    Returns:
+        Path object with generated filename.
+
+    """
     suc = (df["sucursal"].iloc[0] if "sucursal" in df.columns and len(df) else "") or "unknown"
     # Try to include a date span if present (best effort)
     if "operating_date" in df.columns and df["operating_date"].notna().any():
@@ -517,12 +543,31 @@ def output_name_for(df: pd.DataFrame) -> Path:  # xlsx_path parameter removed: u
 
 
 def write_csv(df: pd.DataFrame, out_path: Path) -> None:
+    """Write DataFrame to CSV file.
+
+    Creates parent directories if needed and writes with UTF-8 encoding.
+
+    Args:
+        df: DataFrame to write.
+        out_path: Output file path.
+
+    """
     out_path.parent.mkdir(parents=True, exist_ok=True)
     # safe CSV writer; avoid excel danger by ensuring text was neutralized already
     df.to_csv(out_path, index=False, encoding="utf-8", quoting=csv.QUOTE_MINIMAL)
 
 
 def run_single(xlsx: Path, outdir: Path) -> Path:
+    """Process a single XLSX file and write cleaned CSV.
+
+    Args:
+        xlsx: Path to input XLSX file.
+        outdir: Output directory for CSV file.
+
+    Returns:
+        Path to the written CSV file.
+
+    """
     logger.info("Processing %s", xlsx)
     df = transform_detalle_ventas(xlsx)
     out_name = output_name_for(df)
@@ -533,6 +578,16 @@ def run_single(xlsx: Path, outdir: Path) -> Path:
 
 
 def iter_xlsx_files(root: Path, recursive: bool) -> Iterable[Path]:
+    """Iterate over XLSX files in a directory.
+
+    Args:
+        root: Root directory to search for XLSX files.
+        recursive: If True, search recursively in subdirectories.
+
+    Yields:
+        Path objects for each XLSX file found.
+
+    """
     if recursive:
         yield from (p for p in root.rglob("*.xlsx") if p.is_file())
     else:
@@ -540,6 +595,7 @@ def iter_xlsx_files(root: Path, recursive: bool) -> Iterable[Path]:
 
 
 def main() -> None:
+    """Run sales cleaner CLI."""
     args = parse_args()
     logging.basicConfig(
         level=logging.WARNING if args.quiet else logging.INFO,

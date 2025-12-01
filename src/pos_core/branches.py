@@ -89,7 +89,9 @@ class BranchRegistry:
 
         windows = self._segments[branch]
         for window in windows:
-            if window.valid_from <= target_date and (window.valid_to is None or window.valid_to >= target_date):
+            if window.valid_from <= target_date and (
+                window.valid_to is None or window.valid_to >= target_date
+            ):
                 return window.code
 
         raise ValueError(
@@ -116,7 +118,9 @@ class BranchRegistry:
 
         for branch, windows in self._segments.items():
             for window in windows:
-                if window.valid_from <= target_date and (window.valid_to is None or window.valid_to >= target_date):
+                if window.valid_from <= target_date and (
+                    window.valid_to is None or window.valid_to >= target_date
+                ):
                     result[branch] = window.code
                     break
 
