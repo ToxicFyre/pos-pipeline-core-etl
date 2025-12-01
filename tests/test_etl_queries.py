@@ -12,26 +12,32 @@ import tempfile
 from datetime import date, timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from typing import Any, Generator
 
 import pandas as pd
 import pytest
 
 from pos_core import DataPaths
 from pos_core.payments import marts as payments_marts
-from pos_core.payments.metadata import StageMetadata, read_metadata
+from pos_core.payments.metadata import read_metadata
 from pos_core.sales import core as sales_core
-from pos_core.sales.metadata import write_metadata as write_sales_metadata
+from pos_core.sales.metadata import (
+    StageMetadata as SalesStageMetadata,
+)
+from pos_core.sales.metadata import (
+    write_metadata as write_sales_metadata,
+)
 
 
 @pytest.fixture
-def temp_data_dir():
+def temp_data_dir() -> Generator[Path, None, None]:
     """Create a temporary data directory for testing."""
     with tempfile.TemporaryDirectory() as tmpdir:
         yield Path(tmpdir)
 
 
 @pytest.fixture
-def test_paths(temp_data_dir):
+def test_paths(temp_data_dir: Path) -> DataPaths:
     """Create a DataPaths for testing."""
     sucursales_json = temp_data_dir / "sucursales.json"
     sucursales_json.write_text(
@@ -40,13 +46,15 @@ def test_paths(temp_data_dir):
     return DataPaths.from_root(temp_data_dir, sucursales_json)
 
 
-def test_get_sales_refresh_runs_all_stages(test_paths, monkeypatch):
+def test_get_sales_refresh_runs_all_stages(test_paths: DataPaths, monkeypatch: Any) -> None:
     """Test that refresh=True runs all stages."""
     # Mock the stage functions to track calls
-    download_called = []
-    clean_called = []
+    download_called: list[bool] = []
+    clean_called: list[bool] = []
 
-    def mock_download(paths, start_date, end_date, branches=None):
+    def mock_download(
+        paths: DataPaths, start_date: str, end_date: str, branches: list[str] | None = None
+    ) -> None:
         download_called.append(True)
         # Write metadata to simulate completion
         from pos_core.sales.metadata import StageMetadata, write_metadata
@@ -65,7 +73,9 @@ def test_get_sales_refresh_runs_all_stages(test_paths, monkeypatch):
             ),
         )
 
-    def mock_clean(paths, start_date, end_date, branches=None):
+    def mock_clean(
+        paths: DataPaths, start_date: str, end_date: str, branches: list[str] | None = None
+    ) -> None:
         clean_called.append(True)
         from pos_core.sales.metadata import StageMetadata, write_metadata
 
@@ -112,7 +122,7 @@ def test_get_sales_refresh_runs_all_stages(test_paths, monkeypatch):
     assert len(result) >= 1
 
 
-def test_get_sales_uses_existing_data_when_refresh_false(test_paths):
+def test_get_sales_uses_existing_data_when_refresh_false(test_paths: DataPaths) -> None:
     """Test that refresh=False uses existing data when available."""
     # Pre-create clean files and metadata
     test_paths.clean_sales.mkdir(parents=True, exist_ok=True)
@@ -138,7 +148,7 @@ def test_get_sales_uses_existing_data_when_refresh_false(test_paths):
             stage_dir,
             "2025-01-01",
             "2025-01-31",
-            StageMetadata(
+            SalesStageMetadata(
                 start_date="2025-01-01",
                 end_date="2025-01-31",
                 branches=[],
@@ -183,14 +193,14 @@ def test_get_payments_with_live_data() -> None:
         )
 
     # Strip quotes from environment variables if present
-    ws_base = ws_base.strip('"').strip("'") if ws_base else None
-    ws_user = ws_user.strip('"').strip("'") if ws_user else None
-    ws_pass = ws_pass.strip('"').strip("'") if ws_pass else None
+    ws_base_cleaned = ws_base.strip('"').strip("'") if ws_base else ""
+    ws_user_cleaned = ws_user.strip('"').strip("'") if ws_user else ""
+    ws_pass_cleaned = ws_pass.strip('"').strip("'") if ws_pass else ""
 
     # Set cleaned values back
-    os.environ["WS_BASE"] = ws_base
-    os.environ["WS_USER"] = ws_user
-    os.environ["WS_PASS"] = ws_pass
+    os.environ["WS_BASE"] = ws_base_cleaned
+    os.environ["WS_USER"] = ws_user_cleaned
+    os.environ["WS_PASS"] = ws_pass_cleaned
 
     # Use temporary directory
     with TemporaryDirectory() as tmpdir:
@@ -283,13 +293,13 @@ def test_get_payments_metadata_tracking() -> None:
         pytest.skip("Live test skipped: credentials required")
 
     # Strip quotes
-    ws_base = ws_base.strip('"').strip("'") if ws_base else None
-    ws_user = ws_user.strip('"').strip("'") if ws_user else None
-    ws_pass = ws_pass.strip('"').strip("'") if ws_pass else None
+    ws_base_cleaned = ws_base.strip('"').strip("'") if ws_base else ""
+    ws_user_cleaned = ws_user.strip('"').strip("'") if ws_user else ""
+    ws_pass_cleaned = ws_pass.strip('"').strip("'") if ws_pass else ""
 
-    os.environ["WS_BASE"] = ws_base
-    os.environ["WS_USER"] = ws_user
-    os.environ["WS_PASS"] = ws_pass
+    os.environ["WS_BASE"] = ws_base_cleaned
+    os.environ["WS_USER"] = ws_user_cleaned
+    os.environ["WS_PASS"] = ws_pass_cleaned
 
     with TemporaryDirectory() as tmpdir:
         data_root = Path(tmpdir) / "data"
