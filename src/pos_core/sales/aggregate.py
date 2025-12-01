@@ -39,6 +39,7 @@ def _filter_csv_files_by_date_range(
 
     Returns:
         List of Path objects for CSV files that overlap with the date range.
+
     """
     start = pd.to_datetime(start_date).date()
     end = pd.to_datetime(end_date).date()

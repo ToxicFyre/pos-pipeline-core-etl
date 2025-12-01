@@ -239,14 +239,12 @@ def test_fetch_group_date_filtering_edge_case() -> None:
         start_b_str = start_date_b.strftime("%Y-%m-%d")
         end_b_str = end_date_b.strftime("%Y-%m-%d")
 
-        print(
-            f"\n[Live Date Filtering Test] Testing date filtering edge case"
-        )
+        print("\n[Live Date Filtering Test] Testing date filtering edge case")
         print(f"[Live Date Filtering Test] Range A: {start_a_str} to {end_a_str}")
         print(f"[Live Date Filtering Test] Range B: {start_b_str} to {end_b_str}")
 
         # Step 1: Process data for range A
-        print(f"\n[Live Date Filtering Test] Step 1: Processing data for range A...")
+        print("\n[Live Date Filtering Test] Step 1: Processing data for range A...")
         try:
             result_a = sales_marts.fetch_group(
                 paths=paths,
@@ -264,10 +262,12 @@ def test_fetch_group_date_filtering_edge_case() -> None:
             pytest.skip(f"Failed to process range A: {e}")
 
         assert result_a is not None, "Range A should return a DataFrame"
-        print(f"[Live Date Filtering Test] Range A result: {len(result_a)} rows, {len(result_a.columns)} columns")
+        print(
+            f"[Live Date Filtering Test] Range A result: {len(result_a)} rows, {len(result_a.columns)} columns"
+        )
 
         # Step 2: Process data for range B
-        print(f"\n[Live Date Filtering Test] Step 2: Processing data for range B...")
+        print("\n[Live Date Filtering Test] Step 2: Processing data for range B...")
         try:
             result_b = sales_marts.fetch_group(
                 paths=paths,
@@ -285,7 +285,9 @@ def test_fetch_group_date_filtering_edge_case() -> None:
             pytest.skip(f"Failed to process range B: {e}")
 
         assert result_b is not None, "Range B should return a DataFrame"
-        print(f"[Live Date Filtering Test] Range B result: {len(result_b)} rows, {len(result_b.columns)} columns")
+        print(
+            f"[Live Date Filtering Test] Range B result: {len(result_b)} rows, {len(result_b.columns)} columns"
+        )
 
         # Step 3: Verify that range B does NOT include data from range A
         # The key test: Check that the total values in range B are NOT the sum of both ranges
@@ -324,35 +326,37 @@ def test_fetch_group_date_filtering_edge_case() -> None:
             dates_b = set()
 
             if "operating_date" in ticket_df_a.columns:
-                ticket_df_a["operating_date"] = pd.to_datetime(ticket_df_a["operating_date"]).dt.date
+                ticket_df_a["operating_date"] = pd.to_datetime(
+                    ticket_df_a["operating_date"]
+                ).dt.date
                 dates_a = set(ticket_df_a["operating_date"].unique())
                 print(f"[Live Date Filtering Test] Range A contains dates: {sorted(dates_a)}")
 
                 # Verify all dates in range A are within the requested range
                 start_a = pd.to_datetime(start_a_str).date()
                 end_a = pd.to_datetime(end_a_str).date()
-                assert all(
-                    start_a <= d <= end_a for d in dates_a
-                ), f"Range A contains dates outside requested range: {dates_a}"
+                assert all(start_a <= d <= end_a for d in dates_a), (
+                    f"Range A contains dates outside requested range: {dates_a}"
+                )
 
             if "operating_date" in ticket_df_b.columns:
-                ticket_df_b["operating_date"] = pd.to_datetime(ticket_df_b["operating_date"]).dt.date
+                ticket_df_b["operating_date"] = pd.to_datetime(
+                    ticket_df_b["operating_date"]
+                ).dt.date
                 dates_b = set(ticket_df_b["operating_date"].unique())
                 print(f"[Live Date Filtering Test] Range B contains dates: {sorted(dates_b)}")
 
                 # Verify all dates in range B are within the requested range
                 start_b = pd.to_datetime(start_b_str).date()
                 end_b = pd.to_datetime(end_b_str).date()
-                assert all(
-                    start_b <= d <= end_b for d in dates_b
-                ), f"Range B contains dates outside requested range: {dates_b}"
+                assert all(start_b <= d <= end_b for d in dates_b), (
+                    f"Range B contains dates outside requested range: {dates_b}"
+                )
 
             # KEY TEST: Verify that range B does NOT contain dates from range A
             if dates_a and dates_b:
                 overlap = dates_a.intersection(dates_b)
-                assert (
-                    len(overlap) == 0
-                ), (
+                assert len(overlap) == 0, (
                     f"Range B should NOT contain dates from range A! "
                     f"Overlapping dates found: {overlap}. "
                     f"This indicates the date filtering bug is not fixed."
@@ -369,12 +373,14 @@ def test_fetch_group_date_filtering_edge_case() -> None:
             assert group_mart_a.exists(), f"Group mart A should exist: {group_mart_a}"
             assert group_mart_b.exists(), f"Group mart B should exist: {group_mart_b}"
 
-            print(f"[Live Date Filtering Test] ✓ Both group mart files created correctly")
+            print("[Live Date Filtering Test] ✓ Both group mart files created correctly")
             print(f"[Live Date Filtering Test] ✓ Range A group mart: {group_mart_a}")
             print(f"[Live Date Filtering Test] ✓ Range B group mart: {group_mart_b}")
 
         print("\n[Live Date Filtering Test] ✓ All date filtering tests passed")
-        print("[Live Date Filtering Test] ✓ Verified that fetch_group correctly filters by date range")
+        print(
+            "[Live Date Filtering Test] ✓ Verified that fetch_group correctly filters by date range"
+        )
         print("[Live Date Filtering Test] ✓ Verified that data from different ranges are not mixed")
 
 
