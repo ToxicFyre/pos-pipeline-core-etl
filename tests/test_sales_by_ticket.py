@@ -134,38 +134,35 @@ def test_aggregate_by_ticket_with_directory_path_live() -> None:
 
         # Verify the result
         assert result is not None, "fetch_ticket should return a DataFrame"
+        assert not result.empty, (
+            f"Expected sales data for date range {start_str} to {end_str}, but got empty result. "
+            f"This indicates a failure in data retrieval or aggregation."
+        )
         assert "order_id" in result.columns, "Result should have order_id column"
         assert "sucursal" in result.columns, "Result should have sucursal column"
 
         # The key test: No PermissionError occurred with directory path
-        # Empty results are OK - the important thing is that the directory path was handled correctly
         print("[Live Directory Path Test] ✓ No PermissionError occurred with directory path")
-        print(f"[Live Directory Path Test] ✓ Successfully processed directory path (result has {len(result)} tickets)")
+        print(
+            f"[Live Directory Path Test] ✓ Successfully processed directory path (result has {len(result)} tickets)"
+        )
         print(f"[Live Directory Path Test] ✓ Sample columns: {list(result.columns)[:10]}")
 
-        # Verify data quality if we have data
-        if not result.empty:
-            if "sucursal" in result.columns:
-                unique_branches = sorted(result["sucursal"].unique().tolist())
-                print(
-                    f"[Live Directory Path Test] ✓ Found {len(result)} tickets across "
-                    f"{len(unique_branches)} branch(es): {unique_branches}"
-                )
-                # Check for Kavia-related branches (might be "Panem - Hotel Kavia N" or similar)
-                kavia_related = [
-                    b for b in unique_branches if "kavia" in b.lower() or "Kavia" in b
-                ]
-                if kavia_related:
-                    kavia_data = result[result["sucursal"].isin(kavia_related)]
-                    print(
-                        f"[Live Directory Path Test] ✓ Found {len(kavia_data)} tickets for "
-                        f"Kavia-related branch(es): {kavia_related}"
-                    )
-        else:
+        # Verify data quality
+        if "sucursal" in result.columns:
+            unique_branches = sorted(result["sucursal"].unique().tolist())
             print(
-                "[Live Directory Path Test] ⚠ Empty result (no sales data for date range) - "
-                "this is OK, the important thing is no PermissionError occurred"
+                f"[Live Directory Path Test] ✓ Found {len(result)} tickets across "
+                f"{len(unique_branches)} branch(es): {unique_branches}"
             )
+            # Check for Kavia-related branches (might be "Panem - Hotel Kavia N" or similar)
+            kavia_related = [b for b in unique_branches if "kavia" in b.lower() or "Kavia" in b]
+            if kavia_related:
+                kavia_data = result[result["sucursal"].isin(kavia_related)]
+                print(
+                    f"[Live Directory Path Test] ✓ Found {len(kavia_data)} tickets for "
+                    f"Kavia-related branch(es): {kavia_related}"
+                )
 
         # Verify the output file was created
         mart_path = paths.mart_sales / f"mart_sales_by_ticket_{start_str}_{end_str}.csv"
