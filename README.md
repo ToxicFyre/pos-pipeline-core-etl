@@ -2,7 +2,7 @@
 
 A comprehensive Python package for Point of Sale (POS) data processing, forecasting, and quality assurance. Extract payment and sales data from POS systems, transform it through bronze/silver/gold layers, generate forecasts, and perform automated quality checks.
 
-> **📚 Full Documentation**: [View in Repository](https://github.com/ToxicFyre/pos-pipeline-core-etl/tree/main/docs)
+> **📚 Full Documentation**: [https://toxicfyre.github.io/pos-pipeline-core-etl/](https://toxicfyre.github.io/pos-pipeline-core-etl/)
 
 ## Features
 
@@ -187,18 +187,18 @@ This package is designed for POS systems that expose **Wansoft-style HTTP export
 
 ### User Guide
 
-- **[Installation](docs/user-guide/installation.md)** - Setup and requirements
-- **[Quickstart](docs/user-guide/quickstart.md)** - Get started in minutes
-- **[Configuration](docs/user-guide/configuration.md)** - Branch config and environment variables
-- **[Concepts](docs/user-guide/concepts.md)** - Key concepts and design decisions
-- **[Examples](docs/user-guide/examples.md)** - Runnable example scripts
+- **[Installation](https://toxicfyre.github.io/pos-pipeline-core-etl/user-guide/installation/)** - Setup and requirements
+- **[Quickstart](https://toxicfyre.github.io/pos-pipeline-core-etl/user-guide/quickstart/)** - Get started in minutes
+- **[Configuration](https://toxicfyre.github.io/pos-pipeline-core-etl/user-guide/configuration/)** - Branch config and environment variables
+- **[Concepts](https://toxicfyre.github.io/pos-pipeline-core-etl/user-guide/concepts/)** - Key concepts and design decisions
+- **[Examples](https://toxicfyre.github.io/pos-pipeline-core-etl/user-guide/examples/)** - Runnable example scripts
 
 ### API Reference
 
-- **[ETL API](docs/api-reference/etl.md)** - ETL pipeline functions
-- **[Forecasting API](docs/api-reference/forecasting.md)** - Time series forecasting
-- **[QA API](docs/api-reference/qa.md)** - Quality assurance and validation
-- **[Exceptions](docs/api-reference/exceptions.md)** - Error handling
+- **[ETL API](https://toxicfyre.github.io/pos-pipeline-core-etl/api-reference/etl/)** - ETL pipeline functions
+- **[Forecasting API](https://toxicfyre.github.io/pos-pipeline-core-etl/api-reference/forecasting/)** - Time series forecasting
+- **[QA API](https://toxicfyre.github.io/pos-pipeline-core-etl/api-reference/qa/)** - Quality assurance and validation
+- **[Exceptions](https://toxicfyre.github.io/pos-pipeline-core-etl/api-reference/exceptions/)** - Error handling
 
 ## Requirements
 
@@ -238,7 +238,7 @@ python3 -m mypy src/pos_core
 
 ## Migration from v0.2.x
 
-The API was refactored in v0.3.0 to use module namespaces. See the [migration guide](docs/user-guide/concepts.md#migration-from-v02x) for details.
+The API was refactored in v0.3.0 to use module namespaces. See the [migration guide](https://toxicfyre.github.io/pos-pipeline-core-etl/user-guide/concepts/#migration-from-v02x) for details.
 
 | Old API (v0.2.x) | New API (v0.3.x) |
 |------------------|------------------|
@@ -253,6 +253,6 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Support
 
-- **Documentation**: [View in Repository](https://github.com/ToxicFyre/pos-pipeline-core-etl/tree/main/docs)
+- **Documentation**: [https://toxicfyre.github.io/pos-pipeline-core-etl/](https://toxicfyre.github.io/pos-pipeline-core-etl/)
 - **Issues**: [GitHub Issues](https://github.com/ToxicFyre/pos-pipeline-core-etl/issues)
 - **Source Code**: [`src/pos_core/`](src/pos_core/)
