@@ -109,6 +109,7 @@ def test_aggregate_by_ticket_with_directory_path_live() -> None:
         # aggregate_to_ticket passes str(paths.clean_sales) to aggregate_by_ticket
         # This was causing the PermissionError bug before the fix
         # Note: Don't filter by branches initially to see all data, then check branch names
+        # If credentials are provided, test MUST succeed - any failure is a test failure
         try:
             result = sales_marts.fetch_ticket(
                 paths=paths,
@@ -130,7 +131,10 @@ def test_aggregate_by_ticket_with_directory_path_live() -> None:
             error_details = traceback.format_exc()
             print(f"\n[Live Directory Path Test] Error in sales ticket aggregation: {e}")
             print(f"[Live Directory Path Test] Full traceback:\n{error_details}")
-            pytest.skip(f"Failed to aggregate sales tickets: {e}")
+            pytest.fail(
+                f"Live test FAILED: Sales ticket aggregation failed with credentials provided. "
+                f"This indicates authentication or data retrieval failure. Error: {e}"
+            )
 
         # Verify the result
         assert result is not None, "fetch_ticket should return a DataFrame"
@@ -247,6 +251,7 @@ def test_fetch_group_date_filtering_edge_case() -> None:
         print(f"[Live Date Filtering Test] Range B: {start_b_str} to {end_b_str}")
 
         # Step 1: Process data for range A
+        # If credentials are provided, test MUST succeed - any failure is a test failure
         print("\n[Live Date Filtering Test] Step 1: Processing data for range A...")
         try:
             result_a = sales_marts.fetch_group(
@@ -262,7 +267,10 @@ def test_fetch_group_date_filtering_edge_case() -> None:
             error_details = traceback.format_exc()
             print(f"\n[Live Date Filtering Test] Error processing range A: {e}")
             print(f"[Live Date Filtering Test] Full traceback:\n{error_details}")
-            pytest.skip(f"Failed to process range A: {e}")
+            pytest.fail(
+                f"Live test FAILED: Data processing failed for range A with credentials provided. "
+                f"This indicates authentication or data retrieval failure. Error: {e}"
+            )
 
         assert result_a is not None, "Range A should return a DataFrame"
         print(
@@ -270,6 +278,7 @@ def test_fetch_group_date_filtering_edge_case() -> None:
         )
 
         # Step 2: Process data for range B
+        # If credentials are provided, test MUST succeed - any failure is a test failure
         print("\n[Live Date Filtering Test] Step 2: Processing data for range B...")
         try:
             result_b = sales_marts.fetch_group(
@@ -285,7 +294,10 @@ def test_fetch_group_date_filtering_edge_case() -> None:
             error_details = traceback.format_exc()
             print(f"\n[Live Date Filtering Test] Error processing range B: {e}")
             print(f"[Live Date Filtering Test] Full traceback:\n{error_details}")
-            pytest.skip(f"Failed to process range B: {e}")
+            pytest.fail(
+                f"Live test FAILED: Data processing failed for range B with credentials provided. "
+                f"This indicates authentication or data retrieval failure. Error: {e}"
+            )
 
         assert result_b is not None, "Range B should return a DataFrame"
         print(

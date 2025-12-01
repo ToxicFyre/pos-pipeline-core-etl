@@ -218,6 +218,7 @@ def test_get_payments_with_live_data() -> None:
         print(f"\n[Live Query Test] Testing payments ETL from {start_date} to {end_date}")
 
         # First call: should download and process
+        # If credentials are provided, test MUST succeed - any failure is a test failure
         try:
             result1 = payments_marts.fetch_daily(
                 paths=paths,
@@ -232,7 +233,10 @@ def test_get_payments_with_live_data() -> None:
             error_details = traceback.format_exc()
             print(f"\n[Live Query Test] Error in payments ETL: {e}")
             print(f"[Live Query Test] Full traceback:\n{error_details}")
-            pytest.skip(f"Failed to get payments: {e}")
+            pytest.fail(
+                f"Live test FAILED: Payments ETL failed with credentials provided. "
+                f"This indicates authentication or data retrieval failure. Error: {e}"
+            )
 
         # Validate first result
         assert not result1.empty, "First call should return data"
@@ -330,12 +334,21 @@ def test_get_payments_metadata_tracking() -> None:
         print(f"\n[Live Metadata Test] Testing metadata tracking from {start_date} to {end_date}")
 
         # Run payments_marts.fetch_daily
+        # If credentials are provided, test MUST succeed - any failure is a test failure
         try:
             result = payments_marts.fetch_daily(
                 paths, start_str, end_str, branches=["Kavia"], mode="force"
             )
         except Exception as e:
-            pytest.skip(f"Failed to get payments: {e}")
+            import traceback
+
+            error_details = traceback.format_exc()
+            print(f"\n[Live Metadata Test] Error getting payments: {e}")
+            print(f"[Live Metadata Test] Full traceback:\n{error_details}")
+            pytest.fail(
+                f"Live test FAILED: Payments ETL failed with credentials provided. "
+                f"This indicates authentication or data retrieval failure. Error: {e}"
+            )
 
         assert not result.empty
 
