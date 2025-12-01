@@ -20,7 +20,11 @@ from pos_core.etl import PaymentsETLConfig, get_payments
 
 naive_path = Path(__file__).parent / "src" / "pos_core" / "forecasting" / "models" / "naive.py"
 spec = importlib.util.spec_from_file_location("naive", naive_path)
+if spec is None:
+    raise ImportError(f"Could not create spec for {naive_path}")
 naive_module = importlib.util.module_from_spec(spec)
+if spec.loader is None:
+    raise ImportError(f"Spec for {naive_path} has no loader")
 spec.loader.exec_module(naive_module)
 NaiveLastWeekModel = naive_module.NaiveLastWeekModel
 

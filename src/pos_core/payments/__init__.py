@@ -22,5 +22,6 @@ Example:
 """
 
 from pos_core.payments import core, marts, raw
+from pos_core.payments.api import get_payments
 
-__all__ = ["core", "marts", "raw"]
+__all__ = ["core", "marts", "raw", "get_payments"]

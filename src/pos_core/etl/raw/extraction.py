@@ -432,7 +432,7 @@ def login_if_needed(
         user = os.environ.get("WS_USER")
     if pwd is None:
         pwd = os.environ.get("WS_PASS")
-    
+
     # Seed the session on tenant root (sets cookies that some auth flows expect)
     seed = s.get(f"{base_url}/")
     if seed.status_code not in (200, 302):
