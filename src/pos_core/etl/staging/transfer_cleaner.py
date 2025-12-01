@@ -1,4 +1,4 @@
-"""Staging (Silver) layer: POS transfer report cleaner.
+r"""Staging (Silver) layer: POS transfer report cleaner.
 
 This module is part of the Staging (Silver) layer in the ETL pipeline.
 It transforms raw transfer Excel files into clean, normalized CSV files.
@@ -28,13 +28,13 @@ Examples:
     Batch (folder):
         python -m pos_etl.b_transform.pos_excel_transfer_cleaner \\
             --input-dir ./downloads --recursive --outdir ./csv
+
 """
 
 import csv
 import re
 import unicodedata
 from pathlib import Path
-from typing import Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -94,6 +94,7 @@ def detect_header_row(df_no_header: pd.DataFrame, scan: int = 40) -> int:
 
     Returns:
         Row index (0-based) with the best match.
+
     """
     best_row, best_score = 0, -1
     for i in range(min(scan, len(df_no_header))):
@@ -128,6 +129,7 @@ def clean_to_minimal_csv(input_path: Path, output_csv: Path) -> Path:
 
     Raises:
         RuntimeError: If required columns are missing from the Excel file.
+
     """
     xls = pd.ExcelFile(input_path)
     sheet_name = "Transferencias" if "Transferencias" in xls.sheet_names else xls.sheet_names[0]
@@ -149,7 +151,7 @@ def clean_to_minimal_csv(input_path: Path, output_csv: Path) -> Path:
 
     df_raw.columns = uniquify([to_snake(c) for c in df_raw.columns])
 
-    def pick(*cands: str) -> Optional[str]:
+    def pick(*cands: str) -> str | None:
         for cand in cands:
             if cand and cand in df_raw.columns:
                 return cand
@@ -201,7 +203,7 @@ def clean_to_minimal_csv(input_path: Path, output_csv: Path) -> Path:
     df["ieps_total"] = df["cantidad"] * df["ieps_unit"] if "ieps_unit" in df.columns else np.nan
     df["iva_total"] = df["cantidad"] * df["iva_unit"] if "iva_unit" in df.columns else np.nan
 
-    def safe_unit_cost(row: pd.Series) -> Union[float, np.floating]:
+    def safe_unit_cost(row: pd.Series) -> float | np.floating:
         qty = row.get("cantidad")
         costo = row.get("costo_ext")
         if qty is None or pd.isna(qty) or qty == 0 or costo is None or pd.isna(costo):
@@ -224,25 +226,23 @@ def clean_to_minimal_csv(input_path: Path, output_csv: Path) -> Path:
         if c in df.columns:
             df[c] = df[c].map(neutralize)
 
-    minimal = pd.DataFrame(
-        {
-            "Orden": df["orden"],
-            "Almacén origen": df["almacen_origen"],
-            "Sucursal destino": df["sucursal_destino"],
-            "Almacén destino": df["almacen_destino"],
-            "Fecha": df["fecha"],
-            "Estatus": df["estatus"],
-            "Cantidad": df["cantidad"],
-            "Departamento": df["departamento"],
-            "Clave": df["clave"],
-            "Producto": df["producto"],
-            "Presentación": df["presentacion"],
-            "Costo": df["costo_ext"],
-            "IEPS": df["ieps_total"],
-            "IVA": df["iva_total"],
-            "Costo unitario": df["costo_unitario_calc"],
-        }
-    )
+    minimal = pd.DataFrame({
+        "Orden": df["orden"],
+        "Almacén origen": df["almacen_origen"],
+        "Sucursal destino": df["sucursal_destino"],
+        "Almacén destino": df["almacen_destino"],
+        "Fecha": df["fecha"],
+        "Estatus": df["estatus"],
+        "Cantidad": df["cantidad"],
+        "Departamento": df["departamento"],
+        "Clave": df["clave"],
+        "Producto": df["producto"],
+        "Presentación": df["presentacion"],
+        "Costo": df["costo_ext"],
+        "IEPS": df["ieps_total"],
+        "IVA": df["iva_total"],
+        "Costo unitario": df["costo_unitario_calc"],
+    })
 
     # Neutralize Excel formula injection on ALL object columns
     obj_cols = df.select_dtypes(include=["object"]).columns

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 from itertools import product
-from typing import Any, Tuple
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -29,12 +29,12 @@ class LogARIMAModel(ForecastModel):
     def __init__(
         self,
         seasonal_period: int = SEASONAL_PERIOD,
-        p_range: Tuple[int, ...] = (0, 1, 2),
-        d_range: Tuple[int, ...] = (0, 1),
-        q_range: Tuple[int, ...] = (0, 1, 2),
-        p_seasonal_range: Tuple[int, ...] = (0, 1),
-        d_seasonal_range: Tuple[int, ...] = (0, 1),
-        q_seasonal_range: Tuple[int, ...] = (0, 1),
+        p_range: tuple[int, ...] = (0, 1, 2),
+        d_range: tuple[int, ...] = (0, 1),
+        q_range: tuple[int, ...] = (0, 1, 2),
+        p_seasonal_range: tuple[int, ...] = (0, 1),
+        d_seasonal_range: tuple[int, ...] = (0, 1),
+        q_seasonal_range: tuple[int, ...] = (0, 1),
     ):
         """Initialize LogARIMAModel with hyperparameter search ranges.
 
@@ -42,6 +42,7 @@ class LogARIMAModel(ForecastModel):
             seasonal_period: Seasonal period (default: 7 for weekly seasonality)
             p_range, d_range, q_range: ARIMA order parameter ranges
             P_range, D_range, Q_range: Seasonal order parameter ranges
+
         """
         self.seasonal_period = seasonal_period
         self.p_range = p_range
@@ -63,6 +64,7 @@ class LogARIMAModel(ForecastModel):
 
         Raises:
             ValueError: If insufficient data or no valid model found
+
         """
         # Convert to log space for ARIMA modeling
         # Using log transformation helps handle:
@@ -139,6 +141,7 @@ class LogARIMAModel(ForecastModel):
 
         Returns:
             Forecast series with DateTimeIndex, back-transformed to original scale
+
         """
         # Generate forecast in log space
         forecast_log = model.get_forecast(steps=steps)
@@ -174,13 +177,13 @@ def train_log_arima(
     series: pd.Series,
     steps: int = FORECAST_DAYS,
     seasonal_period: int = SEASONAL_PERIOD,
-    p_range: Tuple[int, ...] = (0, 1, 2),
-    d_range: Tuple[int, ...] = (0, 1),
-    q_range: Tuple[int, ...] = (0, 1, 2),
-    p_seasonal_range: Tuple[int, ...] = (0, 1),
-    d_seasonal_range: Tuple[int, ...] = (0, 1),
-    q_seasonal_range: Tuple[int, ...] = (0, 1),
-) -> Tuple[Any, pd.Series]:
+    p_range: tuple[int, ...] = (0, 1, 2),
+    d_range: tuple[int, ...] = (0, 1),
+    q_range: tuple[int, ...] = (0, 1, 2),
+    p_seasonal_range: tuple[int, ...] = (0, 1),
+    d_seasonal_range: tuple[int, ...] = (0, 1),
+    q_seasonal_range: tuple[int, ...] = (0, 1),
+) -> tuple[Any, pd.Series]:
     """Train log ARIMA model and generate forecast (backward compatibility function).
 
     This function provides backward compatibility with the old interface.
@@ -196,6 +199,7 @@ def train_log_arima(
     Returns:
         Tuple of (fitted_model, forecast_series) where forecast is
         back-transformed to original scale
+
     """
     model = LogARIMAModel(
         seasonal_period=seasonal_period,

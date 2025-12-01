@@ -1,4 +1,4 @@
-"""CLI entry point for payments ETL pipeline.
+r"""CLI entry point for payments ETL pipeline.
 
 This module provides a command-line interface for running the payments ETL
 pipeline. The actual ETL logic is implemented in pos_core.etl.api.
@@ -15,6 +15,7 @@ Examples:
         # Use custom data root
         python -m pos_core.etl.build_payments_dataset \\
             --data-root /path/to/data --start 2023-01-01 --end 2023-12-31
+
 """
 
 from __future__ import annotations
@@ -30,7 +31,7 @@ from pos_core.etl.utils import parse_date
 
 
 def main() -> None:
-    """Main entry point for the build_payments_dataset command-line tool.
+    """Execute the build_payments_dataset command-line tool.
 
     Parses command-line arguments and executes the payments ETL pipeline
     using the new API.
@@ -49,6 +50,7 @@ def main() -> None:
         $ python -m pos_core.etl.build_payments_dataset
         $ python -m pos_core.etl.build_payments_dataset --start 2023-01-01
         $ python -m pos_core.etl.build_payments_dataset --data-root /custom/path
+
     """
     parser = argparse.ArgumentParser(
         description=(
@@ -99,7 +101,7 @@ def main() -> None:
         start_date = parse_date(args.start)
         end_date = parse_date(args.end)
     except ValueError as e:
-        raise SystemExit(f"ERROR: Invalid date format. {e}")
+        raise SystemExit(f"ERROR: Invalid date format. {e}") from e
 
     if start_date > end_date:
         raise SystemExit("ERROR: start date is after end date.")

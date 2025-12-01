@@ -2,7 +2,7 @@
 
 These tests verify that the data layers maintain the correct grain:
 - Sales core fact (fact_sales_item_line): One row per item/modifier line
-- Payments core fact (fact_payments_ticket): One row per ticket × payment method
+- Payments core fact (fact_payments_ticket): One row per ticket x payment method
 
 The grain assertions ensure data integrity across the ETL pipeline and help
 detect regressions that could affect downstream aggregations.
@@ -28,34 +28,32 @@ class TestSalesGrain:
         This represents the output of the staging layer (b_clean/sales/)
         which IS the core fact for sales.
         """
-        return pd.DataFrame(
-            {
-                "sucursal": ["Kavia", "Kavia", "Kavia", "Kavia", "Nativa", "Nativa"],
-                "operating_date": [
-                    "2025-01-15",
-                    "2025-01-15",
-                    "2025-01-15",
-                    "2025-01-15",
-                    "2025-01-15",
-                    "2025-01-15",
-                ],
-                "order_id": [1001, 1001, 1001, 1002, 2001, 2001],
-                "item_key": ["CAFE01", "PAN01", "MOD_LECHE", "CAFE01", "JUGO01", "PAN02"],
-                "item": [
-                    "Café Americano",
-                    "Pan Dulce",
-                    "Extra Leche",
-                    "Café Americano",
-                    "Jugo",
-                    "Pan",
-                ],
-                "is_modifier": [False, False, True, False, False, False],
-                "group": ["CAFE", "PAN DULCE", "MOD BEBIDAS", "CAFE", "JUGOS", "PAN DULCE"],
-                "quantity": [1, 2, 1, 1, 1, 1],
-                "subtotal_item": [45.0, 30.0, 10.0, 45.0, 35.0, 25.0],
-                "total_item": [52.2, 34.8, 11.6, 52.2, 40.6, 29.0],
-            }
-        )
+        return pd.DataFrame({
+            "sucursal": ["Kavia", "Kavia", "Kavia", "Kavia", "Nativa", "Nativa"],
+            "operating_date": [
+                "2025-01-15",
+                "2025-01-15",
+                "2025-01-15",
+                "2025-01-15",
+                "2025-01-15",
+                "2025-01-15",
+            ],
+            "order_id": [1001, 1001, 1001, 1002, 2001, 2001],
+            "item_key": ["CAFE01", "PAN01", "MOD_LECHE", "CAFE01", "JUGO01", "PAN02"],
+            "item": [
+                "Café Americano",
+                "Pan Dulce",
+                "Extra Leche",
+                "Café Americano",
+                "Jugo",
+                "Pan",
+            ],
+            "is_modifier": [False, False, True, False, False, False],
+            "group": ["CAFE", "PAN DULCE", "MOD BEBIDAS", "CAFE", "JUGOS", "PAN DULCE"],
+            "quantity": [1, 2, 1, 1, 1, 1],
+            "subtotal_item": [45.0, 30.0, 10.0, 45.0, 35.0, 25.0],
+            "total_item": [52.2, 34.8, 11.6, 52.2, 40.6, 29.0],
+        })
 
     def test_sales_item_line_grain_has_multiple_rows_per_ticket(
         self, sample_sales_item_data: pd.DataFrame
@@ -131,40 +129,38 @@ class TestSalesGrain:
 
 
 class TestPaymentsGrain:
-    """Tests for payments data grain at the ticket × payment method level.
+    """Tests for payments data grain at the ticket x payment method level.
 
     The payments core fact (fact_payments_ticket) should have:
-    - One row per ticket × payment method
+    - One row per ticket x payment method
     - Key uniqueness: (sucursal, operating_date, order_index, payment_method)
     - A ticket with multiple payment methods has multiple rows
     """
 
     @pytest.fixture
     def sample_payments_ticket_data(self) -> pd.DataFrame:
-        """Create a sample payments DataFrame at ticket × payment method grain."""
-        return pd.DataFrame(
-            {
-                "sucursal": ["Kavia", "Kavia", "Kavia", "Nativa", "Nativa"],
-                "operating_date": [
-                    "2025-01-15",
-                    "2025-01-15",
-                    "2025-01-15",
-                    "2025-01-15",
-                    "2025-01-15",
-                ],
-                "order_index": [1001, 1001, 1002, 2001, 2002],
-                "payment_method": [
-                    "Efectivo",
-                    "Tarjeta Crédito",
-                    "Efectivo",
-                    "Tarjeta Débito",
-                    "Efectivo",
-                ],
-                "ticket_total": [50.0, 100.0, 75.0, 120.0, 45.0],
-                "ticket_tip": [5.0, 10.0, 7.5, 12.0, 0.0],
-                "ticket_total_plus_tip": [55.0, 110.0, 82.5, 132.0, 45.0],
-            }
-        )
+        """Create a sample payments DataFrame at ticket x payment method grain."""
+        return pd.DataFrame({
+            "sucursal": ["Kavia", "Kavia", "Kavia", "Nativa", "Nativa"],
+            "operating_date": [
+                "2025-01-15",
+                "2025-01-15",
+                "2025-01-15",
+                "2025-01-15",
+                "2025-01-15",
+            ],
+            "order_index": [1001, 1001, 1002, 2001, 2002],
+            "payment_method": [
+                "Efectivo",
+                "Tarjeta Crédito",
+                "Efectivo",
+                "Tarjeta Débito",
+                "Efectivo",
+            ],
+            "ticket_total": [50.0, 100.0, 75.0, 120.0, 45.0],
+            "ticket_tip": [5.0, 10.0, 7.5, 12.0, 0.0],
+            "ticket_total_plus_tip": [55.0, 110.0, 82.5, 132.0, 45.0],
+        })
 
     def test_payments_ticket_grain_allows_multiple_payment_methods(
         self, sample_payments_ticket_data: pd.DataFrame
@@ -186,7 +182,7 @@ class TestPaymentsGrain:
     def test_payments_ticket_key_uniqueness(
         self, sample_payments_ticket_data: pd.DataFrame
     ) -> None:
-        """Verify that ticket × payment method key uniquely identifies rows."""
+        """Verify that ticket x payment method key uniquely identifies rows."""
         df = sample_payments_ticket_data
         key_cols = ["sucursal", "operating_date", "order_index", "payment_method"]
 
@@ -219,13 +215,11 @@ class TestPaymentsGrain:
         # Aggregate to daily level
         daily_agg = (
             df.groupby(["sucursal", "operating_date"])
-            .agg(
-                {
-                    "ticket_total": "sum",
-                    "ticket_tip": "sum",
-                    "order_index": "nunique",
-                }
-            )
+            .agg({
+                "ticket_total": "sum",
+                "ticket_tip": "sum",
+                "order_index": "nunique",
+            })
             .reset_index()
             .rename(columns={"order_index": "num_tickets"})
         )

@@ -10,7 +10,6 @@ import json
 import logging
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +25,7 @@ class StageMetadata:
         version: Version string for the stage logic.
         last_run: ISO timestamp of when stage was run.
         status: "ok", "failed", or "partial".
+
     """
 
     start_date: str
@@ -59,7 +59,7 @@ def read_metadata(
     stage_dir: Path,
     start_date: str,
     end_date: str,
-) -> Optional[StageMetadata]:
+) -> StageMetadata | None:
     """Read metadata file for a date range, if it exists."""
     path = _meta_path(stage_dir, start_date, end_date)
     if not path.exists():
@@ -90,6 +90,4 @@ def should_run_stage(
         return True
     if meta.status != "ok":
         return True
-    if meta.version != version:
-        return True
-    return False
+    return meta.version != version

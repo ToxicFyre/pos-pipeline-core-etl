@@ -8,8 +8,8 @@ banking deposit patterns:
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import date, timedelta
-from typing import Callable, List, Tuple
 
 
 def is_holiday_or_adjacent(d: date, holidays: set[date]) -> bool:
@@ -21,13 +21,14 @@ def is_holiday_or_adjacent(d: date, holidays: set[date]) -> bool:
 
     Returns:
         True if date is a holiday or adjacent to a holiday
+
     """
     return (
         d in holidays or (d - timedelta(days=1)) in holidays or (d + timedelta(days=1)) in holidays
     )
 
 
-def get_dates_needed_for_cash_deposit(forecast_date: date) -> List[date]:
+def get_dates_needed_for_cash_deposit(forecast_date: date) -> list[date]:
     """Get the dates needed for cash deposit calculation based on deposit date.
 
     Cash deposits are batched:
@@ -42,6 +43,7 @@ def get_dates_needed_for_cash_deposit(forecast_date: date) -> List[date]:
     Returns:
         List of dates whose cash sales are included in this deposit.
         Returns empty list if no cash deposit on this weekday.
+
     """
     weekday = forecast_date.weekday()  # 0=Monday, 4=Friday
 
@@ -65,7 +67,7 @@ def get_dates_needed_for_cash_deposit(forecast_date: date) -> List[date]:
         return []  # No cash deposits on Tue/Thu
 
 
-def get_dates_needed_for_card_deposit(forecast_date: date) -> List[date]:
+def get_dates_needed_for_card_deposit(forecast_date: date) -> list[date]:
     """Get the dates needed for card deposit calculation based on deposit date.
 
     Credit/Debit deposits: 1-day lag (next business day)
@@ -80,6 +82,7 @@ def get_dates_needed_for_card_deposit(forecast_date: date) -> List[date]:
 
     Returns:
         List of dates whose card sales are included in this deposit.
+
     """
     weekday = forecast_date.weekday()  # 0=Monday, 4=Friday
 
@@ -112,6 +115,7 @@ def calculate_cash_deposit(
 
     Returns:
         Total cash deposit amount
+
     """
     needed_dates = get_dates_needed_for_cash_deposit(forecast_date)
 
@@ -125,7 +129,7 @@ def calculate_cash_deposit(
 def calculate_card_deposits(
     forecast_date: date,
     get_value_fn: Callable[[date, str], float],
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
     """Calculate credit and debit deposit amounts for a given deposit date.
 
     Uses the provided get_value_fn to retrieve card sales values.
@@ -137,6 +141,7 @@ def calculate_card_deposits(
 
     Returns:
         Tuple of (credit_deposit, debit_deposit)
+
     """
     needed_dates = get_dates_needed_for_card_deposit(forecast_date)
 

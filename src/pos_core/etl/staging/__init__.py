@@ -14,7 +14,7 @@ Core Facts (Silver+ grain)
 The staging layer output IS the **core fact** for each domain:
 
 1. **Payments** (``fact_payments_ticket``):
-   - Grain: ticket × payment method
+   - Grain: ticket x payment method
    - Key: ``(sucursal, operating_date, order_index, payment_method)``
    - One row per payment line on a ticket
    - The POS does not expose item-level payment data
@@ -51,17 +51,17 @@ from pos_core.etl.staging.sales_cleaner import (
 )
 
 __all__ = [
+    "clean_payments_directory",
+    "neutralize",
+    "normalize_spanish_name",
+    "payments_output_name_for",
+    "sales_output_name_for",
     # Cleaning utilities
     "strip_invisibles",
-    "normalize_spanish_name",
     "to_date",
     "to_float",
-    "neutralize",
     # Payments cleaner
     "transform_detalle_por_forma_pago",
-    "clean_payments_directory",
-    "payments_output_name_for",
     # Sales cleaner
     "transform_detalle_ventas",
-    "sales_output_name_for",
 ]

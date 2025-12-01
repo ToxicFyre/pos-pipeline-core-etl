@@ -32,6 +32,7 @@ def download_sales(
         start_date: Start date in YYYY-MM-DD format.
         end_date: End date in YYYY-MM-DD format.
         branches: Optional list of branches to download. If None, downloads all.
+
     """
     # Import the actual extraction logic
     from pos_core.etl.branch_config import load_branch_segments_from_json

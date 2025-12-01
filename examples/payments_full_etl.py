@@ -1,4 +1,4 @@
-"""Example: Full Payments ETL Pipeline using new API
+"""Example: Full Payments ETL Pipeline using new API.
 
 This example demonstrates how to run the complete payments ETL pipeline
 using the new domain-oriented API. The API handles all stages automatically:

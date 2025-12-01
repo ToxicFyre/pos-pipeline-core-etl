@@ -35,6 +35,7 @@ class BranchRegistry:
         '6161'
         >>> registry.list_branches()
         ['Kavia', 'Queen', ...]
+
     """
 
     def __init__(self, paths: DataPaths) -> None:
@@ -42,6 +43,7 @@ class BranchRegistry:
 
         Args:
             paths: DataPaths instance containing sucursales_json path.
+
         """
         self.paths = paths
         self._segments = load_branch_segments_from_json(paths.sucursales_json)
@@ -51,6 +53,7 @@ class BranchRegistry:
 
         Returns:
             List of branch names (logical names, e.g., "Kavia", "Queen").
+
         """
         return sorted(self._segments.keys())
 
@@ -77,6 +80,7 @@ class BranchRegistry:
             '6161'
             >>> registry.get_code_for_date("Kavia", "2024-03-01")
             '8777'
+
         """
         if branch not in self._segments:
             raise ValueError(f"Branch '{branch}' not found in registry")
@@ -85,9 +89,8 @@ class BranchRegistry:
 
         windows = self._segments[branch]
         for window in windows:
-            if window.valid_from <= target_date:
-                if window.valid_to is None or window.valid_to >= target_date:
-                    return window.code
+            if window.valid_from <= target_date and (window.valid_to is None or window.valid_to >= target_date):
+                return window.code
 
         raise ValueError(
             f"No valid code found for branch '{branch}' on date {date_str}. "
@@ -106,15 +109,15 @@ class BranchRegistry:
         Example:
             >>> registry.get_all_codes_for_date("2023-01-15")
             {'Kavia': '6161', 'Queen': '6362', ...}
+
         """
         target_date = parse_date(date_str) if isinstance(date_str, str) else date_str
         result: dict[str, str] = {}
 
         for branch, windows in self._segments.items():
             for window in windows:
-                if window.valid_from <= target_date:
-                    if window.valid_to is None or window.valid_to >= target_date:
-                        result[branch] = window.code
-                        break
+                if window.valid_from <= target_date and (window.valid_to is None or window.valid_to >= target_date):
+                    result[branch] = window.code
+                    break
 
         return result

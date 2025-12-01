@@ -55,6 +55,7 @@ def get_sales(
         >>> df = get_sales(paths, "2025-01-01", "2025-01-31")  # item-line fact
         >>> df = get_sales(paths, "2025-01-01", "2025-01-31", grain="ticket")
         >>> df = get_sales(paths, "2025-01-01", "2025-01-31", grain="group")
+
     """
     if grain not in ("item", "ticket", "group"):
         raise ValueError(f"Invalid grain '{grain}'. Must be 'item', 'ticket', or 'group'.")

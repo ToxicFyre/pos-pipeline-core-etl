@@ -11,7 +11,6 @@ import json
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
-from typing import Dict, List, Optional
 
 from pos_core.etl.utils import parse_date
 
@@ -27,16 +26,17 @@ class CodeWindow:
         valid_from: Start date when this code became active (inclusive).
         valid_to: End date when this code became inactive (inclusive).
             None indicates the code is still active (open-ended).
+
     """
 
     code: str
     valid_from: date
-    valid_to: Optional[date]  # None = open-ended (inclusive)
+    valid_to: date | None  # None = open-ended (inclusive)
 
 
 def load_branch_segments_from_json(
     sucursales_path: Path,
-) -> Dict[str, List[CodeWindow]]:
+) -> dict[str, list[CodeWindow]]:
     """Load branch code windows from sucursales.json configuration file.
 
     Reads the JSON file containing branch/sucursal definitions and builds
@@ -58,10 +58,11 @@ def load_branch_segments_from_json(
         >>> segments = load_branch_segments_from_json(Path("sucursales.json"))
         >>> segments["Kavia"]
         [CodeWindow(code='6161', valid_from=date(2022, 11, 1), valid_to=date(2023, 4, 29)), ...]
+
     """
     data = json.loads(sucursales_path.read_text(encoding="utf-8"))
 
-    segments: Dict[str, List[CodeWindow]] = {}
+    segments: dict[str, list[CodeWindow]] = {}
 
     for key, rec in data.items():
         # logical branch name = part before first underscore

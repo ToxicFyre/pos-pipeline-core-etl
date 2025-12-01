@@ -9,7 +9,6 @@ from __future__ import annotations
 import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Optional
 
 
 @dataclass
@@ -23,6 +22,7 @@ class StageMetadata:
         cleaner_version: Version identifier for the cleaner (e.g., "sales_cleaner_v1").
         last_run: ISO timestamp of when the stage was run.
         status: Status of the stage run: "ok", "failed", or "partial".
+
     """
 
     start_date: str
@@ -52,6 +52,7 @@ def metadata_path(stage_dir: Path, start_date: str, end_date: str) -> Path:
 
     Returns:
         Path to the metadata JSON file.
+
     """
     meta_dir = stage_dir / "_meta"
     filename = f"{start_date}_{end_date}.json"
@@ -83,6 +84,7 @@ def write_metadata(
         ...     status="ok"
         ... )
         >>> write_metadata(Path("data/a_raw/sales"), "2025-01-01", "2025-01-31", meta)
+
     """
     meta_path = metadata_path(stage_dir, start_date, end_date)
     meta_path.parent.mkdir(parents=True, exist_ok=True)
@@ -95,7 +97,7 @@ def read_metadata(
     stage_dir: Path,
     start_date: str,
     end_date: str,
-) -> Optional[StageMetadata]:
+) -> StageMetadata | None:
     """Read metadata JSON if it exists.
 
     Args:
@@ -110,6 +112,7 @@ def read_metadata(
         >>> meta = read_metadata(Path("data/a_raw/sales"), "2025-01-01", "2025-01-31")
         >>> if meta and meta.status == "ok":
         ...     print("Stage already completed")
+
     """
     meta_path = metadata_path(stage_dir, start_date, end_date)
 
@@ -117,7 +120,7 @@ def read_metadata(
         return None
 
     try:
-        with open(meta_path, "r", encoding="utf-8") as f:
+        with open(meta_path, encoding="utf-8") as f:
             data = json.load(f)
         return StageMetadata.from_dict(data)
     except (json.JSONDecodeError, KeyError, TypeError):
@@ -143,6 +146,7 @@ def should_skip_stage(
 
     Returns:
         True if stage should be skipped, False otherwise.
+
     """
     if force:
         return False
@@ -152,7 +156,4 @@ def should_skip_stage(
         return False
 
     # Check if status is ok and cleaner version matches
-    if metadata.status == "ok" and metadata.cleaner_version == cleaner_version:
-        return True
-
-    return False
+    return bool(metadata.status == "ok" and metadata.cleaner_version == cleaner_version)

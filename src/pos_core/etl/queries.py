@@ -7,7 +7,6 @@ automatically run ETL stages only when needed based on metadata.
 from __future__ import annotations
 
 import logging
-from typing import List, Optional
 
 import pandas as pd
 
@@ -32,7 +31,7 @@ def get_sales(
     start_date: str,
     end_date: str,
     config: SalesETLConfig,
-    branches: Optional[List[str]] = None,
+    branches: list[str] | None = None,
     level: str = "ticket",  # "ticket" | "group" | "day"
     refresh: bool = False,
 ) -> pd.DataFrame:
@@ -61,13 +60,14 @@ def get_sales(
         >>> df = get_sales("2025-01-01", "2025-01-31", config, level="ticket")
         >>> len(df)
         100
+
     """
     # Normalize dates (basic validation)
     try:
         _ = pd.to_datetime(start_date)
         _ = pd.to_datetime(end_date)
     except ValueError as e:
-        raise ValueError(f"Invalid date format: {e}")
+        raise ValueError(f"Invalid date format: {e}") from e
 
     if refresh:
         # Force re-run all stages
@@ -145,7 +145,7 @@ def get_payments(
     start_date: str,
     end_date: str,
     config: PaymentsETLConfig,
-    branches: Optional[List[str]] = None,
+    branches: list[str] | None = None,
     refresh: bool = False,
 ) -> pd.DataFrame:
     """Get payments data, running stages only if needed.
@@ -172,13 +172,14 @@ def get_payments(
         >>> df = get_payments("2025-01-01", "2025-01-31", config)
         >>> len(df)
         31
+
     """
     # Normalize dates (basic validation)
     try:
         _ = pd.to_datetime(start_date)
         _ = pd.to_datetime(end_date)
     except ValueError as e:
-        raise ValueError(f"Invalid date format: {e}")
+        raise ValueError(f"Invalid date format: {e}") from e
 
     if refresh:
         # Force re-run all stages
@@ -264,6 +265,7 @@ def get_payments_forecast(
         >>> forecast = get_payments_forecast("2025-11-24", 13, config)
         >>> len(forecast)
         91
+
     """
     from datetime import timedelta
 

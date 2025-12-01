@@ -1,4 +1,4 @@
-"""Marts (Gold) layer: Aggregate transfer data into weekly sucursal table.
+r"""Marts (Gold) layer: Aggregate transfer data into weekly sucursal table.
 
 This module is part of the Marts (Gold) layer in the ETL pipeline.
 It produces aggregated transfer cost summaries by branch and category.
@@ -24,6 +24,7 @@ Examples:
     Include CEDIS as destination:
         python -m pos_etl.c_load.aggregate_transfer_data \\
             transfers_clean.csv --include-cedis -o output.xlsx
+
 """
 
 #!/usr/bin/env python3
@@ -69,6 +70,7 @@ def normalize(s: pd.Series) -> pd.Series:
 
     Returns:
         Series with values converted to uppercase, stripped strings.
+
     """
     return s.astype(str).str.strip().str.upper()
 
@@ -90,6 +92,7 @@ def bucket_row(origen: str, depto: str) -> str | None:
 
     Returns:
         Category name if mapped, None if unmapped.
+
     """
     if origen == "ALMACEN PRODUCTO TERMINADO":
         if depto == "COCINA":
@@ -127,6 +130,7 @@ def build_table(csv_path: str, include_cedis: bool = False) -> tuple[pd.DataFram
 
     Raises:
         SystemExit: If required columns are missing from the CSV.
+
     """
     df = pd.read_csv(csv_path)
 
@@ -142,7 +146,7 @@ def build_table(csv_path: str, include_cedis: bool = False) -> tuple[pd.DataFram
         df = df[df["SUC"].notna()].copy()
 
     # Bucket
-    df["BUCKET"] = [bucket_row(o, d) for o, d in zip(df["Almacén origen"], df["Departamento"])]
+    df["BUCKET"] = [bucket_row(o, d) for o, d in zip(df["Almacén origen"], df["Departamento"], strict=False)]
 
     # Unmapped report
     unmapped = df[df["BUCKET"].isna()].copy()
@@ -189,6 +193,7 @@ def aggregate_transfers(
 
     Returns:
         DataFrame with the aggregated pivot table.
+
     """
     table, _ = build_table(csv_path, include_cedis=include_cedis)
 
@@ -203,7 +208,7 @@ def aggregate_transfers(
 
 
 def main() -> None:
-    """Main entry point for transfer aggregation command-line tool.
+    """Execute the transfer aggregation command-line tool.
 
     Parses arguments, builds the pivot table, and writes output to file
     (Excel or CSV based on extension) or prints to stdout.

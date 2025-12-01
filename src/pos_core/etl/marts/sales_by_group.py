@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 r"""Marts (Gold) layer: Aggregate sales by category with branch pivot.
 
 This module is part of the Marts (Gold) layer in the ETL pipeline.
@@ -27,7 +26,7 @@ not the original item-wise format.
 
 Normalization rules:
 - Accents are removed; text is uppercased; repeated whitespace is collapsed.
-- A single dot `.` with no comma is treated as a decimal (non‑European assumption).
+- A single dot `.` with no comma is treated as a decimal (non-European assumption).
 - Multiple dots that match r'\d{1,3}(?:\.\d{3})+' are treated as thousand separators.
 
 Install
@@ -83,8 +82,8 @@ import logging
 import re
 import sys
 import unicodedata
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Dict, List, Sequence
 
 import pandas as pd
 
@@ -96,7 +95,7 @@ OUTPUT_CSV = r"Aggregate-Credi-Club_2025-09-08_2025-09-13.csv"
 INCLUDE_MODIFIERS = True  # set False if you want to exclude rows where is_modifier==True
 
 # preferred output row order (what the report expects)
-ROW_ORDER: List[str] = [
+ROW_ORDER: list[str] = [
     "JUGOS Y BEBIDAS FRIAS",
     "CAFE Y  BEBIDAS CALIENTES",
     "DESAYUNOS",
@@ -160,7 +159,7 @@ def _normalize_key(s: str) -> str:
     return s
 
 
-CATEGORY_MAP: Dict[str, str] = {_normalize_key(k): v for k, v in RAW_MAP.items()}
+CATEGORY_MAP: dict[str, str] = {_normalize_key(k): v for k, v in RAW_MAP.items()}
 
 
 def _read_any(paths: Sequence[str]) -> pd.DataFrame:
@@ -180,13 +179,13 @@ def _read_any(paths: Sequence[str]) -> pd.DataFrame:
 def build_category_pivot(
     input_csv: str, output_csv: str, include_modifiers: bool | None = None, verbose: bool = False
 ) -> pd.DataFrame:
-    """
-    Build pivot of group subtotals by Grupo_Nuevo (rows) × sucursal (columns).
+    """Build pivot of group subtotals by Grupo_Nuevo (rows) x sucursal (columns).
+
     - Reads ticket-wise CSV with {GROUP}_subtotal columns
     - Maps raw group names to consolidated categories
     - Respects ROW_ORDER; any extra categories appear at the bottom.
     - include_modifiers parameter is kept for API compatibility but not used
-      (ticket CSV doesn't have modifiers)
+      (ticket CSV doesn't have modifiers).
     """
     include_modifiers = INCLUDE_MODIFIERS if include_modifiers is None else include_modifiers
 
@@ -232,10 +231,7 @@ def build_category_pivot(
             group_name = col_name.removesuffix("_subtotal")
         else:
             # _subtotal is 9 characters, not 10!
-            if col_name.endswith("_subtotal"):
-                group_name = col_name[:-9]  # Remove "_subtotal" (9 chars)
-            else:
-                group_name = col_name  # Shouldn't happen, but be safe
+            group_name = col_name[:-9] if col_name.endswith("_subtotal") else col_name
         # Convert underscores back to spaces
         # (since _sanitize_group_name converts spaces to underscores)
         # This allows us to match against the original group names in CATEGORY_MAP
@@ -251,16 +247,14 @@ def build_category_pivot(
         group_to_grupo_nuevo[col_name] = grupo_nuevo
 
         if verbose:
-            mapping_details.append(
-                {
-                    "column": col_name,
-                    "group_name": group_name,
-                    "with_spaces": group_name_with_spaces,
-                    "normalized": normalized,
-                    "mapped_to": grupo_nuevo,
-                    "is_mapped": (normalized in CATEGORY_MAP),
-                }
-            )
+            mapping_details.append({
+                "column": col_name,
+                "group_name": group_name,
+                "with_spaces": group_name_with_spaces,
+                "normalized": normalized,
+                "mapped_to": grupo_nuevo,
+                "is_mapped": (normalized in CATEGORY_MAP),
+            })
 
     if verbose:
         logger.info("Group name mapping results:")
@@ -277,7 +271,7 @@ def build_category_pivot(
         if unmapped_groups:
             logger.warning(f"Unmapped groups (will go to EXTRAS y MISC): {sorted(unmapped_groups)}")
             logger.debug("Available CATEGORY_MAP keys (first 20):")
-            logger.debug(f"  {sorted(list(CATEGORY_MAP.keys()))[:20]}")
+            logger.debug(f"  {sorted(CATEGORY_MAP.keys())[:20]}")
 
     # Always report all groups that were mapped to EXTRAS y MISC
     extras_misc_groups = []
@@ -290,14 +284,12 @@ def build_category_pivot(
                 group_name = col_name[:-9] if col_name.endswith("_subtotal") else col_name
             group_name_with_spaces = group_name.replace("_", " ")
             normalized = _normalize_key(group_name_with_spaces)
-            extras_misc_groups.append(
-                {
-                    "column": col_name,
-                    "normalized": normalized,
-                    "group_name": group_name,
-                    "with_spaces": group_name_with_spaces,
-                }
-            )
+            extras_misc_groups.append({
+                "column": col_name,
+                "normalized": normalized,
+                "group_name": group_name,
+                "with_spaces": group_name_with_spaces,
+            })
 
     if extras_misc_groups:
         logger.warning(f"Groups mapped to EXTRAS y MISC ({len(extras_misc_groups)} total):")
@@ -377,7 +369,7 @@ def build_category_pivot(
             0.0
         )
         if verbose:
-            logger.info(f"Pivot table: {len(out)} categories × {len(out.columns)} sucursales")
+            logger.info(f"Pivot table: {len(out)} categories x {len(out.columns)} sucursales")
             logger.debug(f"Original sucursal columns: {list(out.columns)}")
 
         # Reorder columns to match preferred order (case-insensitive, partial matching)

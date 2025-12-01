@@ -31,6 +31,7 @@ def download_payments(
         start_date: Start date in YYYY-MM-DD format.
         end_date: End date in YYYY-MM-DD format.
         branches: Optional list of branches to download. If None, downloads all.
+
     """
     # Import the actual extraction logic
     from pos_core.etl.raw.extraction import download_payments_reports

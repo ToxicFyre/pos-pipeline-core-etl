@@ -23,7 +23,6 @@ from __future__ import annotations
 import logging
 import os
 from datetime import date, datetime
-from typing import List, Optional
 
 import pandas as pd
 
@@ -44,7 +43,7 @@ def download_sales(
     start_date: str,
     end_date: str,
     config: SalesETLConfig,
-    branches: Optional[List[str]] = None,
+    branches: list[str] | None = None,
     force: bool = False,
 ) -> None:
     """Download raw sales Excel for the given range.
@@ -63,6 +62,7 @@ def download_sales(
         >>> from pos_core.etl.sales_config import SalesETLConfig
         >>> config = SalesETLConfig.from_root("data", "utils/sucursales.json")
         >>> download_sales("2025-01-01", "2025-01-31", config)
+
     """
     # Raw (Bronze) layer: Extract from Wansoft HTTP API
     from pos_core.etl.branch_config import load_branch_segments_from_json
@@ -172,7 +172,7 @@ def clean_sales(
     start_date: str,
     end_date: str,
     config: SalesETLConfig,
-    branches: Optional[List[str]] = None,
+    branches: list[str] | None = None,
     force: bool = False,
 ) -> None:
     """Transform raw sales files into clean CSV.
@@ -191,6 +191,7 @@ def clean_sales(
         >>> from pos_core.etl.sales_config import SalesETLConfig
         >>> config = SalesETLConfig.from_root("data", "utils/sucursales.json")
         >>> clean_sales("2025-01-01", "2025-01-31", config)
+
     """
     # Staging (Silver) layer: Clean and normalize raw Excel files
     from pos_core.etl.staging.sales_cleaner import (
@@ -218,7 +219,7 @@ def clean_sales(
         for xlsx_file in config.paths.raw_sales.glob("*.xlsx"):
             try:
                 df = transform_detalle_ventas(xlsx_file)
-                out_name_path = output_name_for(xlsx_file, df)
+                out_name_path = output_name_for(df)
                 out_path = config.paths.clean_sales / str(out_name_path)
                 out_path.parent.mkdir(parents=True, exist_ok=True)
                 df.to_csv(str(out_path), index=False, encoding="utf-8")
@@ -256,7 +257,7 @@ def aggregate_sales(
     end_date: str,
     config: SalesETLConfig,
     level: str = "ticket",  # "ticket" | "group" | "day"
-    branches: Optional[List[str]] = None,
+    branches: list[str] | None = None,
     force: bool = False,
 ) -> pd.DataFrame:
     """Aggregate clean sales at the specified level.
@@ -286,6 +287,7 @@ def aggregate_sales(
         >>> df = aggregate_sales("2025-01-01", "2025-01-31", config, level="ticket")
         >>> len(df)
         100
+
     """
     # Marts (Gold) layer: Ticket-level aggregation (from item-line core facts)
     # Marts (Gold) layer: Category pivot tables (from ticket-level data)

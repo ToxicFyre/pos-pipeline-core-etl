@@ -47,6 +47,7 @@ def fetch(
 
     Raises:
         ValueError: If mode is not "missing" or "force".
+
     """
     if mode not in ("missing", "force"):
         raise ValueError(f"Invalid mode '{mode}'. Must be 'missing' or 'force'.")
@@ -91,6 +92,7 @@ def load(
 
     Raises:
         FileNotFoundError: If required clean sales CSVs are missing.
+
     """
     # Check if clean data exists
     meta = read_metadata(paths.clean_sales, start_date, end_date)

@@ -22,6 +22,7 @@ Example:
     >>>
     >>> # Get group pivot mart
     >>> group_df = marts.fetch_group(paths, "2025-01-01", "2025-01-31")
+
 """
 
 from pos_core.sales import core, marts, raw

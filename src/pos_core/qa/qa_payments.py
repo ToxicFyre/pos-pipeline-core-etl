@@ -1,5 +1,4 @@
-"""
-Quick QA checks for aggregated daily payments.
+"""Quick QA checks for aggregated daily payments.
 
 This module performs quality assurance checks on aggregated daily payment data
 from the POS ETL pipeline. It validates data integrity, checks for anomalies,
@@ -14,7 +13,6 @@ Usage (from repo root):
         --seed 42
 
 Examples:
-
     # Default file in processed payments directory
     python -m pos_qa.qa_payments
 
@@ -54,6 +52,7 @@ Output:
     - Monthly sales table (one column per sucursal, rows for each month showing
       total sales and percentage of eliminated tickets)
     - Random month samples for manual review
+
 """
 
 from __future__ import annotations
@@ -61,7 +60,6 @@ from __future__ import annotations
 import argparse
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -114,6 +112,7 @@ class QAResult:
         'ERROR'
         >>> result.message
         'Found duplicate rows'
+
     """
 
     level: str  # "ERROR" or "WARN"
@@ -150,6 +149,7 @@ def load_payments(path: Path) -> pd.DataFrame:
         True
         >>> "year_month" in df.columns
         True
+
     """
     if not path.exists():
         raise FileNotFoundError(f"File not found: {path}")
@@ -165,7 +165,7 @@ def load_payments(path: Path) -> pd.DataFrame:
     df["fecha"] = pd.to_datetime(df["fecha"], format="%Y-%m-%d", errors="raise")
 
     # Enforce dtypes for numeric columns
-    for col in MONEY_COLUMNS + [TICKET_COLUMN]:
+    for col in [*MONEY_COLUMNS, TICKET_COLUMN]:
         df[col] = pd.to_numeric(df[col], errors="coerce")
 
     # Compute helper fields
@@ -211,13 +211,14 @@ def prepare_payments_df(df: pd.DataFrame) -> pd.DataFrame:
         >>> prepared = prepare_payments_df(df)
         >>> 'total_sin_propinas' in prepared.columns
         True
+
     """
     # Parse fecha if it's not already datetime
     if not pd.api.types.is_datetime64_any_dtype(df["fecha"]):
         df["fecha"] = pd.to_datetime(df["fecha"], format="%Y-%m-%d", errors="raise")
 
     # Enforce dtypes for numeric columns
-    for col in MONEY_COLUMNS + [TICKET_COLUMN]:
+    for col in [*MONEY_COLUMNS, TICKET_COLUMN]:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce")
 
@@ -250,7 +251,7 @@ def prepare_payments_df(df: pd.DataFrame) -> pd.DataFrame:
 # --------------------------------------------------------------------------- #
 
 
-def detect_missing_days(df: pd.DataFrame) -> Optional[pd.DataFrame]:
+def detect_missing_days(df: pd.DataFrame) -> pd.DataFrame | None:
     """Detect missing days per sucursal.
 
     For each sucursal, builds a full date range from min(fecha) to max(fecha)
@@ -270,6 +271,7 @@ def detect_missing_days(df: pd.DataFrame) -> Optional[pd.DataFrame]:
         >>> missing = detect_missing_days(df)
         >>> len(missing)
         2
+
     """
     if df.empty or "sucursal" not in df.columns or "fecha" not in df.columns:
         return None
@@ -295,7 +297,7 @@ def detect_missing_days(df: pd.DataFrame) -> Optional[pd.DataFrame]:
     return pd.DataFrame(missing_rows)
 
 
-def detect_duplicate_days(df: pd.DataFrame) -> Optional[pd.DataFrame]:
+def detect_duplicate_days(df: pd.DataFrame) -> pd.DataFrame | None:
     """Detect duplicate (sucursal, fecha) rows.
 
     Finds all rows where the (sucursal, fecha) combination appears more than once.
@@ -314,6 +316,7 @@ def detect_duplicate_days(df: pd.DataFrame) -> Optional[pd.DataFrame]:
         >>> duplicates = detect_duplicate_days(df)
         >>> len(duplicates)
         2
+
     """
     if df.empty:
         return None
@@ -327,7 +330,7 @@ def detect_duplicate_days(df: pd.DataFrame) -> Optional[pd.DataFrame]:
 
 def detect_zscore_anomalies(
     df: pd.DataFrame, window: int = 60, threshold: float = 4.0
-) -> Optional[pd.DataFrame]:
+) -> pd.DataFrame | None:
     """Detect z-score anomalies in payment methods.
 
     For each sucursal and each payment method column, computes rolling mean and
@@ -349,6 +352,7 @@ def detect_zscore_anomalies(
         ...     'ingreso_efectivo': np.random.normal(1000, 100, 100)
         ... })
         >>> anomalies = detect_zscore_anomalies(df, window=30, threshold=3.0)
+
     """
     if df.empty:
         return None
@@ -389,15 +393,13 @@ def detect_zscore_anomalies(
             anomaly_indices = np.where(anomaly_mask)[0]
 
             for idx in anomaly_indices:
-                anomalies.append(
-                    {
-                        "sucursal": sucursal,
-                        "fecha": pd.Timestamp(dates[idx]).date(),
-                        "method": method,
-                        "value": float(values[idx]),
-                        "z_score": float(z_scores_array[idx]),
-                    }
-                )
+                anomalies.append({
+                    "sucursal": sucursal,
+                    "fecha": pd.Timestamp(dates[idx]).date(),
+                    "method": method,
+                    "value": float(values[idx]),
+                    "z_score": float(z_scores_array[idx]),
+                })
 
     if not anomalies:
         return None
@@ -405,7 +407,7 @@ def detect_zscore_anomalies(
     return pd.DataFrame(anomalies)
 
 
-def detect_zero_method_flags(df: pd.DataFrame) -> Optional[pd.DataFrame]:
+def detect_zero_method_flags(df: pd.DataFrame) -> pd.DataFrame | None:
     """Detect rows with tickets > 0 but certain payment methods are zero.
 
     Flags rows where num_tickets > 0 but payment methods like credito or debito
@@ -424,6 +426,7 @@ def detect_zero_method_flags(df: pd.DataFrame) -> Optional[pd.DataFrame]:
         ...     'ingreso_debito': [0, 50, 0]
         ... })
         >>> flags = detect_zero_method_flags(df)
+
     """
     if df.empty or TICKET_COLUMN not in df.columns:
         return None
@@ -463,7 +466,7 @@ def detect_zero_method_flags(df: pd.DataFrame) -> Optional[pd.DataFrame]:
 # --------------------------------------------------------------------------- #
 
 
-def check_duplicates(df: pd.DataFrame) -> List[QAResult]:
+def check_duplicates(df: pd.DataFrame) -> list[QAResult]:
     """Check for duplicate rows by sucursal and fecha.
 
     Validates that each (sucursal, fecha) combination appears only once in the
@@ -486,8 +489,9 @@ def check_duplicates(df: pd.DataFrame) -> List[QAResult]:
         1
         >>> results[0].level
         'ERROR'
+
     """
-    out: List[QAResult] = []
+    out: list[QAResult] = []
     dup_mask = df.duplicated(subset=["sucursal", "fecha"])
     dup_count = dup_mask.sum()
     if dup_count > 0:
@@ -500,7 +504,7 @@ def check_duplicates(df: pd.DataFrame) -> List[QAResult]:
     return out
 
 
-def check_non_negative(df: pd.DataFrame) -> List[QAResult]:
+def check_non_negative(df: pd.DataFrame) -> list[QAResult]:
     """Check that money and ticket columns contain only non-negative values.
 
     Validates that all revenue columns (ingreso_*) and ticket counts are
@@ -523,9 +527,10 @@ def check_non_negative(df: pd.DataFrame) -> List[QAResult]:
         1
         >>> 'ingreso_efectivo' in results[0].message
         True
+
     """
-    out: List[QAResult] = []
-    for col in MONEY_COLUMNS + [TICKET_COLUMN]:
+    out: list[QAResult] = []
+    for col in [*MONEY_COLUMNS, TICKET_COLUMN]:
         neg = df[df[col] < -1e-6]  # small tolerance
         if not neg.empty:
             out.append(
@@ -537,7 +542,7 @@ def check_non_negative(df: pd.DataFrame) -> List[QAResult]:
     return out
 
 
-def check_nulls(df: pd.DataFrame) -> List[QAResult]:
+def check_nulls(df: pd.DataFrame) -> list[QAResult]:
     """Check for null values in required columns.
 
     Validates that required columns do not contain null values. Nulls in
@@ -562,8 +567,9 @@ def check_nulls(df: pd.DataFrame) -> List[QAResult]:
         True
         >>> any(r.level == 'WARN' for r in results)
         True
+
     """
-    out: List[QAResult] = []
+    out: list[QAResult] = []
     for col in REQUIRED_COLUMNS:
         null_count = df[col].isna().sum()
         if null_count > 0:
@@ -577,7 +583,7 @@ def check_nulls(df: pd.DataFrame) -> List[QAResult]:
     return out
 
 
-def check_ticket_revenue_consistency(df: pd.DataFrame) -> List[QAResult]:
+def check_ticket_revenue_consistency(df: pd.DataFrame) -> list[QAResult]:
     """Check logical consistency between ticket counts and revenue.
 
     Validates that:
@@ -601,8 +607,9 @@ def check_ticket_revenue_consistency(df: pd.DataFrame) -> List[QAResult]:
         >>> results = check_ticket_revenue_consistency(df)
         >>> len(results) >= 1
         True
+
     """
-    out: List[QAResult] = []
+    out: list[QAResult] = []
 
     # If there are tickets, expect some revenue (excluding tips)
     mask_tickets_positive = df[TICKET_COLUMN] > 0
@@ -631,7 +638,7 @@ def check_ticket_revenue_consistency(df: pd.DataFrame) -> List[QAResult]:
     return out
 
 
-def check_per_sucursal_ranges(df: pd.DataFrame) -> List[QAResult]:
+def check_per_sucursal_ranges(df: pd.DataFrame) -> list[QAResult]:
     """Generate per-sucursal summary statistics.
 
     Computes aggregate statistics for each sucursal including:
@@ -660,8 +667,9 @@ def check_per_sucursal_ranges(df: pd.DataFrame) -> List[QAResult]:
         1
         >>> 'Per-sucursal summary' in results[0].message
         True
+
     """
-    out: List[QAResult] = []
+    out: list[QAResult] = []
 
     # Base per-sucursal aggregates
     base = df.groupby("sucursal").agg(
@@ -695,7 +703,7 @@ def check_per_sucursal_ranges(df: pd.DataFrame) -> List[QAResult]:
 
 def generate_monthly_sales_table(
     df: pd.DataFrame, output_dir: Path
-) -> Tuple[List[QAResult], Optional[Path]]:
+) -> tuple[list[QAResult], Path | None]:
     """Generate a monthly sales table with elimination percentages and save to CSV.
 
     Creates a CSV file with:
@@ -725,8 +733,9 @@ def generate_monthly_sales_table(
         >>> results, csv_path = generate_monthly_sales_table(df, Path("."))
         >>> csv_path is not None
         True
+
     """
-    out: List[QAResult] = []
+    out: list[QAResult] = []
 
     # Check if elimination columns exist
     has_eliminations = "pct_tickets_with_eliminations" in df.columns
@@ -814,9 +823,9 @@ def generate_monthly_sales_table(
 def sample_months(
     df: pd.DataFrame,
     n_months: int,
-    sucursal: Optional[str],
-    seed: Optional[int],
-) -> List[QAResult]:
+    sucursal: str | None,
+    seed: int | None,
+) -> list[QAResult]:
     """Sample random sucursal-month combinations for manual QA review.
 
     Randomly selects n_months sucursal-month combinations and generates detailed
@@ -848,8 +857,9 @@ def sample_months(
         1
         >>> 'Random sample' in results[0].message
         True
+
     """
-    out: List[QAResult] = []
+    out: list[QAResult] = []
     if n_months <= 0:
         return out
 
@@ -875,7 +885,7 @@ def sample_months(
     sample_idx = rng.choice(len(unique_pairs), size=n_sample, replace=False)
     sampled = unique_pairs.iloc[sample_idx]
 
-    lines: List[str] = []
+    lines: list[str] = []
     lines.append(f"\nRandom sample of {n_sample} sucursal-month combinations:")
     for _, row in sampled.iterrows():
         suc = row["sucursal"]
@@ -963,10 +973,10 @@ def sample_months(
 def run_qa(
     file_name: str,
     sample_months_n: int,
-    sucursal: Optional[str],
-    seed: Optional[int],
-    proc_payments_dir: Optional[Path] = None,
-) -> Tuple[List[QAResult], Path, Optional[Path]]:
+    sucursal: str | None,
+    seed: int | None,
+    proc_payments_dir: Path | None = None,
+) -> tuple[list[QAResult], Path, Path | None]:
     """Run all QA checks on aggregated payments data.
 
     Executes a comprehensive set of quality assurance checks including:
@@ -1003,6 +1013,7 @@ def run_qa(
         True
         >>> input_path.exists()
         True
+
     """
     if proc_payments_dir is None:
         # Default to standard directory structure
@@ -1011,7 +1022,7 @@ def run_qa(
     csv_path = proc_payments_dir / file_name
     df = load_payments(csv_path)
 
-    results: List[QAResult] = []
+    results: list[QAResult] = []
     results.extend(check_duplicates(df))
     results.extend(check_nulls(df))
     results.extend(check_non_negative(df))
@@ -1027,8 +1038,8 @@ def run_qa(
     return results, csv_path, sales_csv_path
 
 
-def main(argv: Optional[List[str]] = None) -> None:
-    """Main entry point for the QA payments command-line tool.
+def main(argv: list[str] | None = None) -> None:
+    """Execute the QA payments command-line tool.
 
     Parses command-line arguments and executes QA checks on aggregated payments
     data. Prints validation results, summary statistics, monthly sales table,
@@ -1049,6 +1060,7 @@ def main(argv: Optional[List[str]] = None) -> None:
         $ python -m pos_qa.qa_payments --sucursal Carreta --sample-months 5
         $ python -m pos_qa.qa_payments --file my_payments.csv --sample-months 0
         $ python -m pos_qa.qa_payments --data-root /path/to/data
+
     """
     parser = argparse.ArgumentParser(description="QA checks for aggregated daily payments (POS).")
     parser.add_argument(

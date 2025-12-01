@@ -4,7 +4,7 @@ This module provides access to payment data across bronze/silver/gold layers:
 
 - **Bronze (raw)**: `payments.raw.fetch()` / `load()` - raw Wansoft exports
 - **Silver (core)**: `payments.core.fetch()` / `load()` - fact_payments_ticket
-  (ticket × payment method grain)
+  (ticket x payment method grain)
 - **Gold (marts)**: `payments.marts.fetch_daily()` / `load_daily()` -
   mart_payments_daily (daily aggregations)
 
@@ -19,6 +19,7 @@ Example:
     >>>
     >>> # Get core fact (ticket grain)
     >>> fact_df = core.fetch(paths, "2025-01-01", "2025-01-31")
+
 """
 
 from pos_core.payments import core, marts, raw

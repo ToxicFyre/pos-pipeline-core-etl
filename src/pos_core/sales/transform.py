@@ -36,6 +36,7 @@ def clean_sales(
         start_date: Start date in YYYY-MM-DD format.
         end_date: End date in YYYY-MM-DD format.
         branches: Optional list of branches (for metadata tracking).
+
     """
     # Import the actual cleaning logic
     from pos_core.etl.staging.sales_cleaner import (
@@ -52,7 +53,7 @@ def clean_sales(
         for xlsx_file in paths.raw_sales.glob("*.xlsx"):
             try:
                 df = transform_detalle_ventas(xlsx_file)
-                out_name_path = output_name_for(xlsx_file, df)
+                out_name_path = output_name_for(df)
                 out_path = paths.clean_sales / str(out_name_path)
                 out_path.parent.mkdir(parents=True, exist_ok=True)
                 df.to_csv(str(out_path), index=False, encoding="utf-8")

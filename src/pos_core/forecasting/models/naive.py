@@ -7,7 +7,7 @@ skipping holidays and holiday-adjacent dates, and using those historical values 
 from __future__ import annotations
 
 from datetime import date, timedelta
-from typing import Any, Dict, Optional, Set
+from typing import Any
 
 import pandas as pd
 
@@ -19,9 +19,9 @@ from pos_core.forecasting.types import ModelDebugInfo
 def find_equivalent_historical_weekday(
     target_date: date,
     last_data_date: date,
-    holidays: Set[date],
+    holidays: set[date],
     max_weeks_back: int = 52,
-) -> Optional[date]:
+) -> date | None:
     """Find equivalent historical weekday from past weeks, skipping holidays.
 
     This function looks for the same weekday in previous weeks that:
@@ -41,15 +41,14 @@ def find_equivalent_historical_weekday(
         If target_date is Nov 24 (Sunday), last_data_date is Nov 23, and Nov 17 is a holiday:
         - Nov 17 (Sunday) is skipped (holiday or adjacent)
         - Nov 10 (Sunday) is returned
+
     """
     candidate = target_date - timedelta(days=7)
 
     for _ in range(max_weeks_back):
         # Check if candidate is within our historical data range
-        if candidate <= last_data_date:
-            # Check if candidate is NOT a holiday or adjacent to holiday
-            if not is_holiday_or_adjacent(candidate, holidays):
-                return candidate
+        if candidate <= last_data_date and not is_holiday_or_adjacent(candidate, holidays):
+            return candidate
 
         # Move back another week
         candidate = candidate - timedelta(days=7)
@@ -73,7 +72,7 @@ class NaiveLastWeekModel(ForecastModel):
         """Initialize the naive last week model."""
         self.debug_: ModelDebugInfo | None = None
 
-    def train(self, series: pd.Series, holidays: Optional[Set[date]] = None, **kwargs: Any) -> dict:
+    def train(self, series: pd.Series, holidays: set[date] | None = None, **kwargs: Any) -> dict:
         """Store historical series and holidays for use in forecast.
 
         Args:
@@ -83,6 +82,7 @@ class NaiveLastWeekModel(ForecastModel):
 
         Returns:
             Dictionary containing the series and holidays for use in forecast()
+
         """
         return {
             "series": series,
@@ -105,6 +105,7 @@ class NaiveLastWeekModel(ForecastModel):
 
         Returns:
             Forecast series with DateTimeIndex
+
         """
         series = model["series"]
         holidays = model["holidays"]
@@ -115,10 +116,7 @@ class NaiveLastWeekModel(ForecastModel):
             last_date = series.index[-1]
 
         # Convert to date if it's a Timestamp
-        if isinstance(last_date, pd.Timestamp):
-            last_data_date = last_date.date()
-        else:
-            last_data_date = last_date
+        last_data_date = last_date.date() if isinstance(last_date, pd.Timestamp) else last_date
 
         # Create series lookup by date for fast access
         series_by_date = {}
@@ -132,7 +130,7 @@ class NaiveLastWeekModel(ForecastModel):
         forecast_dates = pd.date_range(start=last_date + timedelta(days=1), periods=steps, freq="D")
 
         # Build mapping from forecast_date to source_date for debug info
-        source_dates_mapping: Dict[pd.Timestamp, pd.Timestamp] = {}
+        source_dates_mapping: dict[pd.Timestamp, pd.Timestamp] = {}
 
         # Forecast each date
         forecast_values = []

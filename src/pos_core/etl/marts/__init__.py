@@ -7,7 +7,7 @@ beyond the atomic grain of the underlying data.
 Grain and Layers
 ----------------
 - **Core facts (Silver+)** are the atomic grains:
-  - Payments: ticket × payment method (``fact_payments_ticket``)
+  - Payments: ticket x payment method (``fact_payments_ticket``)
   - Sales: item/modifier line (``fact_sales_item_line``)
 
 - **Marts (Gold)** are aggregations beyond those atomic grains:
@@ -32,8 +32,8 @@ from pos_core.etl.marts.sales_by_ticket import aggregate_by_ticket
 from pos_core.etl.marts.transfers import aggregate_transfers
 
 __all__ = [
-    "aggregate_payments_daily",
     "aggregate_by_ticket",
-    "build_category_pivot",
+    "aggregate_payments_daily",
     "aggregate_transfers",
+    "build_category_pivot",
 ]

@@ -9,7 +9,6 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Optional
 
 import pandas as pd
 
@@ -28,6 +27,7 @@ class PaymentsPaths:
         proc_payments: Directory for processed/aggregated payment data
             (e.g., data/c_processed/payments).
         sucursales_json: Path to sucursales.json configuration file.
+
     """
 
     raw_payments: Path
@@ -44,17 +44,18 @@ class PaymentsETLConfig:
         paths: All filesystem paths used by the pipeline.
         chunk_size_days: Maximum number of days per HTTP request chunk (default: 180).
         excluded_branches: List of branch names to exclude from processing (default: ["CEDIS"]).
+
     """
 
     paths: PaymentsPaths
     chunk_size_days: int = 180
-    excluded_branches: List[str] = field(default_factory=lambda: ["CEDIS"])
+    excluded_branches: list[str] = field(default_factory=lambda: ["CEDIS"])
 
     @classmethod
     def from_data_root(
         cls,
         data_root: Path | str,
-        sucursales_json: Optional[Path | str] = None,
+        sucursales_json: Path | str | None = None,
         chunk_size_days: int = 180,
     ) -> PaymentsETLConfig:
         """Build a default config given a data_root, using the existing directory convention.
@@ -78,6 +79,7 @@ class PaymentsETLConfig:
             >>> config = PaymentsETLConfig.from_data_root(Path("data"))
             >>> config.paths.raw_payments
             PosixPath('data/a_raw/payments/batch')
+
         """
         # Convert string to Path if needed
         if isinstance(data_root, str):
@@ -117,6 +119,7 @@ class PaymentsETLConfig:
 
         Returns:
             PaymentsETLConfig instance with default paths.
+
         """
         return cls.from_data_root(
             data_root=data_root,
@@ -130,6 +133,7 @@ def ensure_dirs(config: PaymentsETLConfig) -> None:
 
     Args:
         config: PaymentsETLConfig instance containing paths to create.
+
     """
     for p in (
         config.paths.raw_payments,
@@ -144,8 +148,8 @@ def build_payments_dataset(
     start_date: str,
     end_date: str,
     config: PaymentsETLConfig,
-    branches: Optional[List[str]] = None,
-    steps: Optional[List[str]] = None,
+    branches: list[str] | None = None,
+    steps: list[str] | None = None,
 ) -> pd.DataFrame:
     """High-level entry point for the payments ETL.
 
@@ -186,6 +190,7 @@ def build_payments_dataset(
         >>> config = PaymentsETLConfig.from_data_root(Path("data"))
         >>> df = build_payments_dataset("2023-01-01", "2023-12-31", config)
         >>> df.head()
+
     """
     # Import here to avoid circular imports
     from pos_core.etl.payments import (

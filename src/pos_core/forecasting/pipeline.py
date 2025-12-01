@@ -28,7 +28,7 @@ except ImportError:
 
 
 def main() -> None:
-    """Main CLI entry point for the forecasting pipeline.
+    """Execute the forecasting pipeline CLI.
 
     Parses command-line arguments, loads data, runs forecasts, and optionally
     sends results to Telegram.
