@@ -16,6 +16,7 @@ import pandas as pd
 import pytest
 
 from pos_core.qa import PaymentsQAResult, run_payments_qa
+from tests.test_utils import verify_data_retrieval
 
 
 def test_qa_imports() -> None:
@@ -167,6 +168,15 @@ def test_qa_with_live_data() -> None:
 
         print("\n[Live QA Test] ✓ Successfully validated QA pipeline with live data")
 
+        # Verify data retrieval: HTTP requests, file downloads, and file contents
+        print("\n[Live QA Test] Verifying data retrieval...")
+        verify_data_retrieval(
+            paths=paths,
+            start_date=start_date.strftime("%Y-%m-%d"),
+            end_date=end_date.strftime("%Y-%m-%d"),
+            data_type="payments",
+        )
+
 
 @pytest.mark.live
 def test_qa_detects_data_quality_issues() -> None:
@@ -249,3 +259,12 @@ def test_qa_detects_data_quality_issues() -> None:
         assert qa_result.summary["total_sucursales"] >= 1
 
         print("[Live QA Issue Test] ✓ QA issue detection validated")
+
+        # Verify data retrieval: HTTP requests, file downloads, and file contents
+        print("\n[Live QA Issue Test] Verifying data retrieval...")
+        verify_data_retrieval(
+            paths=paths,
+            start_date=start_date.strftime("%Y-%m-%d"),
+            end_date=end_date.strftime("%Y-%m-%d"),
+            data_type="payments",
+        )

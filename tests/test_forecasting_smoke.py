@@ -18,6 +18,7 @@ import pytest
 from statsmodels.tools.sm_exceptions import ConvergenceWarning
 
 from pos_core.forecasting import ForecastConfig, ForecastResult, run_payments_forecast
+from tests.test_utils import verify_data_retrieval
 
 warnings.filterwarnings("ignore", category=ConvergenceWarning)
 
@@ -397,3 +398,12 @@ def test_naive_forecasting_with_live_data() -> None:
         print("[Live Test] ✓ Successfully validated naive forecasting with live data")
         print(f"[Live Test] Forecast shape: {result.forecast.shape}")
         print(f"[Live Test] Deposit schedule shape: {result.deposit_schedule.shape}")
+
+        # Verify data retrieval: HTTP requests, file downloads, and file contents
+        print("\n[Live Test] Verifying data retrieval...")
+        verify_data_retrieval(
+            paths=paths,
+            start_date=start_date.strftime("%Y-%m-%d"),
+            end_date=end_date.strftime("%Y-%m-%d"),
+            data_type="payments",
+        )

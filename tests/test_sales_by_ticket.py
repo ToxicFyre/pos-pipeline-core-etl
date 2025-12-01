@@ -18,6 +18,7 @@ import pytest
 from pos_core import DataPaths
 from pos_core.etl.marts.sales_by_ticket import aggregate_by_ticket
 from pos_core.sales import marts as sales_marts
+from tests.test_utils import verify_data_retrieval
 
 
 @pytest.fixture
@@ -174,6 +175,15 @@ def test_aggregate_by_ticket_with_directory_path_live() -> None:
         print(f"[Live Directory Path Test] ✓ Output file created: {mart_path}")
 
         print("[Live Directory Path Test] ✓ All directory path handling tests passed")
+
+        # Verify data retrieval: HTTP requests, file downloads, and file contents
+        print("\n[Live Directory Path Test] Verifying data retrieval...")
+        verify_data_retrieval(
+            paths=paths,
+            start_date=start_str,
+            end_date=end_str,
+            data_type="sales",
+        )
 
 
 @pytest.mark.live
@@ -397,6 +407,22 @@ def test_fetch_group_date_filtering_edge_case() -> None:
             "[Live Date Filtering Test] ✓ Verified that fetch_group correctly filters by date range"
         )
         print("[Live Date Filtering Test] ✓ Verified that data from different ranges are not mixed")
+
+        # Verify data retrieval: HTTP requests, file downloads, and file contents
+        print("\n[Live Date Filtering Test] Verifying data retrieval for range A...")
+        verify_data_retrieval(
+            paths=paths,
+            start_date=start_a_str,
+            end_date=end_a_str,
+            data_type="sales",
+        )
+        print("\n[Live Date Filtering Test] Verifying data retrieval for range B...")
+        verify_data_retrieval(
+            paths=paths,
+            start_date=start_b_str,
+            end_date=end_b_str,
+            data_type="sales",
+        )
 
 
 def test_aggregate_by_ticket_with_recursive_directory(sample_sales_data: pd.DataFrame) -> None:
