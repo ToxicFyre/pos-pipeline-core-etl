@@ -72,13 +72,13 @@ class NaiveLastWeekModel(ForecastModel):
         """Initialize the naive last week model."""
         self.debug_: ModelDebugInfo | None = None
 
-    def train(self, series: pd.Series, holidays: set[date] | None = None, **kwargs: Any) -> dict:
+    def train(self, series: pd.Series, holidays: set[date] | None = None, **_kwargs: Any) -> dict:
         """Store historical series and holidays for use in forecast.
 
         Args:
             series: Time series with DateTimeIndex (raw values)
             holidays: Optional set of holiday dates. If None, uses empty set.
-            **kwargs: Additional parameters (ignored)
+            **_kwargs: Additional parameters (unused, for interface compatibility)
 
         Returns:
             Dictionary containing the series and holidays for use in forecast()

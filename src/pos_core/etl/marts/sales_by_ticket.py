@@ -128,6 +128,7 @@ def aggregate_by_ticket(
         input_dir: Optional directory to search for CSVs
         recursive: If True, search subdirectories recursively
         pattern: Glob pattern for files under input_dir
+        verbose: If True, enable verbose/debug logging
 
     Returns:
         DataFrame with one row per ticket (mart_sales_by_ticket)
@@ -480,6 +481,15 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    """Run sales by ticket aggregation CLI.
+
+    Args:
+        argv: Optional command-line arguments. If None, uses sys.argv.
+
+    Returns:
+        Exit code (0 for success, non-zero for error).
+
+    """
     args = _build_parser().parse_args(argv)
 
     log_level = logging.DEBUG if args.verbose else (logging.WARNING if args.quiet else logging.INFO)

@@ -714,6 +714,15 @@ def output_name_for(xlsx_path: Path, df: pd.DataFrame) -> Path:
 
 
 def write_csv(df: pd.DataFrame, out_path: Path) -> None:
+    """Write DataFrame to CSV file.
+
+    Creates parent directories if needed and writes with UTF-8 BOM encoding.
+
+    Args:
+        df: DataFrame to write.
+        out_path: Output file path.
+
+    """
     out_path.parent.mkdir(parents=True, exist_ok=True)
     # utf-8-sig adds BOM so Excel on Windows detects encoding correctly
     df.to_csv(out_path, index=False, encoding="utf-8-sig", quoting=csv.QUOTE_MINIMAL)
@@ -726,6 +735,8 @@ def write_csv(df: pd.DataFrame, out_path: Path) -> None:
 
 @dataclass
 class Args:
+    """Command-line arguments for payments cleaner script."""
+
     input: Path | None
     input_dir: Path | None
     outdir: Path
@@ -736,6 +747,12 @@ class Args:
 
 
 def parse_args() -> Args:
+    """Parse command-line arguments.
+
+    Returns:
+        Args object containing parsed arguments.
+
+    """
     p = argparse.ArgumentParser(description="Clean POS 'Detalle por forma de pago' Excel into CSV")
     g = p.add_mutually_exclusive_group(required=True)
     g.add_argument("--input", type=Path, help="Single .xlsx file")
@@ -847,6 +864,17 @@ def clean_payments_directory(
 
 
 def iter_xlsx_files(root: Path, recursive: bool, verbose: bool = False) -> Iterable[Path]:
+    """Iterate over XLSX files in a directory.
+
+    Args:
+        root: Root directory to search for XLSX files.
+        recursive: If True, search recursively in subdirectories.
+        verbose: If True, enable verbose logging.
+
+    Yields:
+        Path objects for each XLSX file found.
+
+    """
     if verbose:
         logging.debug("Starting to find .xlsx files in: %s (recursive=%s)", root, recursive)
     if recursive:
@@ -862,6 +890,21 @@ def iter_xlsx_files(root: Path, recursive: bool, verbose: bool = False) -> Itera
 
 
 def run_single(xlsx: Path, outdir: Path, sucursal_hint: str | None, verbose: bool = False) -> Path:
+    """Process a single XLSX file and write cleaned CSV.
+
+    Args:
+        xlsx: Path to input XLSX file.
+        outdir: Output directory for CSV file.
+        sucursal_hint: Optional branch name hint for data extraction.
+        verbose: If True, enable verbose logging.
+
+    Returns:
+        Path to the written CSV file.
+
+    Raises:
+        Exception: If processing fails.
+
+    """
     logging.info("Processing %s (sucursal_hint=%r)", xlsx, sucursal_hint)
 
     try:
@@ -885,6 +928,7 @@ def run_single(xlsx: Path, outdir: Path, sucursal_hint: str | None, verbose: boo
 
 
 def main() -> None:
+    """Run payments cleaner CLI."""
     args = parse_args()
     if args.verbose:
         log_level = logging.DEBUG

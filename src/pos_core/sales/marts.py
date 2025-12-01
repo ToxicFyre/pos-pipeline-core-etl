@@ -166,7 +166,7 @@ def load_group(
     paths: DataPaths,
     start_date: str,
     end_date: str,
-    branches: list[str] | None = None,  # Unused but kept for API compatibility
+    _branches: list[str] | None = None,  # Unused but kept for API compatibility
 ) -> pd.DataFrame:
     """Load the group-level sales mart from disk without running ETL.
 

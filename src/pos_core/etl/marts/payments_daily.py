@@ -324,7 +324,16 @@ def aggregate_payments(dfs: list[pd.DataFrame]) -> pd.DataFrame:
     """
     if not dfs:
         return pd.DataFrame(
-            columns=["sucursal", "fecha", *BUCKET_COLS, "propinas", "num_tickets", "tickets_with_eliminations", "pct_tickets_with_eliminations", "is_national_holiday"]
+            columns=[
+                "sucursal",
+                "fecha",
+                *BUCKET_COLS,
+                "propinas",
+                "num_tickets",
+                "tickets_with_eliminations",
+                "pct_tickets_with_eliminations",
+                "is_national_holiday",
+            ]
         )
 
     df = pd.concat(dfs, ignore_index=True)
@@ -472,9 +481,16 @@ def aggregate_payments(dfs: list[pd.DataFrame]) -> pd.DataFrame:
     result = result.rename(columns={"operating_date": "fecha"})
 
     # Order columns
-    final_cols = (
-        ["sucursal", "fecha", *BUCKET_COLS, "propinas", "num_tickets", "tickets_with_eliminations", "pct_tickets_with_eliminations", "is_national_holiday"]
-    )
+    final_cols = [
+        "sucursal",
+        "fecha",
+        *BUCKET_COLS,
+        "propinas",
+        "num_tickets",
+        "tickets_with_eliminations",
+        "pct_tickets_with_eliminations",
+        "is_national_holiday",
+    ]
     result = result[final_cols].sort_values(["sucursal", "fecha"]).reset_index(drop=True)
 
     return result
@@ -494,6 +510,16 @@ def read_clean_csv(path: Path) -> pd.DataFrame:
 
 
 def iter_csv_files(root: Path, recursive: bool) -> Iterable[Path]:
+    """Iterate over CSV files in a directory.
+
+    Args:
+        root: Root directory to search for CSV files.
+        recursive: If True, search recursively in subdirectories.
+
+    Yields:
+        Path objects for each CSV file found.
+
+    """
     if recursive:
         yield from (p for p in root.rglob("*.csv") if p.is_file())
     else:
@@ -501,6 +527,15 @@ def iter_csv_files(root: Path, recursive: bool) -> Iterable[Path]:
 
 
 def write_csv(df: pd.DataFrame, out_path: Path) -> None:
+    """Write DataFrame to CSV file.
+
+    Creates parent directories if needed and writes with UTF-8 BOM encoding.
+
+    Args:
+        df: DataFrame to write.
+        out_path: Output file path.
+
+    """
     out_path.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(out_path, index=False, encoding="utf-8-sig", quoting=csv.QUOTE_MINIMAL)
 
@@ -584,6 +619,8 @@ def aggregate_payments_daily(
 
 @dataclass
 class Args:
+    """Command-line arguments for payments daily aggregation script."""
+
     input: Path | None
     input_dir: Path | None
     out: Path
@@ -592,6 +629,12 @@ class Args:
 
 
 def parse_args() -> Args:
+    """Parse command-line arguments.
+
+    Returns:
+        Args object containing parsed arguments.
+
+    """
     p = argparse.ArgumentParser(
         description="Aggregate clean POS payments CSVs into branch/day income table"
     )
@@ -623,6 +666,7 @@ def parse_args() -> Args:
 
 
 def main() -> None:
+    """Run payments daily aggregation CLI."""
     args = parse_args()
     logging.basicConfig(
         level=logging.WARNING if args.quiet else logging.INFO,

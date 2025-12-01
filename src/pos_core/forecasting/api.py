@@ -109,14 +109,14 @@ def _forecast_dict_to_dataframe(forecasts: dict[str, dict[str, pd.Series]]) -> p
 def _build_deposit_schedule_dataframe(
     forecast_df: pd.DataFrame,
     historical_df: pd.DataFrame,
-    horizon_days: int,  # Unused: date range determined from forecast_df instead
+    _horizon_days: int,  # Unused: date range determined from forecast_df instead
 ) -> pd.DataFrame:
     """Build deposit schedule DataFrame from forecast and historical data.
 
     Args:
         forecast_df: DataFrame with forecast data (columns: sucursal, fecha, metric, valor)
         historical_df: DataFrame with historical payment data
-        horizon_days: Number of forecast days (to determine date range). Currently unused.
+        _horizon_days: Number of forecast days (unused; date range determined from forecast_df).
 
     Returns:
         DataFrame with columns: fecha, efectivo, credito, debito, total
