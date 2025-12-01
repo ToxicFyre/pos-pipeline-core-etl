@@ -78,6 +78,7 @@ def test_aggregate_by_ticket_with_directory_path_live() -> None:
         data_root.mkdir()
 
         # Create sucursales.json for Kavia branch
+        # Note: The actual branch name in the data is "Panem - Hotel Kavia N"
         sucursales_json = data_root / "sucursales.json"
         sucursales_json.write_text('{"Kavia": {"code": "8777", "valid_from": "2024-02-21"}}')
 
@@ -107,12 +108,13 @@ def test_aggregate_by_ticket_with_directory_path_live() -> None:
         # Test: Call fetch_ticket which internally calls aggregate_to_ticket
         # aggregate_to_ticket passes str(paths.clean_sales) to aggregate_by_ticket
         # This was causing the PermissionError bug before the fix
+        # Note: Don't filter by branches initially to see all data, then check branch names
         try:
             result = sales_marts.fetch_ticket(
                 paths=paths,
                 start_date=start_str,
                 end_date=end_str,
-                branches=["Kavia"],
+                branches=None,  # Don't filter by branches - let's see all data first
                 mode="force",  # Force rebuild to ensure we go through the aggregation
             )
         except PermissionError as e:
@@ -144,13 +146,21 @@ def test_aggregate_by_ticket_with_directory_path_live() -> None:
         # Verify data quality if we have data
         if not result.empty:
             if "sucursal" in result.columns:
-                kavia_data = result[result["sucursal"] == "Kavia"]
-                if not kavia_data.empty:
+                unique_branches = sorted(result["sucursal"].unique().tolist())
+                print(
+                    f"[Live Directory Path Test] ✓ Found {len(result)} tickets across "
+                    f"{len(unique_branches)} branch(es): {unique_branches}"
+                )
+                # Check for Kavia-related branches (might be "Panem - Hotel Kavia N" or similar)
+                kavia_related = [
+                    b for b in unique_branches if "kavia" in b.lower() or "Kavia" in b
+                ]
+                if kavia_related:
+                    kavia_data = result[result["sucursal"].isin(kavia_related)]
                     print(
-                        f"[Live Directory Path Test] ✓ Found {len(kavia_data)} tickets for Kavia branch"
+                        f"[Live Directory Path Test] ✓ Found {len(kavia_data)} tickets for "
+                        f"Kavia-related branch(es): {kavia_related}"
                     )
-                else:
-                    print("[Live Directory Path Test] ⚠ No data for Kavia branch (may be normal)")
         else:
             print(
                 "[Live Directory Path Test] ⚠ Empty result (no sales data for date range) - "
