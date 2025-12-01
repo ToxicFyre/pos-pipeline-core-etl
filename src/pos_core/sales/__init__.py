@@ -25,6 +25,5 @@ Example:
 """
 
 from pos_core.sales import core, marts, raw
-from pos_core.sales.api import get_sales
 
-__all__ = ["core", "marts", "raw", "get_sales"]
+__all__ = ["core", "marts", "raw"]
