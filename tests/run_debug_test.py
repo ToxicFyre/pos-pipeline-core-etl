@@ -12,21 +12,9 @@ import pandas as pd
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-# Import directly to avoid importing full module chain
-# Import naive model directly without triggering arima imports
-import importlib.util
-
-from pos_core.etl import PaymentsETLConfig, get_payments
-
-naive_path = Path(__file__).parent / "src" / "pos_core" / "forecasting" / "models" / "naive.py"
-spec = importlib.util.spec_from_file_location("naive", naive_path)
-if spec is None:
-    raise ImportError(f"Could not create spec for {naive_path}")
-naive_module = importlib.util.module_from_spec(spec)
-if spec.loader is None:
-    raise ImportError(f"Spec for {naive_path} has no loader")
-spec.loader.exec_module(naive_module)
-NaiveLastWeekModel = naive_module.NaiveLastWeekModel
+from pos_core import DataPaths
+from pos_core.forecasting.models.naive import NaiveLastWeekModel
+from pos_core.payments import marts as payments_marts
 
 # Check for required credentials
 ws_base = os.environ.get("WS_BASE")
@@ -62,8 +50,8 @@ with TemporaryDirectory() as tmpdir:
     sucursales_json = utils_dir / "sucursales.json"
     sucursales_json.write_text('{"Kavia": {"code": "8777", "valid_from": "2024-02-21"}}')
 
-    # Configure ETL
-    config = PaymentsETLConfig.from_root(data_root, sucursales_json)
+    # Configure ETL with new API
+    paths = DataPaths.from_root(data_root, sucursales_json)
 
     # Download 45 days of data
     end_date = date.today() - timedelta(days=1)  # Yesterday
@@ -71,14 +59,14 @@ with TemporaryDirectory() as tmpdir:
 
     print(f"\n[Live Test] Downloading payments data from {start_date} to {end_date}")
 
-    # Get payments data
+    # Get payments data using new API
     try:
-        payments_df = get_payments(
+        payments_df = payments_marts.fetch_daily(
+            paths=paths,
             start_date=start_date.strftime("%Y-%m-%d"),
             end_date=end_date.strftime("%Y-%m-%d"),
-            config=config,
             branches=["Kavia"],
-            refresh=True,
+            mode="force",
         )
     except Exception as e:
         import traceback

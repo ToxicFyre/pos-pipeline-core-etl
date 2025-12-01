@@ -26,7 +26,7 @@ Created **6 comprehensive live tests** across all test modules:
 2. **`test_etl_pipeline_with_live_data`**: Tests complete ETL pipeline with 14 days of real data
 
 #### Query Tests (`test_etl_queries.py`)
-3. **`test_get_payments_with_live_data`**: Tests get_payments query function and idempotence
+3. **`test_get_payments_with_live_data`**: Tests payments ETL pipeline and idempotence
 4. **`test_get_payments_metadata_tracking`**: Validates metadata tracking through all ETL stages
 
 #### QA Tests (`test_qa_smoke.py`)
@@ -97,7 +97,7 @@ $ pytest -m live
 Available live tests:
   - test_naive_forecasting_with_live_data (forecasting)
   - test_etl_pipeline_with_live_data (ETL)
-  - test_get_payments_with_live_data (queries)
+  - test_get_payments_with_live_data (ETL queries)
   - test_get_payments_metadata_tracking (queries)
   - test_qa_with_live_data (QA)
   - test_qa_detects_data_quality_issues (QA)

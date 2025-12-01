@@ -52,7 +52,7 @@ These should be set in your environment or CI/CD secrets.
 
 **3. Query Tests** (`test_etl_queries.py`)
 
-- `test_get_payments_with_live_data`: Tests get_payments query function with idempotence validation
+- `test_get_payments_with_live_data`: Tests payments ETL pipeline with idempotence validation
 - `test_get_payments_metadata_tracking`: Verifies metadata tracking throughout ETL stages
 
 **4. QA Tests** (`test_qa_smoke.py`)
