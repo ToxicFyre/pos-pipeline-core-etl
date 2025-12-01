@@ -58,6 +58,20 @@ def aggregate_to_daily(
             output_path=output_path,
         )
 
+        # Filter by date range if fecha column exists
+        if "fecha" in result_df.columns:
+            # Convert fecha to date if it's not already
+            if result_df["fecha"].dtype == "object" or hasattr(result_df["fecha"].dtype, "tz"):
+                result_df["fecha"] = pd.to_datetime(result_df["fecha"]).dt.date
+            else:
+                # Already a date type, but ensure it's date not datetime
+                result_df["fecha"] = pd.to_datetime(result_df["fecha"]).dt.date
+
+            start = pd.to_datetime(start_date).date()
+            end = pd.to_datetime(end_date).date()
+
+            result_df = result_df[(result_df["fecha"] >= start) & (result_df["fecha"] <= end)]
+
         # Filter by branches if specified
         if branches and "sucursal" in result_df.columns:
             result_df = result_df[result_df["sucursal"].isin(branches)]
