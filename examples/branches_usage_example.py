@@ -36,18 +36,14 @@ print(f"Shape: {df_kavia.shape}\n")
 # Example 3: Multiple branches
 print("Example 3: Multiple branches")
 print("-" * 60)
-df_multi = sales_marts.load_group(
-    paths, start_date, end_date, branches=["Kavia", "Credi Club"]
-)
+df_multi = sales_marts.load_group(paths, start_date, end_date, branches=["Kavia", "Credi Club"])
 print(f"Columns: {list(df_multi.columns)}")
 print(f"Shape: {df_multi.shape}\n")
 
 # Example 4: Using fetch_group (same behavior)
 print("Example 4: Using fetch_group with branches")
 print("-" * 60)
-df_fetch = sales_marts.fetch_group(
-    paths, start_date, end_date, branches=["Kavia"], mode="missing"
-)
+df_fetch = sales_marts.fetch_group(paths, start_date, end_date, branches=["Kavia"], mode="missing")
 print(f"Columns: {list(df_fetch.columns)}")
 print(f"Shape: {df_fetch.shape}\n")
 

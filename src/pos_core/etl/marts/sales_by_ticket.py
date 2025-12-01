@@ -81,10 +81,10 @@ def _read_any(paths: Sequence[str]) -> pd.DataFrame:
         # Check if pattern contains ** for recursive globbing
         found = glob.glob(p, recursive=True) if "**" in p else glob.glob(p)
         files.extend(sorted(found))
-    
+
     # Filter out directories - only keep actual files
     files = [f for f in files if Path(f).is_file()]
-    
+
     if not files:
         raise FileNotFoundError(f"No input files matched: {paths!r}")
     logger.info(f"Reading {len(files)} CSV file(s)...")
@@ -141,7 +141,7 @@ def aggregate_by_ticket(
     # Resolve input files
     file_specs: list[str] = []
     input_csv_list = [input_csv] if isinstance(input_csv, str) else list(input_csv)
-    
+
     # Convert directory paths to glob patterns
     for path_str in input_csv_list:
         path_obj = Path(path_str)
