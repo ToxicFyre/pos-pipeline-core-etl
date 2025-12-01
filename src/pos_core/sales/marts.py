@@ -156,17 +156,39 @@ def fetch_group(
 
     if mode == "force" or not mart_path.exists():
         logger.info("Building mart_sales_by_group for %s to %s", start_date, end_date)
-        return aggregate_to_group(paths, start_date, end_date, branches)
+        df = aggregate_to_group(paths, start_date, end_date, branches)
     else:
         logger.debug("Loading existing mart_sales_by_group")
-        return pd.read_csv(mart_path)
+        df = pd.read_csv(mart_path, index_col=0)
+
+    # Filter by branches: select only columns that match the requested branches
+    # The group mart is a pivot table where branches are columns
+    if branches:
+        # Use case-insensitive partial matching to find columns
+        # (branch names in columns might have variations like "Panem - Hotel Kavia N")
+        matching_cols = []
+        branches_lower = [b.lower() for b in branches]
+        for col in df.columns:
+            col_lower = str(col).lower()
+            if any(branch_lower in col_lower for branch_lower in branches_lower):
+                matching_cols.append(col)
+        
+        if matching_cols:
+            df = df[matching_cols]
+        else:
+            logger.warning(
+                f"No matching branch columns found for {branches}. "
+                f"Available columns: {list(df.columns)}"
+            )
+
+    return df
 
 
 def load_group(
     paths: DataPaths,
     start_date: str,
     end_date: str,
-    _branches: list[str] | None = None,  # Unused but kept for API compatibility
+    branches: list[str] | None = None,
 ) -> pd.DataFrame:
     """Load the group-level sales mart from disk without running ETL.
 
@@ -176,10 +198,11 @@ def load_group(
         paths: DataPaths configuration.
         start_date: Start date in YYYY-MM-DD format (inclusive).
         end_date: End date in YYYY-MM-DD format (inclusive).
-        branches: Optional list of branch names (for validation). Currently unused but kept for API compatibility.
+        branches: Optional list of branch names to filter. Since the group mart is a pivot
+            table with branches as columns, this selects only the matching branch columns.
 
     Returns:
-        DataFrame with mart_sales_by_group structure.
+        DataFrame with mart_sales_by_group structure (category pivot table).
 
     Raises:
         FileNotFoundError: If the group mart file is missing.
@@ -193,4 +216,26 @@ def load_group(
             f"Use sales.marts.fetch_group() to build the mart."
         )
 
-    return pd.read_csv(mart_path)
+    df = pd.read_csv(mart_path, index_col=0)
+
+    # Filter by branches: select only columns that match the requested branches
+    # The group mart is a pivot table where branches are columns
+    if branches:
+        # Use case-insensitive partial matching to find columns
+        # (branch names in columns might have variations like "Panem - Hotel Kavia N")
+        matching_cols = []
+        branches_lower = [b.lower() for b in branches]
+        for col in df.columns:
+            col_lower = str(col).lower()
+            if any(branch_lower in col_lower for branch_lower in branches_lower):
+                matching_cols.append(col)
+        
+        if matching_cols:
+            df = df[matching_cols]
+        else:
+            logger.warning(
+                f"No matching branch columns found for {branches}. "
+                f"Available columns: {list(df.columns)}"
+            )
+
+    return df
