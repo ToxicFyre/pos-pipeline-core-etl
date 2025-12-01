@@ -68,6 +68,15 @@ def fetch_daily(
     else:
         logger.debug("Loading existing mart_payments_daily")
         df = pd.read_csv(mart_path)
+
+        # Filter by date range
+        if "fecha" in df.columns:
+            df["fecha"] = pd.to_datetime(df["fecha"]).dt.date
+            start = pd.to_datetime(start_date).date()
+            end = pd.to_datetime(end_date).date()
+            df = df[(df["fecha"] >= start) & (df["fecha"] <= end)]
+
+        # Filter by branches if specified
         if branches and "sucursal" in df.columns:
             df = df[df["sucursal"].isin(branches)]
         return df
