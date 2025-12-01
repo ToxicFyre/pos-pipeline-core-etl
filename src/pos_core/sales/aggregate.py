@@ -61,7 +61,9 @@ def aggregate_to_ticket(
         # Filter by date range if operating_date column exists
         if "operating_date" in result_df.columns:
             # Convert operating_date to date if it's not already
-            if result_df["operating_date"].dtype == "object" or hasattr(result_df["operating_date"].dtype, "tz"):
+            if result_df["operating_date"].dtype == "object" or hasattr(
+                result_df["operating_date"].dtype, "tz"
+            ):
                 result_df["operating_date"] = pd.to_datetime(result_df["operating_date"]).dt.date
             else:
                 # Already a date type, but ensure it's date not datetime
