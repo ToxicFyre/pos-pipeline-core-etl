@@ -593,7 +593,133 @@ def aplicar_warmup(
         post_endpoint(ep)
 
 
+# ------------------------- Report Descriptors -------------------------
+@dataclasses.dataclass
+class ReportDescriptor:
+    """Internal descriptor for report export configuration.
+
+    Attributes:
+        export_path: Endpoint path (e.g., "ExportOrderTimes").
+        report_page_path: Page to GET for CSRF token.
+        needs_warmup: Whether "Aplicar" warmup sequence is required.
+        report_name: Display name for the report (e.g., "OrderTimes").
+
+    """
+
+    export_path: str
+    report_page_path: str = REPORT_PAGE_PATH
+    needs_warmup: bool = True
+    report_name: str = ""
+
+
+# Report descriptors for config-driven exports
+ORDER_TIMES_DESCRIPTOR = ReportDescriptor(
+    export_path="ExportOrderTimes",
+    report_page_path=REPORT_PAGE_PATH,
+    needs_warmup=True,
+    report_name="OrderTimes",
+)
+
+
 # ------------------------- Exporters -------------------------
+def export_report(
+    s: requests.Session,
+    base_url: str,
+    descriptor: ReportDescriptor,
+    subsidiary_id: str,
+    start: date,
+    end: date,
+) -> tuple[str, bytes]:
+    """Export a report using a report descriptor.
+
+    Handles the complete export workflow:
+    1. Sets SubsidiaryId cookie
+    2. Retrieves CSRF token from descriptor's report page
+    3. Conditionally executes "Aplicar" warm-up sequence if needed
+    4. Calls export endpoint
+    5. Parses response (JSON with base64 file or direct file download)
+
+    Args:
+        s: Authenticated requests session.
+        base_url: Base URL of POS instance.
+        descriptor: ReportDescriptor with export configuration.
+        subsidiary_id: Branch/subsidiary ID.
+        start: Start date for the report (inclusive).
+        end: End date for the report (inclusive).
+
+    Returns:
+        Tuple of (suggested_filename, xlsx_bytes).
+
+    Raises:
+        SystemExit: If export fails, or response format is unexpected.
+
+    """
+    # 0) Set SubsidiaryId cookie up-front
+    _set_subsidiary_cookie(s, base_url, subsidiary_id)
+
+    # 1) GET report page to obtain CSRF token
+    report_page = f"{base_url}{descriptor.report_page_path}"
+    r = s.get(report_page)
+    ensure_ok(r, "Failed to open report page")
+    token = require_csrf_token(
+        get_csrf_from_html(r.text),
+        context=f"Report page ({descriptor.report_page_path})",
+        response=r,
+        session=s,
+    )
+    # require_csrf_token() guarantees non-empty token (raises SystemExit if missing)
+    assert token and token.strip(), "Token must be non-empty after require_csrf_token()"
+
+    # 2) Run the "Aplicar" warm-up set if needed
+    if descriptor.needs_warmup:
+        aplicar_warmup(s, base_url, report_page, token, subsidiary_id, start, end)
+
+    # 3) Export call: params in QS, same params in body, token in body, browser-like headers
+    export_url = f"{base_url}/Reports/{descriptor.export_path}"
+    params = {
+        "subsidiaryId": str(subsidiary_id),
+        "startDate": start.strftime("%Y-%m-%d"),
+        "endDate": end.strftime("%Y-%m-%d"),
+    }
+    body = dict(params)
+    headers = {
+        "Origin": _origin_for(base_url),
+        "Referer": report_page,
+        "X-Requested-With": "XMLHttpRequest",
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+        "Accept": "*/*",
+        "RequestVerificationToken": token,
+    }
+    body["__RequestVerificationToken"] = token
+
+    r = s.post(
+        export_url, params=params, data=body, headers=headers, allow_redirects=True, timeout=120
+    )
+    if r.status_code == 401:
+        raise SystemExit("401 Unauthorized on export — auth expired or CSRF missing.")
+    ensure_ok(r, f"Export failed for {descriptor.report_name} {subsidiary_id} {start}..{end}")
+
+    # 4) Accept JSON {fileBase64} or a direct file response
+    ct = (r.headers.get("Content-Type") or "").lower()
+    if "application/json" in ct:
+        j = r.json()
+        if "fileBase64" not in j:
+            raise SystemExit(f"Export JSON missing 'fileBase64'. Keys: {list(j.keys())}")
+        fname = j.get("fileName") or f"{descriptor.report_name}.xlsx"
+        content = base64.b64decode(j["fileBase64"])
+        return fname, content
+
+    cd = r.headers.get("Content-Disposition") or ""
+    if "application/vnd" in ct or "application/octet-stream" in ct or "attachment" in cd.lower():
+        fname = _content_disposition_filename(cd) or f"{descriptor.report_name}_{start}_{end}.xlsx"
+        return fname, r.content
+
+    # If it came back HTML, show the title/first bytes to help debug
+    raise SystemExit(
+        f"Export returned unexpected content-type {ct}. Body starts: {(r.text or '')[:300]}"
+    )
+
+
 def export_sales_report(
     s: requests.Session,
     base_url: str,
@@ -634,69 +760,14 @@ def export_sales_report(
             f"Unknown sales report '{report}'. Choose from: {', '.join(REPORT_ENDPOINTS)}"
         )
 
-    # 0) Set SubsidiaryId cookie up-front (matches your note + notebook)
-    _set_subsidiary_cookie(s, base_url, subsidiary_id)
-
-    # 1) GET report page to obtain CSRF token
-    report_page = f"{base_url}{REPORT_PAGE_PATH}"
-    r = s.get(report_page)
-    ensure_ok(r, "Failed to open report page")
-    token = require_csrf_token(
-        get_csrf_from_html(r.text),
-        context="Sales report page (Reports/ConsolidatedSalesMasterReport)",
-        response=r,
-        session=s,
+    # Create descriptor and use generic export function
+    descriptor = ReportDescriptor(
+        export_path=endpoint,
+        report_page_path=REPORT_PAGE_PATH,
+        needs_warmup=True,
+        report_name=report,
     )
-    # require_csrf_token() guarantees non-empty token (raises SystemExit if missing)
-    assert token and token.strip(), "Token must be non-empty after require_csrf_token()"
-
-    # 2) Run the "Aplicar" warm-up set
-    aplicar_warmup(s, base_url, report_page, token, subsidiary_id, start, end)
-
-    # 3) Export call: params in QS, same params in body, token in body, browser-like headers
-    export_url = f"{base_url}/Reports/{endpoint}"
-    params = {
-        "subsidiaryId": str(subsidiary_id),
-        "startDate": start.strftime("%Y-%m-%d"),
-        "endDate": end.strftime("%Y-%m-%d"),
-    }
-    body = dict(params)
-    headers = {
-        "Origin": _origin_for(base_url),
-        "Referer": report_page,
-        "X-Requested-With": "XMLHttpRequest",
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-        "Accept": "*/*",
-        "RequestVerificationToken": token,
-    }
-    body["__RequestVerificationToken"] = token
-
-    r = s.post(
-        export_url, params=params, data=body, headers=headers, allow_redirects=True, timeout=120
-    )
-    if r.status_code == 401:
-        raise SystemExit("401 Unauthorized on export — auth expired or CSRF missing.")
-    ensure_ok(r, f"Export failed for {report} {subsidiary_id} {start}..{end}")
-
-    # 4) Accept JSON {fileBase64} or a direct file response
-    ct = (r.headers.get("Content-Type") or "").lower()
-    if "application/json" in ct:
-        j = r.json()
-        if "fileBase64" not in j:
-            raise SystemExit(f"Export JSON missing 'fileBase64'. Keys: {list(j.keys())}")
-        fname = j.get("fileName") or f"{report}.xlsx"
-        content = base64.b64decode(j["fileBase64"])
-        return fname, content
-
-    cd = r.headers.get("Content-Disposition") or ""
-    if "application/vnd" in ct or "application/octet-stream" in ct or "attachment" in cd.lower():
-        fname = _content_disposition_filename(cd) or f"{report}_{start}_{end}.xlsx"
-        return fname, r.content
-
-    # If it came back HTML, show the title/first bytes to help debug
-    raise SystemExit(
-        f"Export returned unexpected content-type {ct}. Body starts: {(r.text or '')[:300]}"
-    )
+    return export_report(s, base_url, descriptor, subsidiary_id, start, end)
 
 
 def _content_disposition_filename(h: str | None) -> str | None:

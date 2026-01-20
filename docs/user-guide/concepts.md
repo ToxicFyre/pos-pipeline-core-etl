@@ -136,6 +136,7 @@ The package uses **domain + layer modules** to encode specificity:
   - `pos_core.sales.core` → sales, silver
   - `pos_core.sales.marts` → sales, gold
   - `pos_core.sales.raw` → sales, bronze
+  - `pos_core.order_times.raw` → order times, bronze (extraction)
 
 - **Functions define behavior**:
   - `fetch(...)` / `fetch_*`: Run ETL for missing partitions (or all if `mode="force"`)
@@ -178,6 +179,18 @@ ticket_df = marts.fetch_ticket(paths, "2025-01-01", "2025-01-31")
 
 # Get group mart
 group_df = marts.fetch_group(paths, "2025-01-01", "2025-01-31")
+```
+
+### Order Times API
+
+```python
+from pos_core.order_times import raw
+
+# Download raw order times data
+raw.fetch(paths, "2025-01-01", "2025-01-31")
+
+# Verify data exists
+raw.load(paths, "2025-01-01", "2025-01-31")
 ```
 
 ### Processing Modes

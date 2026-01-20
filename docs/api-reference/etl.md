@@ -34,10 +34,13 @@ paths = DataPaths.from_root(
 
 - `raw_payments` (Path): Directory for raw payment Excel files (`a_raw/payments/`)
 - `raw_sales` (Path): Directory for raw sales Excel files (`a_raw/sales/`)
+- `raw_order_times` (Path): Directory for raw order times Excel files (`a_raw/order_times/`)
 - `clean_payments` (Path): Directory for cleaned payment CSV files (`b_clean/payments/`)
 - `clean_sales` (Path): Directory for cleaned sales CSV files (`b_clean/sales/`)
+- `clean_order_times` (Path): Directory for cleaned order times CSV files (`b_clean/order_times/`)
 - `mart_payments` (Path): Directory for payment marts (`c_processed/payments/`)
 - `mart_sales` (Path): Directory for sales marts (`c_processed/sales/`)
+- `mart_order_times` (Path): Directory for order times marts (`c_processed/order_times/`)
 - `sucursales_json` (Path): Path to `sucursales.json` file
 
 ## Payments API
@@ -408,6 +411,82 @@ df = raw.load(
     end_date: str,
     branches: list[str] | None = None,
 ) -> pd.DataFrame
+```
+
+## Order Times API
+
+### Raw Data (Bronze Layer)
+
+#### `order_times.raw.fetch()`
+
+Download raw order times Excel files from the POS system.
+
+**Signature:**
+
+```python
+from pos_core.order_times import raw
+
+raw.fetch(
+    paths: DataPaths,
+    start_date: str,
+    end_date: str,
+    branches: list[str] | None = None,
+    *,
+    mode: str = "missing",
+) -> None
+```
+
+**Parameters:**
+- `paths` (DataPaths): DataPaths configuration
+- `start_date` (str): Start date in YYYY-MM-DD format (inclusive)
+- `end_date` (str): End date in YYYY-MM-DD format (inclusive)
+- `branches` (list[str] | None): Optional list of branch names to filter
+- `mode` (str): Processing mode - `"missing"` (default) or `"force"`
+
+**Note:** Requires `WS_BASE`, `WS_USER`, and `WS_PASS` environment variables to be set.
+
+**Example:**
+
+```python
+from pos_core.order_times import raw
+
+# Download order times for a date range
+raw.fetch(paths, "2025-01-01", "2025-01-31")
+
+# Download for specific branches
+raw.fetch(paths, "2025-01-01", "2025-01-31", branches=["Punto Valle"])
+
+# Force re-download
+raw.fetch(paths, "2025-01-01", "2025-01-31", mode="force")
+```
+
+#### `order_times.raw.load()`
+
+Verify that raw order times data exists for the given range.
+
+**Signature:**
+
+```python
+raw.load(
+    paths: DataPaths,
+    start_date: str,
+    end_date: str,
+) -> None
+```
+
+**Parameters:**
+- `paths` (DataPaths): DataPaths configuration
+- `start_date` (str): Start date in YYYY-MM-DD format (inclusive)
+- `end_date` (str): End date in YYYY-MM-DD format (inclusive)
+
+**Raises:**
+- `FileNotFoundError`: If required raw order times files are missing
+
+**Example:**
+
+```python
+# Verify data exists (raises error if missing)
+raw.load(paths, "2025-01-01", "2025-01-31")
 ```
 
 ## Processing Modes

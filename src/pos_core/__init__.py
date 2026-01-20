@@ -10,6 +10,7 @@ POS data across multiple layers:
 Module Structure:
     pos_core.payments: Payment data ETL (payments.core, payments.marts, payments.raw)
     pos_core.sales: Sales data ETL (sales.core, sales.marts, sales.raw)
+    pos_core.order_times: Order times data ETL (order_times.raw)
     pos_core.forecasting: Time series forecasting
     pos_core.qa: Data quality assurance
     pos_core.branches: Branch registry for code resolution

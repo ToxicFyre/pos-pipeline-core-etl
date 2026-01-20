@@ -65,6 +65,7 @@ from pathlib import Path
 from pos_core import DataPaths
 from pos_core.payments import marts as payments_marts
 from pos_core.sales import core as sales_core
+from pos_core.order_times import raw as order_times_raw
 from pos_core.forecasting import ForecastConfig, run_payments_forecast
 
 # Configure paths
@@ -75,6 +76,9 @@ payments_daily = payments_marts.fetch_daily(paths, "2025-01-01", "2025-01-31")
 
 # Sales: core item-line fact
 sales_items = sales_core.fetch(paths, "2025-01-01", "2025-01-31")
+
+# Order times: download raw data
+order_times_raw.fetch(paths, "2025-01-01", "2025-01-31")
 
 # Forecasting on payments daily mart
 config = ForecastConfig(horizon_days=91)  # 13 weeks
@@ -110,6 +114,7 @@ The package uses **domain + layer modules** to encode specificity:
   - `pos_core.payments.marts` → payments, gold (aggregates)
   - `pos_core.sales.core` → sales, silver
   - `pos_core.sales.marts` → sales, gold
+  - `pos_core.order_times.raw` → order times, bronze (extraction)
 
 - **Functions define behavior**:
   - `fetch(...)` / `fetch_*`: Run ETL for missing partitions (or all if `mode="force"`)
@@ -142,6 +147,15 @@ ticket_df = marts.fetch_ticket(paths, "2025-01-01", "2025-01-31")
 
 # Get group pivot mart
 group_df = marts.fetch_group(paths, "2025-01-01", "2025-01-31")
+```
+
+### Order Times
+
+```python
+from pos_core.order_times import raw
+
+# Download raw order times data
+raw.fetch(paths, "2025-01-01", "2025-01-31")
 ```
 
 ### Forecasting

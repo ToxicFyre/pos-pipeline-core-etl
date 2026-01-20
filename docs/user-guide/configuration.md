@@ -191,10 +191,13 @@ The `DataPaths` object provides access to all path configurations:
 
 - `raw_payments` (Path): Directory for raw payment Excel files
 - `raw_sales` (Path): Directory for raw sales Excel files
+- `raw_order_times` (Path): Directory for raw order times Excel files
 - `clean_payments` (Path): Directory for cleaned payment CSV files
 - `clean_sales` (Path): Directory for cleaned sales CSV files
+- `clean_order_times` (Path): Directory for cleaned order times CSV files
 - `mart_payments` (Path): Directory for payment marts
 - `mart_sales` (Path): Directory for sales marts
+- `mart_order_times` (Path): Directory for order times marts
 - `sucursales_json` (Path): Path to `sucursales.json` file
 
 ### Ensuring Directories Exist
@@ -216,17 +219,22 @@ data/
 ├── a_raw/          # Bronze: Raw Wansoft exports (Excel files)
 │   ├── payments/
 │   │   └── batch/  # Date-partitioned raw files
-│   └── sales/
+│   ├── sales/
+│   │   └── batch/  # Date-partitioned raw files
+│   └── order_times/
 │       └── batch/  # Date-partitioned raw files
 ├── b_clean/        # Silver: Core facts at atomic grain (CSV files)
 │   ├── payments/
 │   │   └── batch/  # Date-partitioned core fact files
-│   └── sales/
+│   ├── sales/
+│   │   └── batch/  # Date-partitioned core fact files
+│   └── order_times/
 │       └── batch/  # Date-partitioned core fact files
 └── c_processed/    # Gold: Marts (aggregated tables)
     ├── payments/
     │   └── _meta/  # Metadata for marts
-    └── sales/
+    ├── sales/
+    └── order_times/
         └── _meta/  # Metadata for marts
 ```
 

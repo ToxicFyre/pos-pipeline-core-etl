@@ -25,13 +25,16 @@ class DataPaths:
         data_root/
         ├── a_raw/           # Bronze: raw Wansoft exports
         │   ├── payments/
-        │   └── sales/
+        │   ├── sales/
+        │   └── order_times/
         ├── b_clean/         # Silver: core facts at atomic grain
         │   ├── payments/    # fact_payments_ticket
-        │   └── sales/       # fact_sales_item_line
+        │   ├── sales/       # fact_sales_item_line
+        │   └── order_times/
         └── c_processed/     # Gold: marts (aggregated tables)
             ├── payments/    # mart_payments_daily
-            └── sales/       # mart_sales_by_ticket, mart_sales_by_group
+            ├── sales/       # mart_sales_by_ticket, mart_sales_by_group
+            └── order_times/
 
     """
 
@@ -98,6 +101,22 @@ class DataPaths:
         """Gold layer: sales marts."""
         return self.data_root / "c_processed" / "sales"
 
+    # Derived paths for order_times
+    @property
+    def raw_order_times(self) -> Path:
+        """Bronze layer: raw order times Excel files."""
+        return self.data_root / "a_raw" / "order_times" / "batch"
+
+    @property
+    def clean_order_times(self) -> Path:
+        """Silver layer: order times core facts (cleaned CSVs)."""
+        return self.data_root / "b_clean" / "order_times" / "batch"
+
+    @property
+    def mart_order_times(self) -> Path:
+        """Gold layer: order times marts."""
+        return self.data_root / "c_processed" / "order_times"
+
     def ensure_dirs(self) -> None:
         """Create all directories in the data structure."""
         for path in [
@@ -107,5 +126,8 @@ class DataPaths:
             self.raw_sales,
             self.clean_sales,
             self.mart_sales,
+            self.raw_order_times,
+            self.clean_order_times,
+            self.mart_order_times,
         ]:
             path.mkdir(parents=True, exist_ok=True)
