@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.0">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
     
     
       
@@ -31,7 +31,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.618322db.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
       
         
         <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -1053,6 +1053,62 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#order-times-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Order Times API
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Order Times API">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#raw-data-bronze-layer_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Raw Data (Bronze Layer)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Raw Data (Bronze Layer)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#order_timesrawfetch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        order_times.raw.fetch()
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#order_timesrawload" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        order_times.raw.load()
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#processing-modes" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1441,10 +1497,13 @@
 <ul>
 <li><code>raw_payments</code> (Path): Directory for raw payment Excel files (<code>a_raw/payments/</code>)</li>
 <li><code>raw_sales</code> (Path): Directory for raw sales Excel files (<code>a_raw/sales/</code>)</li>
+<li><code>raw_order_times</code> (Path): Directory for raw order times Excel files (<code>a_raw/order_times/</code>)</li>
 <li><code>clean_payments</code> (Path): Directory for cleaned payment CSV files (<code>b_clean/payments/</code>)</li>
 <li><code>clean_sales</code> (Path): Directory for cleaned sales CSV files (<code>b_clean/sales/</code>)</li>
+<li><code>clean_order_times</code> (Path): Directory for cleaned order times CSV files (<code>b_clean/order_times/</code>)</li>
 <li><code>mart_payments</code> (Path): Directory for payment marts (<code>c_processed/payments/</code>)</li>
 <li><code>mart_sales</code> (Path): Directory for sales marts (<code>c_processed/sales/</code>)</li>
+<li><code>mart_order_times</code> (Path): Directory for order times marts (<code>c_processed/order_times/</code>)</li>
 <li><code>sucursales_json</code> (Path): Path to <code>sucursales.json</code> file</li>
 </ul>
 <h2 id="payments-api">Payments API<a class="headerlink" href="#payments-api" title="Permanent link">&para;</a></h2>
@@ -1700,6 +1759,60 @@
 <a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a>    <span class="n">branches</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span>
 </code></pre></div>
+<h2 id="order-times-api">Order Times API<a class="headerlink" href="#order-times-api" title="Permanent link">&para;</a></h2>
+<h3 id="raw-data-bronze-layer_2">Raw Data (Bronze Layer)<a class="headerlink" href="#raw-data-bronze-layer_2" title="Permanent link">&para;</a></h3>
+<h4 id="order_timesrawfetch"><code>order_times.raw.fetch()</code><a class="headerlink" href="#order_timesrawfetch" title="Permanent link">&para;</a></h4>
+<p>Download raw order times Excel files from the POS system.</p>
+<p><strong>Signature:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pos_core.order_times</span><span class="w"> </span><span class="kn">import</span> <span class="n">raw</span>
+<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>
+<a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a><span class="n">raw</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span>
+<a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a>    <span class="n">paths</span><span class="p">:</span> <span class="n">DataPaths</span><span class="p">,</span>
+<a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a>    <span class="n">start_date</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<a id="__codelineno-21-6" name="__codelineno-21-6" href="#__codelineno-21-6"></a>    <span class="n">end_date</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<a id="__codelineno-21-7" name="__codelineno-21-7" href="#__codelineno-21-7"></a>    <span class="n">branches</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-21-8" name="__codelineno-21-8" href="#__codelineno-21-8"></a>    <span class="o">*</span><span class="p">,</span>
+<a id="__codelineno-21-9" name="__codelineno-21-9" href="#__codelineno-21-9"></a>    <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;missing&quot;</span><span class="p">,</span>
+<a id="__codelineno-21-10" name="__codelineno-21-10" href="#__codelineno-21-10"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</code></pre></div>
+<p><strong>Parameters:</strong>
+- <code>paths</code> (DataPaths): DataPaths configuration
+- <code>start_date</code> (str): Start date in YYYY-MM-DD format (inclusive)
+- <code>end_date</code> (str): End date in YYYY-MM-DD format (inclusive)
+- <code>branches</code> (list[str] | None): Optional list of branch names to filter
+- <code>mode</code> (str): Processing mode - <code>"missing"</code> (default) or <code>"force"</code></p>
+<p><strong>Note:</strong> Requires <code>WS_BASE</code>, <code>WS_USER</code>, and <code>WS_PASS</code> environment variables to be set.</p>
+<p><strong>Example:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pos_core.order_times</span><span class="w"> </span><span class="kn">import</span> <span class="n">raw</span>
+<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>
+<a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a><span class="c1"># Download order times for a date range</span>
+<a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a><span class="n">raw</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="s2">&quot;2025-01-01&quot;</span><span class="p">,</span> <span class="s2">&quot;2025-01-31&quot;</span><span class="p">)</span>
+<a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a>
+<a id="__codelineno-22-6" name="__codelineno-22-6" href="#__codelineno-22-6"></a><span class="c1"># Download for specific branches</span>
+<a id="__codelineno-22-7" name="__codelineno-22-7" href="#__codelineno-22-7"></a><span class="n">raw</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="s2">&quot;2025-01-01&quot;</span><span class="p">,</span> <span class="s2">&quot;2025-01-31&quot;</span><span class="p">,</span> <span class="n">branches</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Punto Valle&quot;</span><span class="p">])</span>
+<a id="__codelineno-22-8" name="__codelineno-22-8" href="#__codelineno-22-8"></a>
+<a id="__codelineno-22-9" name="__codelineno-22-9" href="#__codelineno-22-9"></a><span class="c1"># Force re-download</span>
+<a id="__codelineno-22-10" name="__codelineno-22-10" href="#__codelineno-22-10"></a><span class="n">raw</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="s2">&quot;2025-01-01&quot;</span><span class="p">,</span> <span class="s2">&quot;2025-01-31&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;force&quot;</span><span class="p">)</span>
+</code></pre></div>
+<h4 id="order_timesrawload"><code>order_times.raw.load()</code><a class="headerlink" href="#order_timesrawload" title="Permanent link">&para;</a></h4>
+<p>Verify that raw order times data exists for the given range.</p>
+<p><strong>Signature:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="n">raw</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+<a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>    <span class="n">paths</span><span class="p">:</span> <span class="n">DataPaths</span><span class="p">,</span>
+<a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>    <span class="n">start_date</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a>    <span class="n">end_date</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</code></pre></div>
+<p><strong>Parameters:</strong>
+- <code>paths</code> (DataPaths): DataPaths configuration
+- <code>start_date</code> (str): Start date in YYYY-MM-DD format (inclusive)
+- <code>end_date</code> (str): End date in YYYY-MM-DD format (inclusive)</p>
+<p><strong>Raises:</strong>
+- <code>FileNotFoundError</code>: If required raw order times files are missing</p>
+<p><strong>Example:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="c1"># Verify data exists (raises error if missing)</span>
+<a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a><span class="n">raw</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="s2">&quot;2025-01-01&quot;</span><span class="p">,</span> <span class="s2">&quot;2025-01-31&quot;</span><span class="p">)</span>
+</code></pre></div>
 <h2 id="processing-modes">Processing Modes<a class="headerlink" href="#processing-modes" title="Permanent link">&para;</a></h2>
 <h3 id="modemissing-default"><code>mode="missing"</code> (Default)<a class="headerlink" href="#modemissing-default" title="Permanent link">&para;</a></h3>
 <ul>
@@ -1825,10 +1938,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "toc.integrate", "search.suggest", "search.highlight"], "search": "../../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "toc.integrate", "search.suggest", "search.highlight"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../../assets/javascripts/bundle.e71a0d61.min.js"></script>
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
       
     
   </body>
