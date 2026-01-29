@@ -29,6 +29,12 @@ src/pos_core/
 │   ├── transform.py         # Silver: clean Excel → CSV (fact_sales_item_line)
 │   └── aggregate.py         # Gold: ticket/group aggregations
 │
+├── transfers/               # Transfers domain
+│   ├── __init__.py          # Public: raw, core, marts
+│   ├── extract.py           # Bronze: download from Wansoft (Inventory > Transfers > Issued)
+│   ├── transform.py         # Silver: clean Excel → CSV (fact_transfers_line)
+│   └── aggregate.py         # Gold: pivot aggregation (mart_transfers_pivot)
+│
 ├── forecasting/             # Forecasting domain (mostly unchanged)
 │   ├── __init__.py          # Public: run_payments_forecast, ForecastConfig, ForecastResult
 │   └── ...
@@ -57,6 +63,14 @@ src/pos_core/
 - **Gold (Marts)**: `data/c_processed/sales/`
   - `mart_sales_by_ticket`: One row per ticket
   - `mart_sales_by_group`: Category pivot table
+
+### Transfers
+- **Bronze**: `data/a_raw/transfers/` - Raw Excel from Wansoft (Inventory > Transfers > Issued)
+- **Silver (Core Fact)**: `data/b_clean/transfers/` - `fact_transfers_line`
+  - Grain: transfer line item
+  - Key: `(orden, almacen_origen, sucursal_destino, producto)`
+- **Gold (Marts)**: `data/c_processed/transfers/`
+  - `mart_transfers_pivot`: Branch × category pivot table
 
 ## Public API
 
@@ -93,6 +107,17 @@ df = get_sales(paths, "2025-01-01", "2025-01-31", grain="ticket")
 
 # Get group pivot mart
 df = get_sales(paths, "2025-01-01", "2025-01-31", grain="group")
+```
+
+### Transfers
+```python
+from pos_core.transfers import core, marts
+
+# Get core fact (transfer line grain)
+df = core.fetch(paths, "2025-01-01", "2025-01-31")
+
+# Get pivot mart (branch × category)
+df = marts.fetch_pivot(paths, "2025-01-01", "2025-01-31")
 ```
 
 ### Forecasting

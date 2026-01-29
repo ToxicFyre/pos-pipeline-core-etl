@@ -56,19 +56,22 @@ The package expects a specific directory structure:
 data/
 ├── a_raw/          # Bronze: Raw Wansoft exports (Excel files)
 │   ├── payments/
-│   └── sales/
+│   ├── sales/
+│   └── transfers/
 ├── b_clean/        # Silver: Core facts at atomic grain (CSV files)
 │   ├── payments/
-│   └── sales/
+│   ├── sales/
+│   └── transfers/
 └── c_processed/    # Gold: Marts (aggregated tables)
     ├── payments/
-    └── sales/
+    ├── sales/
+    └── transfers/
 ```
 
 Create these directories:
 
 ```bash
-mkdir -p data/{a_raw,b_clean,c_processed}/{payments,sales}
+mkdir -p data/{a_raw,b_clean,c_processed}/{payments,sales,transfers}
 ```
 
 ## Step 4: Run Your First ETL
@@ -80,6 +83,7 @@ from pathlib import Path
 from pos_core import DataPaths
 from pos_core.payments import marts as payments_marts
 from pos_core.sales import core as sales_core
+from pos_core.transfers import marts as transfers_marts
 
 # Configure paths
 paths = DataPaths.from_root(Path("data"), Path("utils/sucursales.json"))
@@ -95,6 +99,12 @@ print("\nFetching sales core fact...")
 sales_items = sales_core.fetch(paths, "2025-01-01", "2025-01-31")
 print(f"Retrieved {len(sales_items)} rows")
 print(sales_items.head())
+
+# Transfers: pivot mart (branch × category aggregation)
+print("\nFetching transfers pivot mart...")
+transfers_pivot = transfers_marts.fetch_pivot(paths, "2025-01-01", "2025-01-31")
+print(f"Retrieved pivot table with shape {transfers_pivot.shape}")
+print(transfers_pivot)
 ```
 
 Run it:
@@ -167,6 +177,14 @@ The `sales.core.fetch()` function returns a DataFrame with:
 - `group`: Product group/category
 - `subtotal_item`: Item subtotal
 - `total_item`: Item total
+
+### Transfers Pivot Mart
+
+The `transfers.marts.fetch_pivot()` function returns a pivot table with:
+- **Rows**: Branch codes (K, N, C, Q, PV, HZ, CC, TOTAL)
+- **Columns**: Product categories (NO-PROC, REFRICONGE, TOSTADOR, COMIDA SALADA, REPO, PAN DULCE Y SALADA, TOTAL)
+
+This aggregates transfer costs from CEDIS warehouse to retail branches by product category.
 
 ## Common Patterns
 

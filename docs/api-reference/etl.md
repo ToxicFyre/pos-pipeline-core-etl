@@ -34,12 +34,15 @@ paths = DataPaths.from_root(
 
 - `raw_payments` (Path): Directory for raw payment Excel files (`a_raw/payments/`)
 - `raw_sales` (Path): Directory for raw sales Excel files (`a_raw/sales/`)
+- `raw_transfers` (Path): Directory for raw transfer Excel files (`a_raw/transfers/`)
 - `raw_order_times` (Path): Directory for raw order times Excel files (`a_raw/order_times/`)
 - `clean_payments` (Path): Directory for cleaned payment CSV files (`b_clean/payments/`)
 - `clean_sales` (Path): Directory for cleaned sales CSV files (`b_clean/sales/`)
+- `clean_transfers` (Path): Directory for cleaned transfer CSV files (`b_clean/transfers/`)
 - `clean_order_times` (Path): Directory for cleaned order times CSV files (`b_clean/order_times/`)
 - `mart_payments` (Path): Directory for payment marts (`c_processed/payments/`)
 - `mart_sales` (Path): Directory for sales marts (`c_processed/sales/`)
+- `mart_transfers` (Path): Directory for transfer marts (`c_processed/transfers/`)
 - `mart_order_times` (Path): Directory for order times marts (`c_processed/order_times/`)
 - `sucursales_json` (Path): Path to `sucursales.json` file
 
@@ -413,6 +416,184 @@ df = raw.load(
 ) -> pd.DataFrame
 ```
 
+## Transfers API
+
+### Core Fact (Silver Layer)
+
+#### `transfers.core.fetch()`
+
+Ensure `fact_transfers_line` exists for the given range, then return it.
+
+**Signature:**
+
+```python
+from pos_core.transfers import core
+
+df = core.fetch(
+    paths: DataPaths,
+    start_date: str,
+    end_date: str,
+    branches: list[str] | None = None,
+    *,
+    mode: str = "missing",
+) -> pd.DataFrame
+```
+
+**Parameters:**
+- `paths` (DataPaths): DataPaths configuration
+- `start_date` (str): Start date in YYYY-MM-DD format (inclusive)
+- `end_date` (str): End date in YYYY-MM-DD format (inclusive)
+- `branches` (list[str] | None): Optional list of branch names to filter
+- `mode` (str): Processing mode - `"missing"` (default) or `"force"`
+
+**Returns:** DataFrame with `fact_transfers_line` structure (transfer line grain)
+
+**Example:**
+
+```python
+from pos_core.transfers import core
+
+df = core.fetch(paths, "2025-01-01", "2025-01-31")
+```
+
+#### `transfers.core.load()`
+
+Load `fact_transfers_line` from disk without running ETL.
+
+**Signature:**
+
+```python
+df = core.load(
+    paths: DataPaths,
+    start_date: str,
+    end_date: str,
+    branches: list[str] | None = None,
+) -> pd.DataFrame
+```
+
+**Parameters:** Same as `fetch()`, except no `mode` parameter
+
+**Returns:** DataFrame with `fact_transfers_line` structure
+
+**Raises:**
+- `FileNotFoundError`: If the data doesn't exist
+
+### Pivot Mart (Gold Layer)
+
+#### `transfers.marts.fetch_pivot()`
+
+Ensure the transfer pivot mart exists for the range, then return it.
+
+**Signature:**
+
+```python
+from pos_core.transfers import marts
+
+df = marts.fetch_pivot(
+    paths: DataPaths,
+    start_date: str,
+    end_date: str,
+    branches: list[str] | None = None,
+    *,
+    mode: str = "missing",
+    include_cedis: bool = False,
+) -> pd.DataFrame
+```
+
+**Parameters:**
+- `paths` (DataPaths): DataPaths configuration
+- `start_date` (str): Start date in YYYY-MM-DD format (inclusive)
+- `end_date` (str): End date in YYYY-MM-DD format (inclusive)
+- `branches` (list[str] | None): Optional list of branch names to filter
+- `mode` (str): Processing mode - `"missing"` (default) or `"force"`
+- `include_cedis` (bool): If True, include rows where destination is CEDIS (default: False)
+
+**Returns:** DataFrame with `mart_transfers_pivot` structure (branch × category pivot)
+
+**Example:**
+
+```python
+from pos_core.transfers import marts
+
+# Get pivot mart
+df = marts.fetch_pivot(paths, "2025-01-01", "2025-01-31")
+
+# Force refresh
+df = marts.fetch_pivot(paths, "2025-01-01", "2025-01-31", mode="force")
+
+# Include CEDIS as destination
+df = marts.fetch_pivot(paths, "2025-01-01", "2025-01-31", include_cedis=True)
+```
+
+#### `transfers.marts.load_pivot()`
+
+Load the transfer pivot mart from disk without running ETL.
+
+**Signature:**
+
+```python
+df = marts.load_pivot(
+    paths: DataPaths,
+    start_date: str,
+    end_date: str,
+    branches: list[str] | None = None,
+) -> pd.DataFrame
+```
+
+**Parameters:** Same as `fetch_pivot()`, except no `mode` or `include_cedis` parameter
+
+**Returns:** DataFrame with `mart_transfers_pivot` structure
+
+**Raises:**
+- `FileNotFoundError`: If the mart doesn't exist
+
+### Raw Data (Bronze Layer)
+
+#### `transfers.raw.fetch()`
+
+Download raw transfer Excel files from the POS system.
+
+**Signature:**
+
+```python
+from pos_core.transfers import raw
+
+raw.fetch(
+    paths: DataPaths,
+    start_date: str,
+    end_date: str,
+    branches: list[str] | None = None,
+    *,
+    mode: str = "missing",
+) -> None
+```
+
+**Parameters:**
+- `paths` (DataPaths): DataPaths configuration
+- `start_date` (str): Start date in YYYY-MM-DD format (inclusive)
+- `end_date` (str): End date in YYYY-MM-DD format (inclusive)
+- `branches` (list[str] | None): Optional list of branch names to filter
+- `mode` (str): Processing mode - `"missing"` (default) or `"force"`
+
+**Note:** Requires `WS_BASE`, `WS_USER`, and `WS_PASS` environment variables to be set.
+
+#### `transfers.raw.load()`
+
+Verify that raw transfer data exists for the given range.
+
+**Signature:**
+
+```python
+raw.load(
+    paths: DataPaths,
+    start_date: str,
+    end_date: str,
+) -> None
+```
+
+**Raises:**
+- `FileNotFoundError`: If required raw transfer files are missing
+
 ## Order Times API
 
 ### Raw Data (Bronze Layer)
@@ -576,6 +757,39 @@ Key columns:
 Grain: category pivot table
 
 Structure: Groups as columns, sucursales/dates as rows
+
+### `fact_transfers_line` (Core Fact)
+
+Grain: transfer line item
+
+Key columns:
+- `Orden`: Transfer order number
+- `Almacén origen`: Origin warehouse
+- `Sucursal destino`: Destination branch
+- `Almacén destino`: Destination warehouse
+- `Fecha`: Transfer date
+- `Estatus`: Transfer status
+- `Cantidad`: Quantity transferred
+- `Departamento`: Product department
+- `Clave`: Product code
+- `Producto`: Product name
+- `Presentación`: Product presentation
+- `Costo`: Total cost
+- `Costo unitario`: Unit cost
+
+### `mart_transfers_pivot` (Pivot Mart)
+
+Grain: branch × category pivot table
+
+Structure:
+- **Rows**: Branch codes (K, N, C, Q, PV, HZ, CC, TOTAL)
+- **Columns**: Product categories (NO-PROC, REFRICONGE, TOSTADOR, COMIDA SALADA, REPO, PAN DULCE Y SALADA, TOTAL)
+
+Category mapping:
+- `ALMACEN PRODUCTO TERMINADO` + `COCINA` → COMIDA SALADA
+- `ALMACEN PRODUCTO TERMINADO` + `REPOSTERIA` → REPO
+- `ALMACEN PRODUCTO TERMINADO` + `PANADERIA DULCE Y SALADA` → PAN DULCE Y SALADA
+- `ALMACEN GENERAL` + various departments → NO-PROC, REFRICONGE, TOSTADOR
 
 ## Next Steps
 

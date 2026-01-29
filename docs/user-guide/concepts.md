@@ -42,7 +42,8 @@ This convention makes it easy to:
 │ a_raw/      │     │ b_clean/                │     │ c_processed/    │
 │ Excel files │     │ • fact_payments_ticket  │     │ • By ticket     │
 │             │     │ • fact_sales_item_line  │     │ • By day        │
-│             │     │                         │     │ • By category   │
+│             │     │ • fact_transfers_line   │     │ • By category   │
+│             │     │                         │     │ • Pivot tables  │
 └─────────────┘     └─────────────────────────┘     └─────────────────┘
 ```
 
@@ -56,6 +57,7 @@ Understanding data grain is essential for working with this package. Each domain
 |--------|-----------|-------|-----|
 | **Payments** | `fact_payments_ticket` | ticket × payment method | `(sucursal, operating_date, order_index, payment_method)` |
 | **Sales** | `fact_sales_item_line` | item/modifier line | `(sucursal, operating_date, order_id, item_key)` |
+| **Transfers** | `fact_transfers_line` | transfer line item | `(orden, almacen_origen, sucursal_destino, producto)` |
 
 ### Key Rule
 
@@ -136,6 +138,9 @@ The package uses **domain + layer modules** to encode specificity:
   - `pos_core.sales.core` → sales, silver
   - `pos_core.sales.marts` → sales, gold
   - `pos_core.sales.raw` → sales, bronze
+  - `pos_core.transfers.core` → transfers, silver (core fact)
+  - `pos_core.transfers.marts` → transfers, gold (pivot table)
+  - `pos_core.transfers.raw` → transfers, bronze (extraction)
   - `pos_core.order_times.raw` → order times, bronze (extraction)
 
 - **Functions define behavior**:
@@ -179,6 +184,21 @@ ticket_df = marts.fetch_ticket(paths, "2025-01-01", "2025-01-31")
 
 # Get group mart
 group_df = marts.fetch_group(paths, "2025-01-01", "2025-01-31")
+```
+
+### Transfers API
+
+```python
+from pos_core.transfers import core, marts
+
+# Get core fact (transfer line grain)
+fact_df = core.fetch(paths, "2025-01-01", "2025-01-31")
+
+# Get pivot mart (branch × category aggregation)
+pivot_df = marts.fetch_pivot(paths, "2025-01-01", "2025-01-31")
+
+# Include CEDIS as destination (default is False)
+pivot_df = marts.fetch_pivot(paths, "2025-01-01", "2025-01-31", include_cedis=True)
 ```
 
 ### Order Times API

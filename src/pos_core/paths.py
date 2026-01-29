@@ -117,6 +117,22 @@ class DataPaths:
         """Gold layer: order times marts."""
         return self.data_root / "c_processed" / "order_times"
 
+    # Derived paths for transfers
+    @property
+    def raw_transfers(self) -> Path:
+        """Bronze layer: raw transfers Excel files."""
+        return self.data_root / "a_raw" / "transfers" / "batch"
+
+    @property
+    def clean_transfers(self) -> Path:
+        """Silver layer: fact_transfers_line (cleaned CSVs)."""
+        return self.data_root / "b_clean" / "transfers" / "batch"
+
+    @property
+    def mart_transfers(self) -> Path:
+        """Gold layer: transfers marts (pivot tables)."""
+        return self.data_root / "c_processed" / "transfers"
+
     def ensure_dirs(self) -> None:
         """Create all directories in the data structure."""
         for path in [
@@ -129,5 +145,8 @@ class DataPaths:
             self.raw_order_times,
             self.clean_order_times,
             self.mart_order_times,
+            self.raw_transfers,
+            self.clean_transfers,
+            self.mart_transfers,
         ]:
             path.mkdir(parents=True, exist_ok=True)

@@ -6,12 +6,13 @@ A comprehensive Python package for Point of Sale (POS) data processing, forecast
 
 ## Features
 
-- **ETL Pipeline**: Extract, transform, and load POS payment and sales data across bronze/silver/gold layers
+- **ETL Pipeline**: Extract, transform, and load POS payment, sales, and transfer data across bronze/silver/gold layers
 - **Time Series Forecasting**: Generate ARIMA-based forecasts for payment metrics
 - **Quality Assurance**: Automated data validation and anomaly detection
 - **Multi-Branch Support**: Handle multiple sucursales (branches) with code window tracking
 - **Incremental Processing**: Smart date range chunking and existing data discovery
 - **Idempotent Operations**: Automatic skipping of already-completed work
+- **Inventory Transfers**: Track CEDIS warehouse transfers to retail branches with category aggregation
 
 ## Quick Start
 
@@ -65,6 +66,7 @@ from pathlib import Path
 from pos_core import DataPaths
 from pos_core.payments import marts as payments_marts
 from pos_core.sales import core as sales_core
+from pos_core.transfers import marts as transfers_marts
 from pos_core.order_times import raw as order_times_raw
 from pos_core.forecasting import ForecastConfig, run_payments_forecast
 
@@ -76,6 +78,9 @@ payments_daily = payments_marts.fetch_daily(paths, "2025-01-01", "2025-01-31")
 
 # Sales: core item-line fact
 sales_items = sales_core.fetch(paths, "2025-01-01", "2025-01-31")
+
+# Transfers: pivot mart (branch × category aggregation)
+transfers_pivot = transfers_marts.fetch_pivot(paths, "2025-01-01", "2025-01-31")
 
 # Order times: download raw data
 order_times_raw.fetch(paths, "2025-01-01", "2025-01-31")
@@ -104,6 +109,7 @@ The package follows industry-standard data engineering conventions:
 |--------|-----------|-------|-----|
 | **Payments** | `fact_payments_ticket` | ticket × payment method | `(sucursal, operating_date, order_index, payment_method)` |
 | **Sales** | `fact_sales_item_line` | item/modifier line | `(sucursal, operating_date, order_id, item_key)` |
+| **Transfers** | `fact_transfers_line` | transfer line item | `(orden, almacen_origen, sucursal_destino, producto)` |
 
 ### API Philosophy
 
@@ -114,6 +120,8 @@ The package uses **domain + layer modules** to encode specificity:
   - `pos_core.payments.marts` → payments, gold (aggregates)
   - `pos_core.sales.core` → sales, silver
   - `pos_core.sales.marts` → sales, gold
+  - `pos_core.transfers.core` → transfers, silver (core fact)
+  - `pos_core.transfers.marts` → transfers, gold (pivot table)
   - `pos_core.order_times.raw` → order times, bronze (extraction)
 
 - **Functions define behavior**:
@@ -147,6 +155,18 @@ ticket_df = marts.fetch_ticket(paths, "2025-01-01", "2025-01-31")
 
 # Get group pivot mart
 group_df = marts.fetch_group(paths, "2025-01-01", "2025-01-31")
+```
+
+### Transfers
+
+```python
+from pos_core.transfers import core, marts
+
+# Get core fact (transfer line grain)
+fact_df = core.fetch(paths, "2025-01-01", "2025-01-31")
+
+# Get pivot mart (branch × category aggregation)
+pivot_df = marts.fetch_pivot(paths, "2025-01-01", "2025-01-31")
 ```
 
 ### Order Times

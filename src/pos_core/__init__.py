@@ -10,6 +10,7 @@ POS data across multiple layers:
 Module Structure:
     pos_core.payments: Payment data ETL (payments.core, payments.marts, payments.raw)
     pos_core.sales: Sales data ETL (sales.core, sales.marts, sales.raw)
+    pos_core.transfers: Transfer data ETL (transfers.core, transfers.marts, transfers.raw)
     pos_core.order_times: Order times data ETL (order_times.raw)
     pos_core.forecasting: Time series forecasting
     pos_core.qa: Data quality assurance
@@ -20,6 +21,7 @@ Quick Start:
     >>> from pos_core import DataPaths
     >>> from pos_core.payments import marts as payments_marts
     >>> from pos_core.sales import core as sales_core
+    >>> from pos_core.transfers import marts as transfers_marts
     >>> from pos_core.forecasting import ForecastConfig, run_payments_forecast
     >>>
     >>> paths = DataPaths.from_root("data", "utils/sucursales.json")
@@ -29,6 +31,9 @@ Quick Start:
     >>>
     >>> # Sales: core item-line fact
     >>> sales_items = sales_core.fetch(paths, "2025-01-01", "2025-01-31")
+    >>>
+    >>> # Transfers: pivot mart (branch x category)
+    >>> transfers_pivot = transfers_marts.fetch_pivot(paths, "2025-01-01", "2025-01-31")
     >>>
     >>> # Forecasting on payments daily mart
     >>> config = ForecastConfig(horizon_days=91)
@@ -44,6 +49,10 @@ Grain Reference:
         - core: fact_sales_item_line - item/modifier line
         - marts.ticket: mart_sales_by_ticket - one row per ticket
         - marts.group: mart_sales_by_group - category pivot
+
+    Transfers:
+        - core: fact_transfers_line - transfer line item
+        - marts.pivot: mart_transfers_pivot - branch x category pivot
 """
 
 __version__ = "0.2.0"
