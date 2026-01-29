@@ -93,8 +93,8 @@ def aggregate_to_pivot(
                 lost = pd.to_numeric(unmapped["Costo"], errors="coerce").fillna(0).sum()
                 logger.warning("%d unmapped rows (total $%.2f)", len(unmapped), lost)
 
-            # Save the mart
-            output_path = paths.mart_transfers / "mart_transfers_pivot.csv"
+            # Save the mart with date-stamped filename
+            output_path = paths.mart_transfers / f"mart_transfers_pivot_{start_date}_{end_date}.csv"
             result_df.to_csv(output_path, index=True, encoding="utf-8-sig")
             logger.info("Saved mart to %s", output_path)
 

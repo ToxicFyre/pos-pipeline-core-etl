@@ -61,7 +61,7 @@ def fetch_pivot(
     fetch_core(paths, start_date, end_date, branches, mode=mode)
 
     # Check if mart exists and needs rebuilding
-    mart_path = paths.mart_transfers / "mart_transfers_pivot.csv"
+    mart_path = paths.mart_transfers / f"mart_transfers_pivot_{start_date}_{end_date}.csv"
     meta = read_metadata(paths.mart_transfers, start_date, end_date)
 
     if mode == "force" or not (mart_path.exists() and meta and meta.status == "ok"):
@@ -98,7 +98,7 @@ def load_pivot(
         FileNotFoundError: If the pivot mart file is missing.
 
     """
-    mart_path = paths.mart_transfers / "mart_transfers_pivot.csv"
+    mart_path = paths.mart_transfers / f"mart_transfers_pivot_{start_date}_{end_date}.csv"
     meta = read_metadata(paths.mart_transfers, start_date, end_date)
 
     if not mart_path.exists() or meta is None or meta.status != "ok":
