@@ -1053,6 +1053,140 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#transfers-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Transfers API
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Transfers API">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#core-fact-silver-layer_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Core Fact (Silver Layer)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Core Fact (Silver Layer)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#transferscorefetch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        transfers.core.fetch()
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#transferscoreload" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        transfers.core.load()
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pivot-mart-gold-layer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pivot Mart (Gold Layer)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Pivot Mart (Gold Layer)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#transfersmartsfetch_pivot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        transfers.marts.fetch_pivot()
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#transfersmartsload_pivot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        transfers.marts.load_pivot()
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#raw-data-bronze-layer_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Raw Data (Bronze Layer)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Raw Data (Bronze Layer)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#transfersrawfetch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        transfers.raw.fetch()
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#transfersrawload" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        transfers.raw.load()
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#order-times-api" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1065,7 +1199,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#raw-data-bronze-layer_2" class="md-nav__link">
+  <a href="#raw-data-bronze-layer_3" class="md-nav__link">
     <span class="md-ellipsis">
       
         Raw Data (Bronze Layer)
@@ -1247,6 +1381,28 @@
     <span class="md-ellipsis">
       
         mart_sales_by_group (Group Mart)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fact_transfers_line-core-fact" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        fact_transfers_line (Core Fact)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mart_transfers_pivot-pivot-mart" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        mart_transfers_pivot (Pivot Mart)
       
     </span>
   </a>
@@ -1497,12 +1653,15 @@
 <ul>
 <li><code>raw_payments</code> (Path): Directory for raw payment Excel files (<code>a_raw/payments/</code>)</li>
 <li><code>raw_sales</code> (Path): Directory for raw sales Excel files (<code>a_raw/sales/</code>)</li>
+<li><code>raw_transfers</code> (Path): Directory for raw transfer Excel files (<code>a_raw/transfers/</code>)</li>
 <li><code>raw_order_times</code> (Path): Directory for raw order times Excel files (<code>a_raw/order_times/</code>)</li>
 <li><code>clean_payments</code> (Path): Directory for cleaned payment CSV files (<code>b_clean/payments/</code>)</li>
 <li><code>clean_sales</code> (Path): Directory for cleaned sales CSV files (<code>b_clean/sales/</code>)</li>
+<li><code>clean_transfers</code> (Path): Directory for cleaned transfer CSV files (<code>b_clean/transfers/</code>)</li>
 <li><code>clean_order_times</code> (Path): Directory for cleaned order times CSV files (<code>b_clean/order_times/</code>)</li>
 <li><code>mart_payments</code> (Path): Directory for payment marts (<code>c_processed/payments/</code>)</li>
 <li><code>mart_sales</code> (Path): Directory for sales marts (<code>c_processed/sales/</code>)</li>
+<li><code>mart_transfers</code> (Path): Directory for transfer marts (<code>c_processed/transfers/</code>)</li>
 <li><code>mart_order_times</code> (Path): Directory for order times marts (<code>c_processed/order_times/</code>)</li>
 <li><code>sucursales_json</code> (Path): Path to <code>sucursales.json</code> file</li>
 </ul>
@@ -1759,21 +1918,146 @@
 <a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a>    <span class="n">branches</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span>
 </code></pre></div>
-<h2 id="order-times-api">Order Times API<a class="headerlink" href="#order-times-api" title="Permanent link">&para;</a></h2>
-<h3 id="raw-data-bronze-layer_2">Raw Data (Bronze Layer)<a class="headerlink" href="#raw-data-bronze-layer_2" title="Permanent link">&para;</a></h3>
-<h4 id="order_timesrawfetch"><code>order_times.raw.fetch()</code><a class="headerlink" href="#order_timesrawfetch" title="Permanent link">&para;</a></h4>
-<p>Download raw order times Excel files from the POS system.</p>
+<h2 id="transfers-api">Transfers API<a class="headerlink" href="#transfers-api" title="Permanent link">&para;</a></h2>
+<h3 id="core-fact-silver-layer_2">Core Fact (Silver Layer)<a class="headerlink" href="#core-fact-silver-layer_2" title="Permanent link">&para;</a></h3>
+<h4 id="transferscorefetch"><code>transfers.core.fetch()</code><a class="headerlink" href="#transferscorefetch" title="Permanent link">&para;</a></h4>
+<p>Ensure <code>fact_transfers_line</code> exists for the given range, then return it.</p>
 <p><strong>Signature:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pos_core.order_times</span><span class="w"> </span><span class="kn">import</span> <span class="n">raw</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pos_core.transfers</span><span class="w"> </span><span class="kn">import</span> <span class="n">core</span>
 <a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>
-<a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a><span class="n">raw</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span>
+<a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a><span class="n">df</span> <span class="o">=</span> <span class="n">core</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span>
 <a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a>    <span class="n">paths</span><span class="p">:</span> <span class="n">DataPaths</span><span class="p">,</span>
 <a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a>    <span class="n">start_date</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
 <a id="__codelineno-21-6" name="__codelineno-21-6" href="#__codelineno-21-6"></a>    <span class="n">end_date</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
 <a id="__codelineno-21-7" name="__codelineno-21-7" href="#__codelineno-21-7"></a>    <span class="n">branches</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <a id="__codelineno-21-8" name="__codelineno-21-8" href="#__codelineno-21-8"></a>    <span class="o">*</span><span class="p">,</span>
 <a id="__codelineno-21-9" name="__codelineno-21-9" href="#__codelineno-21-9"></a>    <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;missing&quot;</span><span class="p">,</span>
-<a id="__codelineno-21-10" name="__codelineno-21-10" href="#__codelineno-21-10"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+<a id="__codelineno-21-10" name="__codelineno-21-10" href="#__codelineno-21-10"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span>
+</code></pre></div>
+<p><strong>Parameters:</strong>
+- <code>paths</code> (DataPaths): DataPaths configuration
+- <code>start_date</code> (str): Start date in YYYY-MM-DD format (inclusive)
+- <code>end_date</code> (str): End date in YYYY-MM-DD format (inclusive)
+- <code>branches</code> (list[str] | None): Optional list of branch names to filter
+- <code>mode</code> (str): Processing mode - <code>"missing"</code> (default) or <code>"force"</code></p>
+<p><strong>Returns:</strong> DataFrame with <code>fact_transfers_line</code> structure (transfer line grain)</p>
+<p><strong>Example:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pos_core.transfers</span><span class="w"> </span><span class="kn">import</span> <span class="n">core</span>
+<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>
+<a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a><span class="n">df</span> <span class="o">=</span> <span class="n">core</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="s2">&quot;2025-01-01&quot;</span><span class="p">,</span> <span class="s2">&quot;2025-01-31&quot;</span><span class="p">)</span>
+</code></pre></div>
+<h4 id="transferscoreload"><code>transfers.core.load()</code><a class="headerlink" href="#transferscoreload" title="Permanent link">&para;</a></h4>
+<p>Load <code>fact_transfers_line</code> from disk without running ETL.</p>
+<p><strong>Signature:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="n">df</span> <span class="o">=</span> <span class="n">core</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+<a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>    <span class="n">paths</span><span class="p">:</span> <span class="n">DataPaths</span><span class="p">,</span>
+<a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>    <span class="n">start_date</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a>    <span class="n">end_date</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a>    <span class="n">branches</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span>
+</code></pre></div>
+<p><strong>Parameters:</strong> Same as <code>fetch()</code>, except no <code>mode</code> parameter</p>
+<p><strong>Returns:</strong> DataFrame with <code>fact_transfers_line</code> structure</p>
+<p><strong>Raises:</strong>
+- <code>FileNotFoundError</code>: If the data doesn't exist</p>
+<h3 id="pivot-mart-gold-layer">Pivot Mart (Gold Layer)<a class="headerlink" href="#pivot-mart-gold-layer" title="Permanent link">&para;</a></h3>
+<h4 id="transfersmartsfetch_pivot"><code>transfers.marts.fetch_pivot()</code><a class="headerlink" href="#transfersmartsfetch_pivot" title="Permanent link">&para;</a></h4>
+<p>Ensure the transfer pivot mart exists for the range, then return it.</p>
+<p><strong>Signature:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pos_core.transfers</span><span class="w"> </span><span class="kn">import</span> <span class="n">marts</span>
+<a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>
+<a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a><span class="n">df</span> <span class="o">=</span> <span class="n">marts</span><span class="o">.</span><span class="n">fetch_pivot</span><span class="p">(</span>
+<a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a>    <span class="n">paths</span><span class="p">:</span> <span class="n">DataPaths</span><span class="p">,</span>
+<a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a>    <span class="n">start_date</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<a id="__codelineno-24-6" name="__codelineno-24-6" href="#__codelineno-24-6"></a>    <span class="n">end_date</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<a id="__codelineno-24-7" name="__codelineno-24-7" href="#__codelineno-24-7"></a>    <span class="n">branches</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-24-8" name="__codelineno-24-8" href="#__codelineno-24-8"></a>    <span class="o">*</span><span class="p">,</span>
+<a id="__codelineno-24-9" name="__codelineno-24-9" href="#__codelineno-24-9"></a>    <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;missing&quot;</span><span class="p">,</span>
+<a id="__codelineno-24-10" name="__codelineno-24-10" href="#__codelineno-24-10"></a>    <span class="n">include_cedis</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<a id="__codelineno-24-11" name="__codelineno-24-11" href="#__codelineno-24-11"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span>
+</code></pre></div>
+<p><strong>Parameters:</strong>
+- <code>paths</code> (DataPaths): DataPaths configuration
+- <code>start_date</code> (str): Start date in YYYY-MM-DD format (inclusive)
+- <code>end_date</code> (str): End date in YYYY-MM-DD format (inclusive)
+- <code>branches</code> (list[str] | None): Optional list of branch names to filter
+- <code>mode</code> (str): Processing mode - <code>"missing"</code> (default) or <code>"force"</code>
+- <code>include_cedis</code> (bool): If True, include rows where destination is CEDIS (default: False)</p>
+<p><strong>Returns:</strong> DataFrame with <code>mart_transfers_pivot</code> structure (branch × category pivot)</p>
+<p><strong>Example:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pos_core.transfers</span><span class="w"> </span><span class="kn">import</span> <span class="n">marts</span>
+<a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>
+<a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a><span class="c1"># Get pivot mart</span>
+<a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a><span class="n">df</span> <span class="o">=</span> <span class="n">marts</span><span class="o">.</span><span class="n">fetch_pivot</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="s2">&quot;2025-01-01&quot;</span><span class="p">,</span> <span class="s2">&quot;2025-01-31&quot;</span><span class="p">)</span>
+<a id="__codelineno-25-5" name="__codelineno-25-5" href="#__codelineno-25-5"></a>
+<a id="__codelineno-25-6" name="__codelineno-25-6" href="#__codelineno-25-6"></a><span class="c1"># Force refresh</span>
+<a id="__codelineno-25-7" name="__codelineno-25-7" href="#__codelineno-25-7"></a><span class="n">df</span> <span class="o">=</span> <span class="n">marts</span><span class="o">.</span><span class="n">fetch_pivot</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="s2">&quot;2025-01-01&quot;</span><span class="p">,</span> <span class="s2">&quot;2025-01-31&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;force&quot;</span><span class="p">)</span>
+<a id="__codelineno-25-8" name="__codelineno-25-8" href="#__codelineno-25-8"></a>
+<a id="__codelineno-25-9" name="__codelineno-25-9" href="#__codelineno-25-9"></a><span class="c1"># Include CEDIS as destination</span>
+<a id="__codelineno-25-10" name="__codelineno-25-10" href="#__codelineno-25-10"></a><span class="n">df</span> <span class="o">=</span> <span class="n">marts</span><span class="o">.</span><span class="n">fetch_pivot</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="s2">&quot;2025-01-01&quot;</span><span class="p">,</span> <span class="s2">&quot;2025-01-31&quot;</span><span class="p">,</span> <span class="n">include_cedis</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</code></pre></div>
+<h4 id="transfersmartsload_pivot"><code>transfers.marts.load_pivot()</code><a class="headerlink" href="#transfersmartsload_pivot" title="Permanent link">&para;</a></h4>
+<p>Load the transfer pivot mart from disk without running ETL.</p>
+<p><strong>Signature:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="n">df</span> <span class="o">=</span> <span class="n">marts</span><span class="o">.</span><span class="n">load_pivot</span><span class="p">(</span>
+<a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>    <span class="n">paths</span><span class="p">:</span> <span class="n">DataPaths</span><span class="p">,</span>
+<a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>    <span class="n">start_date</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a>    <span class="n">end_date</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<a id="__codelineno-26-5" name="__codelineno-26-5" href="#__codelineno-26-5"></a>    <span class="n">branches</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-26-6" name="__codelineno-26-6" href="#__codelineno-26-6"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span>
+</code></pre></div>
+<p><strong>Parameters:</strong> Same as <code>fetch_pivot()</code>, except no <code>mode</code> or <code>include_cedis</code> parameter</p>
+<p><strong>Returns:</strong> DataFrame with <code>mart_transfers_pivot</code> structure</p>
+<p><strong>Raises:</strong>
+- <code>FileNotFoundError</code>: If the mart doesn't exist</p>
+<h3 id="raw-data-bronze-layer_2">Raw Data (Bronze Layer)<a class="headerlink" href="#raw-data-bronze-layer_2" title="Permanent link">&para;</a></h3>
+<h4 id="transfersrawfetch"><code>transfers.raw.fetch()</code><a class="headerlink" href="#transfersrawfetch" title="Permanent link">&para;</a></h4>
+<p>Download raw transfer Excel files from the POS system.</p>
+<p><strong>Signature:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pos_core.transfers</span><span class="w"> </span><span class="kn">import</span> <span class="n">raw</span>
+<a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>
+<a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a><span class="n">raw</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span>
+<a id="__codelineno-27-4" name="__codelineno-27-4" href="#__codelineno-27-4"></a>    <span class="n">paths</span><span class="p">:</span> <span class="n">DataPaths</span><span class="p">,</span>
+<a id="__codelineno-27-5" name="__codelineno-27-5" href="#__codelineno-27-5"></a>    <span class="n">start_date</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<a id="__codelineno-27-6" name="__codelineno-27-6" href="#__codelineno-27-6"></a>    <span class="n">end_date</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<a id="__codelineno-27-7" name="__codelineno-27-7" href="#__codelineno-27-7"></a>    <span class="n">branches</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-27-8" name="__codelineno-27-8" href="#__codelineno-27-8"></a>    <span class="o">*</span><span class="p">,</span>
+<a id="__codelineno-27-9" name="__codelineno-27-9" href="#__codelineno-27-9"></a>    <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;missing&quot;</span><span class="p">,</span>
+<a id="__codelineno-27-10" name="__codelineno-27-10" href="#__codelineno-27-10"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</code></pre></div>
+<p><strong>Parameters:</strong>
+- <code>paths</code> (DataPaths): DataPaths configuration
+- <code>start_date</code> (str): Start date in YYYY-MM-DD format (inclusive)
+- <code>end_date</code> (str): End date in YYYY-MM-DD format (inclusive)
+- <code>branches</code> (list[str] | None): Optional list of branch names to filter
+- <code>mode</code> (str): Processing mode - <code>"missing"</code> (default) or <code>"force"</code></p>
+<p><strong>Note:</strong> Requires <code>WS_BASE</code>, <code>WS_USER</code>, and <code>WS_PASS</code> environment variables to be set.</p>
+<h4 id="transfersrawload"><code>transfers.raw.load()</code><a class="headerlink" href="#transfersrawload" title="Permanent link">&para;</a></h4>
+<p>Verify that raw transfer data exists for the given range.</p>
+<p><strong>Signature:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="n">raw</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+<a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>    <span class="n">paths</span><span class="p">:</span> <span class="n">DataPaths</span><span class="p">,</span>
+<a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a>    <span class="n">start_date</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a>    <span class="n">end_date</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<a id="__codelineno-28-5" name="__codelineno-28-5" href="#__codelineno-28-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</code></pre></div>
+<p><strong>Raises:</strong>
+- <code>FileNotFoundError</code>: If required raw transfer files are missing</p>
+<h2 id="order-times-api">Order Times API<a class="headerlink" href="#order-times-api" title="Permanent link">&para;</a></h2>
+<h3 id="raw-data-bronze-layer_3">Raw Data (Bronze Layer)<a class="headerlink" href="#raw-data-bronze-layer_3" title="Permanent link">&para;</a></h3>
+<h4 id="order_timesrawfetch"><code>order_times.raw.fetch()</code><a class="headerlink" href="#order_timesrawfetch" title="Permanent link">&para;</a></h4>
+<p>Download raw order times Excel files from the POS system.</p>
+<p><strong>Signature:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pos_core.order_times</span><span class="w"> </span><span class="kn">import</span> <span class="n">raw</span>
+<a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>
+<a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a><span class="n">raw</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span>
+<a id="__codelineno-29-4" name="__codelineno-29-4" href="#__codelineno-29-4"></a>    <span class="n">paths</span><span class="p">:</span> <span class="n">DataPaths</span><span class="p">,</span>
+<a id="__codelineno-29-5" name="__codelineno-29-5" href="#__codelineno-29-5"></a>    <span class="n">start_date</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<a id="__codelineno-29-6" name="__codelineno-29-6" href="#__codelineno-29-6"></a>    <span class="n">end_date</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<a id="__codelineno-29-7" name="__codelineno-29-7" href="#__codelineno-29-7"></a>    <span class="n">branches</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-29-8" name="__codelineno-29-8" href="#__codelineno-29-8"></a>    <span class="o">*</span><span class="p">,</span>
+<a id="__codelineno-29-9" name="__codelineno-29-9" href="#__codelineno-29-9"></a>    <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;missing&quot;</span><span class="p">,</span>
+<a id="__codelineno-29-10" name="__codelineno-29-10" href="#__codelineno-29-10"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
 </code></pre></div>
 <p><strong>Parameters:</strong>
 - <code>paths</code> (DataPaths): DataPaths configuration
@@ -1783,25 +2067,25 @@
 - <code>mode</code> (str): Processing mode - <code>"missing"</code> (default) or <code>"force"</code></p>
 <p><strong>Note:</strong> Requires <code>WS_BASE</code>, <code>WS_USER</code>, and <code>WS_PASS</code> environment variables to be set.</p>
 <p><strong>Example:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pos_core.order_times</span><span class="w"> </span><span class="kn">import</span> <span class="n">raw</span>
-<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>
-<a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a><span class="c1"># Download order times for a date range</span>
-<a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a><span class="n">raw</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="s2">&quot;2025-01-01&quot;</span><span class="p">,</span> <span class="s2">&quot;2025-01-31&quot;</span><span class="p">)</span>
-<a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a>
-<a id="__codelineno-22-6" name="__codelineno-22-6" href="#__codelineno-22-6"></a><span class="c1"># Download for specific branches</span>
-<a id="__codelineno-22-7" name="__codelineno-22-7" href="#__codelineno-22-7"></a><span class="n">raw</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="s2">&quot;2025-01-01&quot;</span><span class="p">,</span> <span class="s2">&quot;2025-01-31&quot;</span><span class="p">,</span> <span class="n">branches</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Punto Valle&quot;</span><span class="p">])</span>
-<a id="__codelineno-22-8" name="__codelineno-22-8" href="#__codelineno-22-8"></a>
-<a id="__codelineno-22-9" name="__codelineno-22-9" href="#__codelineno-22-9"></a><span class="c1"># Force re-download</span>
-<a id="__codelineno-22-10" name="__codelineno-22-10" href="#__codelineno-22-10"></a><span class="n">raw</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="s2">&quot;2025-01-01&quot;</span><span class="p">,</span> <span class="s2">&quot;2025-01-31&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;force&quot;</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pos_core.order_times</span><span class="w"> </span><span class="kn">import</span> <span class="n">raw</span>
+<a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>
+<a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a><span class="c1"># Download order times for a date range</span>
+<a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a><span class="n">raw</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="s2">&quot;2025-01-01&quot;</span><span class="p">,</span> <span class="s2">&quot;2025-01-31&quot;</span><span class="p">)</span>
+<a id="__codelineno-30-5" name="__codelineno-30-5" href="#__codelineno-30-5"></a>
+<a id="__codelineno-30-6" name="__codelineno-30-6" href="#__codelineno-30-6"></a><span class="c1"># Download for specific branches</span>
+<a id="__codelineno-30-7" name="__codelineno-30-7" href="#__codelineno-30-7"></a><span class="n">raw</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="s2">&quot;2025-01-01&quot;</span><span class="p">,</span> <span class="s2">&quot;2025-01-31&quot;</span><span class="p">,</span> <span class="n">branches</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Punto Valle&quot;</span><span class="p">])</span>
+<a id="__codelineno-30-8" name="__codelineno-30-8" href="#__codelineno-30-8"></a>
+<a id="__codelineno-30-9" name="__codelineno-30-9" href="#__codelineno-30-9"></a><span class="c1"># Force re-download</span>
+<a id="__codelineno-30-10" name="__codelineno-30-10" href="#__codelineno-30-10"></a><span class="n">raw</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="s2">&quot;2025-01-01&quot;</span><span class="p">,</span> <span class="s2">&quot;2025-01-31&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;force&quot;</span><span class="p">)</span>
 </code></pre></div>
 <h4 id="order_timesrawload"><code>order_times.raw.load()</code><a class="headerlink" href="#order_timesrawload" title="Permanent link">&para;</a></h4>
 <p>Verify that raw order times data exists for the given range.</p>
 <p><strong>Signature:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="n">raw</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
-<a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>    <span class="n">paths</span><span class="p">:</span> <span class="n">DataPaths</span><span class="p">,</span>
-<a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>    <span class="n">start_date</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-<a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a>    <span class="n">end_date</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-<a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a><span class="n">raw</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+<a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a>    <span class="n">paths</span><span class="p">:</span> <span class="n">DataPaths</span><span class="p">,</span>
+<a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a>    <span class="n">start_date</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<a id="__codelineno-31-4" name="__codelineno-31-4" href="#__codelineno-31-4"></a>    <span class="n">end_date</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<a id="__codelineno-31-5" name="__codelineno-31-5" href="#__codelineno-31-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
 </code></pre></div>
 <p><strong>Parameters:</strong>
 - <code>paths</code> (DataPaths): DataPaths configuration
@@ -1810,8 +2094,8 @@
 <p><strong>Raises:</strong>
 - <code>FileNotFoundError</code>: If required raw order times files are missing</p>
 <p><strong>Example:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="c1"># Verify data exists (raises error if missing)</span>
-<a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a><span class="n">raw</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="s2">&quot;2025-01-01&quot;</span><span class="p">,</span> <span class="s2">&quot;2025-01-31&quot;</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="c1"># Verify data exists (raises error if missing)</span>
+<a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a><span class="n">raw</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="s2">&quot;2025-01-01&quot;</span><span class="p">,</span> <span class="s2">&quot;2025-01-31&quot;</span><span class="p">)</span>
 </code></pre></div>
 <h2 id="processing-modes">Processing Modes<a class="headerlink" href="#processing-modes" title="Permanent link">&para;</a></h2>
 <h3 id="modemissing-default"><code>mode="missing"</code> (Default)<a class="headerlink" href="#modemissing-default" title="Permanent link">&para;</a></h3>
@@ -1883,6 +2167,32 @@
 <h3 id="mart_sales_by_group-group-mart"><code>mart_sales_by_group</code> (Group Mart)<a class="headerlink" href="#mart_sales_by_group-group-mart" title="Permanent link">&para;</a></h3>
 <p>Grain: category pivot table</p>
 <p>Structure: Groups as columns, sucursales/dates as rows</p>
+<h3 id="fact_transfers_line-core-fact"><code>fact_transfers_line</code> (Core Fact)<a class="headerlink" href="#fact_transfers_line-core-fact" title="Permanent link">&para;</a></h3>
+<p>Grain: transfer line item</p>
+<p>Key columns:
+- <code>Orden</code>: Transfer order number
+- <code>Almacén origen</code>: Origin warehouse
+- <code>Sucursal destino</code>: Destination branch
+- <code>Almacén destino</code>: Destination warehouse
+- <code>Fecha</code>: Transfer date
+- <code>Estatus</code>: Transfer status
+- <code>Cantidad</code>: Quantity transferred
+- <code>Departamento</code>: Product department
+- <code>Clave</code>: Product code
+- <code>Producto</code>: Product name
+- <code>Presentación</code>: Product presentation
+- <code>Costo</code>: Total cost
+- <code>Costo unitario</code>: Unit cost</p>
+<h3 id="mart_transfers_pivot-pivot-mart"><code>mart_transfers_pivot</code> (Pivot Mart)<a class="headerlink" href="#mart_transfers_pivot-pivot-mart" title="Permanent link">&para;</a></h3>
+<p>Grain: branch × category pivot table</p>
+<p>Structure:
+- <strong>Rows</strong>: Branch codes (K, N, C, Q, PV, HZ, CC, TOTAL)
+- <strong>Columns</strong>: Product categories (NO-PROC, REFRICONGE, TOSTADOR, COMIDA SALADA, REPO, PAN DULCE Y SALADA, TOTAL)</p>
+<p>Category mapping:
+- <code>ALMACEN PRODUCTO TERMINADO</code> + <code>COCINA</code> → COMIDA SALADA
+- <code>ALMACEN PRODUCTO TERMINADO</code> + <code>REPOSTERIA</code> → REPO
+- <code>ALMACEN PRODUCTO TERMINADO</code> + <code>PANADERIA DULCE Y SALADA</code> → PAN DULCE Y SALADA
+- <code>ALMACEN GENERAL</code> + various departments → NO-PROC, REFRICONGE, TOSTADOR</p>
 <h2 id="next-steps">Next Steps<a class="headerlink" href="#next-steps" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong><a href="../forecasting/">Forecasting API</a></strong> - Generate time series forecasts</li>

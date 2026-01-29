@@ -845,13 +845,19 @@
 <a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>│   ├── transform.py         # Silver: clean Excel → CSV (fact_sales_item_line)
 <a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>│   └── aggregate.py         # Gold: ticket/group aggregations
 <a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>│
-<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>├── forecasting/             # Forecasting domain (mostly unchanged)
-<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>│   ├── __init__.py          # Public: run_payments_forecast, ForecastConfig, ForecastResult
-<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>│   └── ...
-<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>│
-<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>└── qa/                      # QA domain (mostly unchanged)
-<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>    ├── __init__.py          # Public: run_payments_qa, QAResult
-<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>    └── ...
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>├── transfers/               # Transfers domain
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>│   ├── __init__.py          # Public: raw, core, marts
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>│   ├── extract.py           # Bronze: download from Wansoft (Inventory &gt; Transfers &gt; Issued)
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>│   ├── transform.py         # Silver: clean Excel → CSV (fact_transfers_line)
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>│   └── aggregate.py         # Gold: pivot aggregation (mart_transfers_pivot)
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>│
+<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>├── forecasting/             # Forecasting domain (mostly unchanged)
+<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>│   ├── __init__.py          # Public: run_payments_forecast, ForecastConfig, ForecastResult
+<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>│   └── ...
+<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>│
+<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>└── qa/                      # QA domain (mostly unchanged)
+<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>    ├── __init__.py          # Public: run_payments_qa, QAResult
+<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>    └── ...
 </code></pre></div>
 <h2 id="data-layers-and-grains">Data Layers and Grains<a class="headerlink" href="#data-layers-and-grains" title="Permanent link">&para;</a></h2>
 <h3 id="payments">Payments<a class="headerlink" href="#payments" title="Permanent link">&para;</a></h3>
@@ -873,6 +879,15 @@
 <li><strong>Gold (Marts)</strong>: <code>data/c_processed/sales/</code></li>
 <li><code>mart_sales_by_ticket</code>: One row per ticket</li>
 <li><code>mart_sales_by_group</code>: Category pivot table</li>
+</ul>
+<h3 id="transfers">Transfers<a class="headerlink" href="#transfers" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Bronze</strong>: <code>data/a_raw/transfers/</code> - Raw Excel from Wansoft (Inventory &gt; Transfers &gt; Issued)</li>
+<li><strong>Silver (Core Fact)</strong>: <code>data/b_clean/transfers/</code> - <code>fact_transfers_line</code></li>
+<li>Grain: transfer line item</li>
+<li>Key: <code>(orden, almacen_origen, sucursal_destino, producto)</code></li>
+<li><strong>Gold (Marts)</strong>: <code>data/c_processed/transfers/</code></li>
+<li><code>mart_transfers_pivot</code>: Branch × category pivot table</li>
 </ul>
 <h2 id="public-api">Public API<a class="headerlink" href="#public-api" title="Permanent link">&para;</a></h2>
 <h3 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h3>
@@ -904,23 +919,32 @@
 <a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="c1"># Get group pivot mart</span>
 <a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="n">df</span> <span class="o">=</span> <span class="n">get_sales</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="s2">&quot;2025-01-01&quot;</span><span class="p">,</span> <span class="s2">&quot;2025-01-31&quot;</span><span class="p">,</span> <span class="n">grain</span><span class="o">=</span><span class="s2">&quot;group&quot;</span><span class="p">)</span>
 </code></pre></div>
+<h3 id="transfers_1">Transfers<a class="headerlink" href="#transfers_1" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pos_core.transfers</span><span class="w"> </span><span class="kn">import</span> <span class="n">core</span><span class="p">,</span> <span class="n">marts</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="c1"># Get core fact (transfer line grain)</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">df</span> <span class="o">=</span> <span class="n">core</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="s2">&quot;2025-01-01&quot;</span><span class="p">,</span> <span class="s2">&quot;2025-01-31&quot;</span><span class="p">)</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="c1"># Get pivot mart (branch × category)</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="n">df</span> <span class="o">=</span> <span class="n">marts</span><span class="o">.</span><span class="n">fetch_pivot</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="s2">&quot;2025-01-01&quot;</span><span class="p">,</span> <span class="s2">&quot;2025-01-31&quot;</span><span class="p">)</span>
+</code></pre></div>
 <h3 id="forecasting">Forecasting<a class="headerlink" href="#forecasting" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pos_core.payments</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_payments</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pos_core.forecasting</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_payments_forecast</span><span class="p">,</span> <span class="n">ForecastConfig</span>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="c1"># Get historical data</span>
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="n">payments_df</span> <span class="o">=</span> <span class="n">get_payments</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="s2">&quot;2022-01-01&quot;</span><span class="p">,</span> <span class="s2">&quot;2025-01-31&quot;</span><span class="p">)</span>
-<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>
-<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="c1"># Run forecast</span>
-<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="n">result</span> <span class="o">=</span> <span class="n">run_payments_forecast</span><span class="p">(</span><span class="n">payments_df</span><span class="p">,</span> <span class="n">ForecastConfig</span><span class="p">(</span><span class="n">horizon_days</span><span class="o">=</span><span class="mi">91</span><span class="p">))</span>
-<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">forecast</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pos_core.payments</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_payments</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pos_core.forecasting</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_payments_forecast</span><span class="p">,</span> <span class="n">ForecastConfig</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="c1"># Get historical data</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="n">payments_df</span> <span class="o">=</span> <span class="n">get_payments</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="s2">&quot;2022-01-01&quot;</span><span class="p">,</span> <span class="s2">&quot;2025-01-31&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="c1"># Run forecast</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="n">result</span> <span class="o">=</span> <span class="n">run_payments_forecast</span><span class="p">(</span><span class="n">payments_df</span><span class="p">,</span> <span class="n">ForecastConfig</span><span class="p">(</span><span class="n">horizon_days</span><span class="o">=</span><span class="mi">91</span><span class="p">))</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">forecast</span><span class="p">)</span>
 </code></pre></div>
 <h3 id="qa">QA<a class="headerlink" href="#qa" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pos_core.payments</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_payments</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pos_core.qa</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_payments_qa</span>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="n">df</span> <span class="o">=</span> <span class="n">get_payments</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="s2">&quot;2025-01-01&quot;</span><span class="p">,</span> <span class="s2">&quot;2025-01-31&quot;</span><span class="p">)</span>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="n">result</span> <span class="o">=</span> <span class="n">run_payments_qa</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pos_core.payments</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_payments</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pos_core.qa</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_payments_qa</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="n">df</span> <span class="o">=</span> <span class="n">get_payments</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="s2">&quot;2025-01-01&quot;</span><span class="p">,</span> <span class="s2">&quot;2025-01-31&quot;</span><span class="p">)</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="n">result</span> <span class="o">=</span> <span class="n">run_payments_qa</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
 </code></pre></div>
 <h2 id="removedchanged-from-old-api">Removed/Changed from Old API<a class="headerlink" href="#removedchanged-from-old-api" title="Permanent link">&para;</a></h2>
 <table>
