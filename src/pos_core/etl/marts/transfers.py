@@ -33,10 +33,38 @@ import argparse
 import pandas as pd
 
 # Row order for output pivot table (branch codes)
-ROW_ORDER = ["K", "N", "C", "Q", "PV", "HZ", "CC", "TOTAL"]
+# Order matches reference: K, PV, Q, HZ, C, N, CC, TOTAL
+ROW_ORDER = ["K", "PV", "Q", "HZ", "C", "N", "CC", "TOTAL"]
 
 # Column order for output pivot table (product categories)
-COL_ORDER = ["NO-PROC", "REFRICONGE", "TOSTADOR", "COMIDA SALADA", "REPO", "PAN DULCE Y SALADA"]
+# Individual No-PROC departments as separate columns, then processed categories.
+# PAN DULCE and PAN SALADA are combined into one column per user preference.
+COL_ORDER = [
+    "ABARROTES (No-PROC)",
+    "HARINAS (No-PROC)",
+    "BEBIDAS (No-PROC)",
+    "DESECHABLE (No-PROC)",
+    "PAPELERIA (No-PROC)",
+    "QUIMICOS (No-PROC)",
+    "VERDURA (No-PROC)",
+    "REFRICONGE",
+    "TOSTADOR",
+    "COMIDA SALADA",
+    "REPO",
+    "PAN DULCE Y SALADA",
+]
+
+# Department -> No-PROC column mapping
+DEPT_TO_NO_PROC_COL = {
+    "ABARROTES": "ABARROTES (No-PROC)",
+    "AZUCAR Y HARINA": "HARINAS (No-PROC)",
+    "BEBIDAS": "BEBIDAS (No-PROC)",
+    "DESECHABLE": "DESECHABLE (No-PROC)",
+    "DESECHABLES": "DESECHABLE (No-PROC)",
+    "PAPELERIA": "PAPELERIA (No-PROC)",
+    "QUIMICOS": "QUIMICOS (No-PROC)",
+    "VERDURA": "VERDURA (No-PROC)",
+}
 
 # Mapping from full branch names to codes
 SUC_MAP = {
@@ -48,19 +76,6 @@ SUC_MAP = {
     "PANEM - HOSPITAL ZAMBRANO N": "HZ",
     "PANEM - CREDI CLUB": "CC",
 }
-
-# Departments that map to NO-PROC category
-NO_PROC_SET = {
-    "ABARROTES",
-    "AZUCAR Y HARINA",
-    "BEBIDAS",
-    "DESECHABLE",
-    "DESECHABLES",
-    "PAPELERIA",
-    "QUIMICOS",
-    "VERDURA",
-}
-
 
 def normalize(s: pd.Series) -> pd.Series:
     """Normalize a pandas Series to uppercase, stripped strings.
@@ -82,7 +97,7 @@ def bucket_row(origen: str, depto: str) -> str | None:
     - ALMACEN PRODUCTO TERMINADO + COCINA -> COMIDA SALADA
     - ALMACEN PRODUCTO TERMINADO + REPOSTERIA -> REPO
     - ALMACEN PRODUCTO TERMINADO + PANADERIA DULCE Y SALADA -> PAN DULCE Y SALADA
-    - ALMACEN GENERAL + (departments in NO_PROC_SET) -> NO-PROC
+    - ALMACEN GENERAL + (each department) -> specific (No-PROC) column
     - ALMACEN GENERAL + REFRIGERADOS Y CONGELADOS -> REFRICONGE
     - ALMACEN GENERAL + TOSTADOR -> TOSTADOR
 
@@ -102,8 +117,8 @@ def bucket_row(origen: str, depto: str) -> str | None:
         if depto == "PANADERIA DULCE Y SALADA":
             return "PAN DULCE Y SALADA"
     elif origen == "ALMACEN GENERAL":
-        if depto in NO_PROC_SET:
-            return "NO-PROC"
+        if depto in DEPT_TO_NO_PROC_COL:
+            return DEPT_TO_NO_PROC_COL[depto]
         if depto == "REFRIGERADOS Y CONGELADOS":
             return "REFRICONGE"
         if depto == "TOSTADOR":
