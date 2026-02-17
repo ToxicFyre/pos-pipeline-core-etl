@@ -30,9 +30,9 @@ def aggregate_to_pivot(
 ) -> pd.DataFrame:
     """Aggregate fact_transfers_line into mart_transfers_pivot.
 
-    Creates a pivot table with:
-    - Rows: Branch codes (K, N, C, Q, PV, HZ, CC, TOTAL)
-    - Columns: Product categories (NO-PROC, REFRICONGE, TOSTADOR, etc.)
+    Creates a "Gasto de Insumos" pivot table with:
+    - Rows: Categories (No-Procesados, Cafe, Comida Salada, etc.)
+    - Columns: Branches (Kavia, PV, Qin, Zambrano, Carreta, Nativa, Crediclub)
 
     Args:
         paths: DataPaths configuration.
@@ -59,10 +59,14 @@ def aggregate_to_pivot(
 
         if not csv_files:
             logger.warning("No cleaned transfer CSVs found in %s", paths.clean_transfers)
-            # Return empty DataFrame with expected structure
-            from pos_core.etl.marts.transfers import COL_ORDER, ROW_ORDER
+            # Return empty DataFrame with Gasto de Insumos structure
+            from pos_core.etl.marts.transfers import BRANCH_COL_ORDER, CATEGORY_ROW_ORDER
 
-            empty_df = pd.DataFrame(index=ROW_ORDER, columns=[*COL_ORDER, "TOTAL"], dtype=float)
+            empty_df = pd.DataFrame(
+                index=[*CATEGORY_ROW_ORDER, "TOTAL"],
+                columns=[*BRANCH_COL_ORDER, "TOTAL"],
+                dtype=float,
+            )
             empty_df = empty_df.fillna(0.0)
             return empty_df
 

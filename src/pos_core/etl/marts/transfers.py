@@ -13,7 +13,7 @@ and creates a pivot table showing transfer costs by branch and product category.
 The aggregation:
 1. Maps branch names to codes (K, N, C, Q, PV, HZ, CC)
 2. Buckets transfers by origin warehouse and department into categories
-3. Creates a pivot table with branches as rows and categories as columns
+3. Creates a "Gasto de Insumos" pivot: categories as rows, branches as columns
 4. Includes totals row and column
 
 Examples:
@@ -32,27 +32,53 @@ import argparse
 
 import pandas as pd
 
-# Row order for output pivot table (branch codes)
-# Order matches reference: K, PV, Q, HZ, C, N, CC, TOTAL
-ROW_ORDER = ["K", "PV", "Q", "HZ", "C", "N", "CC", "TOTAL"]
-
-# Column order for output pivot table (product categories)
-# Individual No-PROC departments as separate columns, then processed categories.
-# PAN DULCE and PAN SALADA are combined into one column per user preference.
-COL_ORDER = [
-    "ABARROTES (No-PROC)",
-    "HARINAS (No-PROC)",
-    "BEBIDAS (No-PROC)",
-    "DESECHABLE (No-PROC)",
-    "PAPELERIA (No-PROC)",
-    "QUIMICOS (No-PROC)",
-    "VERDURA (No-PROC)",
-    "REFRICONGE",
-    "TOSTADOR",
-    "COMIDA SALADA",
-    "REPO",
-    "PAN DULCE Y SALADA",
+# Gasto de Insumos layout: categories as ROWS, branches as COLUMNS
+# Category row order (display labels)
+CATEGORY_ROW_ORDER = [
+    "No-Procesados (Abarrotes)",
+    "No-Procesados (Harinas)",
+    "No-Procesados (Bebidas)",
+    "No-Procesados (Deshechables)",
+    "No-Procesados (Papelería)",
+    "No-Procesados (Químicos)",
+    "No-Procesados (Verdura)",
+    "No-Procesados (Refri y Conge)",
+    "Cafe",
+    "Comida Salada",
+    "Repostería",
+    "Panadería Dulce y Salada",
 ]
+
+# Branch column order: (code, display_name)
+BRANCH_COL_ORDER = ["Kavia", "PV", "Qin", "Zambrano", "Carreta", "Nativa", "Crediclub"]
+SUC_TO_DISPLAY = {
+    "K": "Kavia",
+    "PV": "PV",
+    "Q": "Qin",
+    "HZ": "Zambrano",
+    "C": "Carreta",
+    "N": "Nativa",
+    "CC": "Crediclub",
+}
+
+# Internal bucket key -> display row label
+BUCKET_TO_ROW_LABEL = {
+    "ABARROTES (No-PROC)": "No-Procesados (Abarrotes)",
+    "HARINAS (No-PROC)": "No-Procesados (Harinas)",
+    "BEBIDAS (No-PROC)": "No-Procesados (Bebidas)",
+    "DESECHABLE (No-PROC)": "No-Procesados (Deshechables)",
+    "PAPELERIA (No-PROC)": "No-Procesados (Papelería)",
+    "QUIMICOS (No-PROC)": "No-Procesados (Químicos)",
+    "VERDURA (No-PROC)": "No-Procesados (Verdura)",
+    "REFRICONGE": "No-Procesados (Refri y Conge)",
+    "TOSTADOR": "Cafe",
+    "COMIDA SALADA": "Comida Salada",
+    "REPO": "Repostería",
+    "PAN DULCE Y SALADA": "Panadería Dulce y Salada",
+}
+
+# Internal category keys (for pivot aggregation)
+INTERNAL_BUCKET_ORDER = list(BUCKET_TO_ROW_LABEL.keys())
 
 # Department -> No-PROC column mapping
 DEPT_TO_NO_PROC_COL = {
@@ -76,6 +102,7 @@ SUC_MAP = {
     "PANEM - HOSPITAL ZAMBRANO N": "HZ",
     "PANEM - CREDI CLUB": "CC",
 }
+
 
 def normalize(s: pd.Series) -> pd.Series:
     """Normalize a pandas Series to uppercase, stripped strings.
@@ -129,9 +156,8 @@ def bucket_row(origen: str, depto: str) -> str | None:
 def build_table(csv_path: str, include_cedis: bool = False) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Build pivot table from transfer CSV data.
 
-    Processes the transfer CSV file and creates a pivot table showing transfer
-    costs by branch (rows) and product category (columns). Also returns unmapped
-    rows that couldn't be categorized.
+    Produces "Gasto de Insumos" layout: categories as rows, branches as columns.
+    Also returns unmapped rows that couldn't be categorized.
 
     Args:
         csv_path: Path to cleaned transfer CSV file.
@@ -140,14 +166,14 @@ def build_table(csv_path: str, include_cedis: bool = False) -> tuple[pd.DataFram
 
     Returns:
         Tuple of (pivot_table, unmapped_rows):
-        - pivot_table: DataFrame with branches as rows, categories as columns
+        - pivot_table: DataFrame with categories as rows, branches as columns
         - unmapped_rows: DataFrame with rows that couldn't be categorized
 
     Raises:
         SystemExit: If required columns are missing from the CSV.
 
     """
-    df = pd.read_csv(csv_path)
+    df = pd.read_csv(csv_path, encoding="utf-8-sig")
 
     # Normalize
     for col in ["Almacén origen", "Sucursal destino", "Departamento"]:
@@ -171,24 +197,36 @@ def build_table(csv_path: str, include_cedis: bool = False) -> tuple[pd.DataFram
     # Money (Costo already equals Cantidad * Costo unitario)
     df["Monto"] = pd.to_numeric(df["Costo"], errors="coerce").fillna(0)
 
-    # Aggregate
+    # Aggregate: categories as rows, branches as columns (Gasto de Insumos layout)
     piv = df.dropna(subset=["SUC", "BUCKET"]).pivot_table(
-        index="SUC", columns="BUCKET", values="Monto", aggfunc="sum", fill_value=0.0
+        index="BUCKET", columns="SUC", values="Monto", aggfunc="sum", fill_value=0.0
     )
 
-    # Ensure all expected columns exist and in order
-    for c in COL_ORDER:
-        if c not in piv.columns:
-            piv[c] = 0.0
-    piv = piv[COL_ORDER]
+    # Ensure all expected buckets exist
+    for b in INTERNAL_BUCKET_ORDER:
+        if b not in piv.index:
+            piv.loc[b] = 0.0
+    piv = piv.reindex(INTERNAL_BUCKET_ORDER).fillna(0.0)
+
+    # Rename index to display labels
+    piv = piv.rename(index=BUCKET_TO_ROW_LABEL)
+
+    # Rename columns from branch codes to display names
+    piv = piv.rename(columns=SUC_TO_DISPLAY)
+
+    # Ensure all expected branch columns exist and are in order
+    for col in BRANCH_COL_ORDER:
+        if col not in piv.columns:
+            piv[col] = 0.0
+    piv = piv.reindex(columns=BRANCH_COL_ORDER).fillna(0.0)
 
     # Totals
     piv["TOTAL"] = piv.sum(axis=1)
     total_row = piv.sum(numeric_only=True)
     piv.loc["TOTAL"] = total_row
 
-    # Row order
-    piv = piv.reindex(ROW_ORDER)
+    # Row order (categories + TOTAL)
+    piv = piv.reindex([*CATEGORY_ROW_ORDER, "TOTAL"]).fillna(0.0)
 
     # Round to 2 decimals
     piv = piv.round(2)
