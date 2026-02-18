@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.2">
     
     
       
@@ -2186,12 +2186,14 @@
 <h3 id="mart_transfers_pivot-pivot-mart"><code>mart_transfers_pivot</code> (Pivot Mart)<a class="headerlink" href="#mart_transfers_pivot-pivot-mart" title="Permanent link">&para;</a></h3>
 <p>Grain: branch × category pivot table</p>
 <p>Structure:
-- <strong>Rows</strong>: Branch codes (K, N, C, Q, PV, HZ, CC, TOTAL)
-- <strong>Columns</strong>: Product categories (NO-PROC, REFRICONGE, TOSTADOR, COMIDA SALADA, REPO, PAN DULCE Y SALADA, TOTAL)</p>
+- <strong>Rows</strong>: Product categories (NO-PROC, REFRICONGE, TOSTADOR, COMIDA SALADA, REPO, PAN DULCE, PAN SALADA, PAN DULCE Y SALADA, TOTAL)
+- <strong>Columns</strong>: Branch codes (Kavia, PV, Qin, Zambrano, Carreta, Nativa, Crediclub, TOTAL)</p>
 <p>Category mapping:
 - <code>ALMACEN PRODUCTO TERMINADO</code> + <code>COCINA</code> → COMIDA SALADA
 - <code>ALMACEN PRODUCTO TERMINADO</code> + <code>REPOSTERIA</code> → REPO
-- <code>ALMACEN PRODUCTO TERMINADO</code> + <code>PANADERIA DULCE Y SALADA</code> → PAN DULCE Y SALADA
+- <code>ALMACEN PRODUCTO TERMINADO</code> + <code>PAN DULCE</code> → PAN DULCE (new format)
+- <code>ALMACEN PRODUCTO TERMINADO</code> + <code>PAN SALADA</code> → PAN SALADA (new format)
+- <code>ALMACEN PRODUCTO TERMINADO</code> + <code>PANADERIA DULCE Y SALADA</code> → PAN DULCE Y SALADA (legacy format, backward compatibility)
 - <code>ALMACEN GENERAL</code> + various departments → NO-PROC, REFRICONGE, TOSTADOR</p>
 <h2 id="next-steps">Next Steps<a class="headerlink" href="#next-steps" title="Permanent link">&para;</a></h2>
 <ul>
