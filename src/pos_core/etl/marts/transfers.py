@@ -14,7 +14,8 @@ The aggregation:
 1. Maps branch names to codes (K, N, C, Q, PV, HZ, CC)
 2. Buckets transfers by origin warehouse and department into categories
 3. Creates a "Gasto de Insumos" pivot: categories as rows, branches as columns
-4. Includes totals row and column
+4. Supports both new format (PAN DULCE, PAN SALADA) and legacy format (PANADERIA DULCE Y SALADA)
+5. Includes totals row and column
 
 Examples:
     Basic usage:
@@ -46,7 +47,9 @@ CATEGORY_ROW_ORDER = [
     "Cafe",
     "Comida Salada",
     "Repostería",
-    "Panadería Dulce y Salada",
+    "Panadería Dulce",
+    "Panadería Salada",
+    "Panadería Dulce y Salada",  # Legacy format - kept for backward compatibility
 ]
 
 # Branch column order: (code, display_name)
@@ -74,7 +77,9 @@ BUCKET_TO_ROW_LABEL = {
     "TOSTADOR": "Cafe",
     "COMIDA SALADA": "Comida Salada",
     "REPO": "Repostería",
-    "PAN DULCE Y SALADA": "Panadería Dulce y Salada",
+    "PAN DULCE": "Panadería Dulce",  # New format
+    "PAN SALADA": "Panadería Salada",  # New format
+    "PAN DULCE Y SALADA": "Panadería Dulce y Salada",  # Legacy format - backward compatibility
 }
 
 # Internal category keys (for pivot aggregation)
@@ -123,7 +128,9 @@ def bucket_row(origen: str, depto: str) -> str | None:
     Maps combinations of origin warehouse and department to product categories:
     - ALMACEN PRODUCTO TERMINADO + COCINA -> COMIDA SALADA
     - ALMACEN PRODUCTO TERMINADO + REPOSTERIA -> REPO
-    - ALMACEN PRODUCTO TERMINADO + PANADERIA DULCE Y SALADA -> PAN DULCE Y SALADA
+    - ALMACEN PRODUCTO TERMINADO + PAN DULCE -> PAN DULCE (new format)
+    - ALMACEN PRODUCTO TERMINADO + PAN SALADA -> PAN SALADA (new format)
+    - ALMACEN PRODUCTO TERMINADO + PANADERIA DULCE Y SALADA -> PAN DULCE Y SALADA (legacy format)
     - ALMACEN GENERAL + (each department) -> specific (No-PROC) column
     - ALMACEN GENERAL + REFRIGERADOS Y CONGELADOS -> REFRICONGE
     - ALMACEN GENERAL + TOSTADOR -> TOSTADOR
@@ -141,6 +148,12 @@ def bucket_row(origen: str, depto: str) -> str | None:
             return "COMIDA SALADA"
         if depto == "REPOSTERIA":
             return "REPO"
+        # New format: separate departments
+        if depto == "PAN DULCE":
+            return "PAN DULCE"
+        if depto == "PAN SALADA":
+            return "PAN SALADA"
+        # Legacy format: combined department (backward compatibility)
         if depto == "PANADERIA DULCE Y SALADA":
             return "PAN DULCE Y SALADA"
     elif origen == "ALMACEN GENERAL":

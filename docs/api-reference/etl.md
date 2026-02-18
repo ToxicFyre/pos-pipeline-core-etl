@@ -782,13 +782,15 @@ Key columns:
 Grain: branch × category pivot table
 
 Structure:
-- **Rows**: Branch codes (K, N, C, Q, PV, HZ, CC, TOTAL)
-- **Columns**: Product categories (NO-PROC, REFRICONGE, TOSTADOR, COMIDA SALADA, REPO, PAN DULCE Y SALADA, TOTAL)
+- **Rows**: Product categories (NO-PROC, REFRICONGE, TOSTADOR, COMIDA SALADA, REPO, PAN DULCE, PAN SALADA, PAN DULCE Y SALADA, TOTAL)
+- **Columns**: Branch codes (Kavia, PV, Qin, Zambrano, Carreta, Nativa, Crediclub, TOTAL)
 
 Category mapping:
 - `ALMACEN PRODUCTO TERMINADO` + `COCINA` → COMIDA SALADA
 - `ALMACEN PRODUCTO TERMINADO` + `REPOSTERIA` → REPO
-- `ALMACEN PRODUCTO TERMINADO` + `PANADERIA DULCE Y SALADA` → PAN DULCE Y SALADA
+- `ALMACEN PRODUCTO TERMINADO` + `PAN DULCE` → PAN DULCE (new format)
+- `ALMACEN PRODUCTO TERMINADO` + `PAN SALADA` → PAN SALADA (new format)
+- `ALMACEN PRODUCTO TERMINADO` + `PANADERIA DULCE Y SALADA` → PAN DULCE Y SALADA (legacy format, backward compatibility)
 - `ALMACEN GENERAL` + various departments → NO-PROC, REFRICONGE, TOSTADOR
 
 ## Next Steps
