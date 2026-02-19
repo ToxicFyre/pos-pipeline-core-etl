@@ -14,7 +14,7 @@ The aggregation:
 1. Maps branch names to codes (K, N, C, Q, PV, HZ, CC)
 2. Buckets transfers by origin warehouse and department into categories
 3. Creates a "Gasto de Insumos" pivot: categories as rows, branches as columns
-4. Supports both new format (PAN DULCE, PAN SALADA) and legacy format (PANADERIA DULCE Y SALADA)
+4. Supports both new format (PAN DULCE, PAN SALADO) and legacy format (PANADERIA DULCE Y SALADA)
 5. Includes totals row and column
 
 Examples:
@@ -78,7 +78,7 @@ BUCKET_TO_ROW_LABEL = {
     "COMIDA SALADA": "Comida Salada",
     "REPO": "Repostería",
     "PAN DULCE": "Panadería Dulce",  # New format
-    "PAN SALADA": "Panadería Salada",  # New format
+    "PAN SALADO": "Panadería Salada",  # New format
     "PAN DULCE Y SALADA": "Panadería Dulce y Salada",  # Legacy format - backward compatibility
 }
 
@@ -129,7 +129,7 @@ def bucket_row(origen: str, depto: str) -> str | None:
     - ALMACEN PRODUCTO TERMINADO + COCINA -> COMIDA SALADA
     - ALMACEN PRODUCTO TERMINADO + REPOSTERIA -> REPO
     - ALMACEN PRODUCTO TERMINADO + PAN DULCE -> PAN DULCE (new format)
-    - ALMACEN PRODUCTO TERMINADO + PAN SALADA -> PAN SALADA (new format)
+    - ALMACEN PRODUCTO TERMINADO + PAN SALADO -> PAN SALADO (new format)
     - ALMACEN PRODUCTO TERMINADO + PANADERIA DULCE Y SALADA -> PAN DULCE Y SALADA (legacy format)
     - ALMACEN GENERAL + (each department) -> specific (No-PROC) column
     - ALMACEN GENERAL + REFRIGERADOS Y CONGELADOS -> REFRICONGE
@@ -151,8 +151,8 @@ def bucket_row(origen: str, depto: str) -> str | None:
         # New format: separate departments
         if depto == "PAN DULCE":
             return "PAN DULCE"
-        if depto == "PAN SALADA":
-            return "PAN SALADA"
+        if depto == "PAN SALADO":
+            return "PAN SALADO"
         # Legacy format: combined department (backward compatibility)
         if depto == "PANADERIA DULCE Y SALADA":
             return "PAN DULCE Y SALADA"
