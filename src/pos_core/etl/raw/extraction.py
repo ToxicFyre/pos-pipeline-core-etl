@@ -264,6 +264,23 @@ def _is_login_form_action(action: str, page_url: str) -> bool:
     return "/Account/LogOn" in resolved or "Account/LogOn" in action
 
 
+def _form_matches_login_shape(form: Tag, page_url: str) -> bool:
+    """Return True when a form looks like the Wansoft login form."""
+    has_password = form.find("input", attrs={"type": "password"}) is not None
+    if not has_password:
+        return False
+    action = _attr_to_str(form.get("action"))
+    return _is_login_form_action(action, page_url)
+
+
+def _find_login_form(soup: BeautifulSoup, page_url: str) -> Tag | None:
+    """Find the login form on a page that may contain multiple forms."""
+    for form in soup.find_all("form"):
+        if isinstance(form, Tag) and _form_matches_login_shape(form, page_url):
+            return form
+    return None
+
+
 def is_login_response(response: requests.Response) -> bool:
     """Classify whether an HTTP response represents the Wansoft login page."""
     if response.url and "/Account/LogOn" in response.url:
@@ -276,17 +293,7 @@ def is_login_response(response: requests.Response) -> bool:
 
     html = response.text or ""
     soup = BeautifulSoup(html, "html.parser")
-    for form in soup.find_all("form"):
-        if not isinstance(form, Tag):
-            continue
-        has_password = form.find("input", attrs={"type": "password"}) is not None
-        if not has_password:
-            continue
-        action = _attr_to_str(form.get("action"))
-        if _is_login_form_action(action, response.url):
-            return True
-
-    return False
+    return _find_login_form(soup, response.url) is not None
 
 
 def extract_login_validation_messages(html: str) -> list[str]:
@@ -319,9 +326,7 @@ def safe_response_diagnostics(
     """Build safe, non-sensitive diagnostics for an HTTP response."""
     redirects: list[str] = []
     for hist in response.history:
-        location = hist.headers.get("Location", "")
-        if location.startswith("http"):
-            location = _safe_url_path(location)
+        location = _safe_url_path(hist.headers.get("Location", ""))
         redirects.append(f"{hist.status_code}:{location}")
 
     try:
@@ -596,8 +601,8 @@ def login_if_needed(
 
         page_url = initial.url
         soup = BeautifulSoup(initial.text, "html.parser")
-        form = soup.find("form")
-        if not isinstance(form, Tag):
+        form = _find_login_form(soup, page_url)
+        if form is None:
             raise AuthenticationError("Wansoft authentication failed: login form not found.")
 
         action_attr = form.get("action")
@@ -614,7 +619,7 @@ def login_if_needed(
                 fields[name] = value
 
         user_field = choose_user_field(fields) or "UserName"
-        pw_field = choose_password_field(fields, initial.text) or "Password"
+        pw_field = choose_password_field(fields, str(form)) or "Password"
         if user_field not in fields or pw_field not in fields:
             raise AuthenticationError(
                 "Wansoft authentication failed: could not identify user/password fields. "

@@ -51,6 +51,7 @@ def _login_page_html(
     *,
     action: str = "/Account/LogOn",
     validation_message: str | None = None,
+    extra_forms: str = "",
 ) -> str:
     validation_block = ""
     if validation_message:
@@ -58,7 +59,7 @@ def _login_page_html(
             f'<div class="validation-summary-errors">{validation_message}</div>'
         )
     return (
-        f"<html><head><title>Login</title></head><body>{validation_block}"
+        f"<html><head><title>Login</title></head><body>{validation_block}{extra_forms}"
         f'<form action="{action}" method="post">'
         '<input type="text" name="UserName" value="">'
         '<input type="password" name="Password" value="">'
@@ -129,7 +130,7 @@ class TestLoginIfNeeded:
             text=_protected_page_html(),
         )
 
-        def fake_get(url: str, **kwargs: object) -> requests.Response:
+        def fake_get(url: str, **_kwargs: object) -> requests.Response:
             if url == f"{BASE_URL}/":
                 return _make_response(url=f"{BASE_URL}/", status_code=200)
             if url == f"{BASE_URL}{REPORT_PAGE_PATH}":
@@ -160,7 +161,7 @@ class TestLoginIfNeeded:
             text=_login_page_html(),
         )
 
-        def fake_get(url: str, **kwargs: object) -> requests.Response:
+        def fake_get(url: str, **_kwargs: object) -> requests.Response:
             if url == f"{BASE_URL}/":
                 return _make_response(url=f"{BASE_URL}/", status_code=200)
             return login_page
@@ -184,7 +185,7 @@ class TestLoginIfNeeded:
         )
         login_page = _make_response(url=f"{BASE_URL}/Account/LogOn", text=login_html)
 
-        session.get.side_effect = lambda url, **kwargs: (
+        session.get.side_effect = lambda url, **_kwargs: (
             _make_response(url=f"{BASE_URL}/", status_code=200)
             if url == f"{BASE_URL}/"
             else login_page
@@ -204,15 +205,14 @@ class TestLoginIfNeeded:
             text=_login_page_html(),
         )
 
-        session.get.side_effect = lambda url, **kwargs: (
+        session.get.side_effect = lambda url, **_kwargs: (
             _make_response(url=f"{BASE_URL}/", status_code=200)
             if url == f"{BASE_URL}/"
             else login_page
         )
 
-        with patch.dict("os.environ", {}, clear=True):
-            with pytest.raises(AuthenticationError) as exc_info:
-                login_if_needed(session, BASE_URL, None, None)
+        with patch.dict("os.environ", {}, clear=True), pytest.raises(AuthenticationError) as exc_info:
+            login_if_needed(session, BASE_URL, None, None)
 
         assert "WS_USER" in str(exc_info.value) or "credentials" in str(exc_info.value).lower()
 
@@ -232,7 +232,7 @@ class TestLoginIfNeeded:
 
         get_calls = {"count": 0}
 
-        def fake_get(url: str, **kwargs: object) -> requests.Response:
+        def fake_get(url: str, **_kwargs: object) -> requests.Response:
             if url == f"{BASE_URL}/":
                 return _make_response(url=f"{BASE_URL}/", status_code=200)
             get_calls["count"] += 1
@@ -267,7 +267,7 @@ class TestLoginIfNeeded:
 
         get_calls = {"count": 0}
 
-        def fake_get(url: str, **kwargs: object) -> requests.Response:
+        def fake_get(url: str, **_kwargs: object) -> requests.Response:
             if url == f"{BASE_URL}/":
                 return _make_response(url=f"{BASE_URL}/", status_code=200)
             get_calls["count"] += 1
@@ -296,7 +296,7 @@ class TestLoginIfNeeded:
             text=_protected_page_html(),
         )
 
-        def fake_get(url: str, **kwargs: object) -> requests.Response:
+        def fake_get(url: str, **_kwargs: object) -> requests.Response:
             if url == f"{BASE_URL}/":
                 return _make_response(url=f"{BASE_URL}/", status_code=200)
             if url == f"{BASE_URL}{INVENTORY_TRANSFERS_PAGE}":
@@ -316,6 +316,48 @@ class TestLoginIfNeeded:
 
         assert INVENTORY_TRANSFERS_PAGE in caplog.text
 
+    def test_selects_login_form_when_multiple_forms_present(self) -> None:
+        session = MagicMock(spec=requests.Session)
+        session.cookies = []
+
+        decoy_form = (
+            '<form action="/Search" method="get">'
+            '<input type="text" name="query" value="">'
+            "</form>"
+        )
+        login_html = _login_page_html(extra_forms=decoy_form)
+        login_page = _make_response(url=f"{BASE_URL}/Account/LogOn", text=login_html)
+        protected = _make_response(
+            url=f"{BASE_URL}{REPORT_PAGE_PATH}",
+            text=_protected_page_html(),
+        )
+
+        get_calls = {"count": 0}
+
+        def fake_get(url: str, **_kwargs: object) -> requests.Response:
+            if url == f"{BASE_URL}/":
+                return _make_response(url=f"{BASE_URL}/", status_code=200)
+            get_calls["count"] += 1
+            if get_calls["count"] == 1:
+                return login_page
+            return protected
+
+        session.get.side_effect = fake_get
+        session.post.return_value = _make_response(
+            url=f"{BASE_URL}{REPORT_PAGE_PATH}",
+            text=_protected_page_html(),
+        )
+
+        login_if_needed(session, BASE_URL, "user", TEST_PASSWORD)
+
+        post_args = session.post.call_args
+        posted_url = post_args[0][0]
+        posted_fields = post_args[1]["data"]
+        assert posted_url.endswith("/Account/LogOn")
+        assert "UserName" in posted_fields
+        assert "Password" in posted_fields
+        assert "query" not in posted_fields
+
 
 class TestSecurityDiagnostics:
     def test_exception_does_not_leak_secrets(self) -> None:
@@ -330,7 +372,7 @@ class TestSecurityDiagnostics:
             text=_login_page_html(),
         )
 
-        session.get.side_effect = lambda url, **kwargs: (
+        session.get.side_effect = lambda url, **_kwargs: (
             _make_response(url=f"{BASE_URL}/", status_code=200)
             if url == f"{BASE_URL}/"
             else login_page
@@ -362,6 +404,26 @@ class TestSecurityDiagnostics:
         assert "ASP.NET_SessionId" in diagnostics
         assert "secret=abc" not in diagnostics
         assert "/Account/LogOn" in diagnostics
+
+    def test_redirect_history_strips_query_string_from_relative_location(self) -> None:
+        session = MagicMock(spec=requests.Session)
+        session.cookies = []
+
+        redirect = _make_response(
+            url=f"{BASE_URL}{REPORT_PAGE_PATH}",
+            status_code=302,
+        )
+        redirect.headers["Location"] = "/Account/LogOn?ReturnUrl=%2FReports&secret=abc"
+        resp = _make_response(
+            url=f"{BASE_URL}/Account/LogOn?ReturnUrl=%2FReports",
+            text=_login_page_html(),
+            history=[redirect],
+        )
+
+        diagnostics = safe_response_diagnostics(resp, session)
+        assert "ReturnUrl" not in diagnostics
+        assert "secret=abc" not in diagnostics
+        assert "302:/Account/LogOn" in diagnostics
 
 
 class TestSalesExtractorLogin:
