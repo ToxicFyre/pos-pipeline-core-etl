@@ -58,10 +58,20 @@ Grain Reference:
 __version__ = "0.2.0"
 
 from pos_core.config import DataPaths
-from pos_core.exceptions import ConfigError, ETLError, ExtractionError
+from pos_core.exceptions import (
+    AuthenticationError,
+    AuthorizationError,
+    ConfigError,
+    CsrfTokenError,
+    ETLError,
+    ExtractionError,
+)
 
 __all__ = [
+    "AuthenticationError",
+    "AuthorizationError",
     "ConfigError",
+    "CsrfTokenError",
     "DataPaths",
     "ETLError",
     "ExtractionError",

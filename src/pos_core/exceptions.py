@@ -61,3 +61,21 @@ class ExtractionError(ETLError):
     """
 
     pass
+
+
+class AuthenticationError(ExtractionError):
+    """Raised when Wansoft does not establish or retain an authenticated session."""
+
+    pass
+
+
+class AuthorizationError(ExtractionError):
+    """Raised when authentication succeeds but access to a protected resource is denied."""
+
+    pass
+
+
+class CsrfTokenError(ExtractionError):
+    """Raised when an authenticated report page does not contain the expected CSRF token."""
+
+    pass

@@ -81,6 +81,7 @@ def download_transfers(
 
     """
     from pos_core.etl.raw.extraction import (
+        INVENTORY_TRANSFERS_PAGE,
         export_transfers_issued,
         login_if_needed,
         make_session,
@@ -107,7 +108,7 @@ def download_transfers(
     try:
         # Create session and authenticate
         s = make_session()
-        login_if_needed(s, base_url, None, None)
+        login_if_needed(s, base_url, None, None, verification_path=INVENTORY_TRANSFERS_PAGE)
 
         # Create output directory
         output_dir = paths.raw_transfers / "CEDIS" / cedis_code
