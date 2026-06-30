@@ -37,6 +37,7 @@ def download_sales(
     # Import the actual extraction logic
     from pos_core.etl.branch_config import load_branch_segments_from_json
     from pos_core.etl.raw.extraction import (
+        REPORT_PAGE_PATH,
         build_out_name,
         export_sales_report,
         login_if_needed,
@@ -56,7 +57,7 @@ def download_sales(
     try:
         # Create session and authenticate
         session = make_session()
-        login_if_needed(session, base_url=base_url, user=None, pwd=None)
+        login_if_needed(session, base_url=base_url, user=None, pwd=None, verification_path=REPORT_PAGE_PATH)
 
         # Load branch configuration
         branch_segments = load_branch_segments_from_json(paths.sucursales_json)

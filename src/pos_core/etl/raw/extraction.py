@@ -52,7 +52,7 @@ import sys
 from datetime import date
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 import requests
 from bs4 import BeautifulSoup, Tag  # pip install requests bs4
@@ -66,6 +66,12 @@ from pos_core.etl.utils import (
     parse_date,
     slugify,
     subtract_intervals,
+)
+from pos_core.exceptions import (
+    AuthenticationError,
+    AuthorizationError,
+    CsrfTokenError,
+    ExtractionError,
 )
 
 # ------------------------- Config -------------------------
@@ -242,6 +248,145 @@ def get_csrf_from_html(html: str) -> str | None:
     return None
 
 
+def _safe_url_path(url: str) -> str:
+    """Return the path component of a URL, omitting hostname and query string."""
+    if not url:
+        return ""
+    parsed = urlparse(url)
+    return parsed.path or url
+
+
+def _is_login_form_action(action: str, page_url: str) -> bool:
+    """Return True when a form action targets the Wansoft login route."""
+    if not action:
+        return True
+    resolved = urljoin(page_url, action)
+    return "/Account/LogOn" in resolved or "Account/LogOn" in action
+
+
+def is_login_response(response: requests.Response) -> bool:
+    """Classify whether an HTTP response represents the Wansoft login page."""
+    if response.url and "/Account/LogOn" in response.url:
+        return True
+
+    for hist in response.history:
+        location = hist.headers.get("Location", "")
+        if "/Account/LogOn" in location:
+            return True
+
+    html = response.text or ""
+    soup = BeautifulSoup(html, "html.parser")
+    for form in soup.find_all("form"):
+        if not isinstance(form, Tag):
+            continue
+        has_password = form.find("input", attrs={"type": "password"}) is not None
+        if not has_password:
+            continue
+        action = _attr_to_str(form.get("action"))
+        if _is_login_form_action(action, response.url):
+            return True
+
+    return False
+
+
+def extract_login_validation_messages(html: str) -> list[str]:
+    """Extract safe validation messages from a Wansoft login page."""
+    soup = BeautifulSoup(html, "html.parser")
+    selectors = (
+        ".validation-summary-errors",
+        ".field-validation-error",
+        ".alert-danger",
+        ".text-danger",
+    )
+    messages: list[str] = []
+    seen: set[str] = set()
+    for selector in selectors:
+        for element in soup.select(selector):
+            text = element.get_text(separator=" ", strip=True)
+            if not text or text in seen:
+                continue
+            if len(text) > 300:
+                text = text[:300]
+            seen.add(text)
+            messages.append(text)
+    return messages
+
+
+def safe_response_diagnostics(
+    response: requests.Response,
+    session: requests.Session,
+) -> str:
+    """Build safe, non-sensitive diagnostics for an HTTP response."""
+    redirects: list[str] = []
+    for hist in response.history:
+        location = hist.headers.get("Location", "")
+        if location.startswith("http"):
+            location = _safe_url_path(location)
+        redirects.append(f"{hist.status_code}:{location}")
+
+    try:
+        soup = BeautifulSoup(response.text or "", "html.parser")
+        title = (soup.title.string or "").strip() if soup.title and soup.title.string else "n/a"
+    except (AttributeError, TypeError):
+        title = "n/a"
+
+    cookie_names = sorted({cookie.name for cookie in session.cookies})
+    redirect_text = ", ".join(redirects)
+    return (
+        f"status={response.status_code}; "
+        f"final_url={_safe_url_path(response.url)}; "
+        f"redirects=[{redirect_text}]; "
+        f"title={title}; "
+        f"cookie_names={cookie_names}"
+    )
+
+
+def verify_protected_access(
+    s: requests.Session,
+    url: str,
+    *,
+    context: str,
+    verification_path: str,
+) -> requests.Response:
+    """GET a protected URL and verify the session can access it."""
+    response = s.get(url, allow_redirects=True)
+
+    if is_login_response(response):
+        validation_messages = extract_login_validation_messages(response.text or "")
+        if validation_messages:
+            message = f"Wansoft authentication failed: {validation_messages[0]}"
+        else:
+            message = (
+                "Wansoft authentication failed: the protected page redirected back to "
+                "the login page. Check WS_USER and WS_PASS."
+            )
+        diagnostics = safe_response_diagnostics(response, s)
+        raise AuthenticationError(f"{message} Diagnostics: {diagnostics}")
+
+    if response.status_code == 401:
+        diagnostics = safe_response_diagnostics(response, s)
+        raise AuthenticationError(
+            f"Wansoft authentication failed ({context}): the protected page returned HTTP 401. "
+            f"Diagnostics: {diagnostics}"
+        )
+
+    if response.status_code == 403:
+        diagnostics = safe_response_diagnostics(response, s)
+        raise AuthorizationError(
+            f"Wansoft authorization failed ({context}): the authenticated session cannot access "
+            f"{verification_path}. Diagnostics: {diagnostics}"
+        )
+
+    if not (200 <= response.status_code < 300):
+        diagnostics = safe_response_diagnostics(response, s)
+        raise ExtractionError(
+            f"Wansoft login verification failed ({context}): protected page returned HTTP "
+            f"{response.status_code}. Diagnostics: {diagnostics}"
+        )
+
+    return response
+
+
 def require_csrf_token(
     token: str | None,
     *,
@@ -265,43 +410,26 @@ def require_csrf_token(
         The non-empty CSRF token (guaranteed to be non-None and non-empty).
 
     Raises:
-        SystemExit: If token is missing or empty, with detailed diagnostics
-            to help debug the root cause. The pipeline will NOT proceed without
-            a valid token.
+        AuthenticationError: If the response is the Wansoft login page.
+        CsrfTokenError: If the authenticated page lacks a CSRF token.
 
     """
     if token and token.strip():
         return token
 
-    try:
-        soup = BeautifulSoup(response.text, "html.parser")
-        title = (soup.title.string or "").strip() if soup.title and soup.title.string else "n/a"
-    except (AttributeError, TypeError):
-        title = "n/a"
-    auth_cookie = any(c.name.upper().startswith(".ASPXAUTH") for c in session.cookies)
-    login_redirected = bool(response.url and "/Account/LogOn" in response.url)
-    snippet = (response.text or "").replace("\r", " ").replace("\n", " ")[:240]
+    if is_login_response(response):
+        diagnostics = safe_response_diagnostics(response, session)
+        raise AuthenticationError(
+            f"Authentication failed while opening {context}: Wansoft returned the login "
+            "page. The CSRF token is absent because the session is not authenticated. "
+            f"Diagnostics: {diagnostics}"
+        )
 
-    # Check if we searched for common token field names
-    token_fields_searched = ["__RequestVerificationToken", "__RequestVerificationTokenWith"]
-    token_found_in_html = False
-    try:
-        for field_name in token_fields_searched:
-            if field_name in (response.text or ""):
-                token_found_in_html = True
-                break
-    except (AttributeError, TypeError):
-        pass
-
-    raise SystemExit(
-        f"CSRF token is MANDATORY but was not found on {context}. "
-        f"The pipeline will crash here to prevent 401 errors later. "
-        f"Diagnostics: status={response.status_code}, url={response.url}, "
-        f"login_redirected={login_redirected}, auth_cookie_present={auth_cookie}, "
-        f"content_type={response.headers.get('Content-Type')}, "
-        f"token_fields_searched={token_fields_searched}, "
-        f"token_field_found_in_html={token_found_in_html}, "
-        f"HTML title={title}. Body start: {snippet}"
+    diagnostics = safe_response_diagnostics(response, session)
+    raise CsrfTokenError(
+        "CSRF token was not found on the authenticated report page. "
+        "The page structure may have changed. "
+        f"Diagnostics: {diagnostics}"
     )
 
 
@@ -415,50 +543,66 @@ def _origin_for(base_url: str) -> str:
     return f"{p.scheme}://{p.netloc}"
 
 
-def login_if_needed(s: requests.Session, base_url: str, user: str | None, pwd: str | None) -> None:
+def login_if_needed(
+    s: requests.Session,
+    base_url: str,
+    user: str | None,
+    pwd: str | None,
+    *,
+    verification_path: str = REPORT_PAGE_PATH,
+) -> None:
     """Authenticate with POS if login is required.
 
     Attempts to access a protected page. If redirected to login, automatically
     parses the login form, fills credentials, and submits. Verifies successful
-    authentication by checking access to the report page.
+    authentication by checking access to the caller-specific protected page.
 
     Args:
         s: Requests session object.
         base_url: Base URL of POS instance.
         user: Username for authentication (from WS_USER env var if None).
         pwd: Password for authentication (from WS_PASS env var if None).
+        verification_path: Protected page path used to verify authentication.
 
     Raises:
-        SystemExit: If login is required but credentials are missing, or if
+        AuthenticationError: If login is required but credentials are missing, or if
             login fails after submission.
+        AuthorizationError: If the authenticated session cannot access the page.
+        ExtractionError: If verification returns an unexpected HTTP status.
 
     """
-    # Get credentials from environment if not provided
     if user is None:
         user = os.environ.get("WS_USER")
     if pwd is None:
         pwd = os.environ.get("WS_PASS")
 
-    # Seed the session on tenant root (sets cookies that some auth flows expect)
     seed = s.get(f"{base_url}/")
     if seed.status_code not in (200, 302):
         logging.debug("Seed GET returned %s", seed.status_code)
 
-    # Try hitting a protected page to trigger login redirect
-    r = s.get(f"{base_url}{REPORT_PAGE_PATH}", allow_redirects=True)
-    if r.url.endswith("/Account/LogOn") or "/Account/LogOn" in r.url or r.status_code in (401,):
-        if not user or not pwd:
-            raise SystemExit("Login required but WS_USER/WS_PASS not provided.")
+    verification_url = f"{base_url}{verification_path}"
+    initial = s.get(verification_url, allow_redirects=True)
 
-        # Parse login form
-        page_url = r.url
-        soup = BeautifulSoup(r.text, "html.parser")
+    if not is_login_response(initial) and 200 <= initial.status_code < 300:
+        logging.info(
+            "Existing Wansoft session is authenticated; verified access to %s",
+            verification_path,
+        )
+        return
+
+    if is_login_response(initial) or initial.status_code == 401:
+        if not user or not pwd:
+            raise AuthenticationError("Login required but WS_USER/WS_PASS not provided.")
+
+        page_url = initial.url
+        soup = BeautifulSoup(initial.text, "html.parser")
         form = soup.find("form")
         if not isinstance(form, Tag):
-            raise SystemExit("Login form not found.")
+            raise AuthenticationError("Wansoft authentication failed: login form not found.")
+
         action_attr = form.get("action")
-        action = _attr_to_str(action_attr) if action_attr else page_url
-        action_url = action if action.startswith("http") else f"{_origin_for(base_url)}{action}"
+        action = _attr_to_str(action_attr) if action_attr else ""
+        action_url = urljoin(page_url, action)
 
         fields: dict[str, str] = {}
         for inp in form.find_all("input"):
@@ -470,33 +614,44 @@ def login_if_needed(s: requests.Session, base_url: str, user: str | None, pwd: s
                 fields[name] = value
 
         user_field = choose_user_field(fields) or "UserName"
-        pw_field = choose_password_field(fields, r.text) or "Password"
+        pw_field = choose_password_field(fields, initial.text) or "Password"
         if user_field not in fields or pw_field not in fields:
-            raise SystemExit(
-                f"Could not identify user/password fields. Found: {list(fields.keys())}"
+            raise AuthenticationError(
+                "Wansoft authentication failed: could not identify user/password fields. "
+                f"Found: {list(fields.keys())}"
             )
 
         fields[user_field] = user
         fields[pw_field] = pwd
         if "ReturnUrl" in fields and not fields["ReturnUrl"]:
-            fields["ReturnUrl"] = REPORT_PAGE_PATH
+            fields["ReturnUrl"] = verification_path
 
         headers = {"Referer": page_url, "Origin": _origin_for(base_url)}
-        r2 = s.post(action_url, data=fields, headers=headers, allow_redirects=True, timeout=100)
-        if r2.status_code not in (200, 302):
-            raise SystemExit(f"Login POST failed. HTTP {r2.status_code}")
-        # quick auth check
-        test = s.get(f"{base_url}{REPORT_PAGE_PATH}")
-        if test.status_code in (200,):
-            logging.info("Login succeeded")
-            return
-        aspxauth = [c for c in s.cookies if c.name.upper().startswith(".ASPXAUTH")]
-        raise SystemExit(
-            "Login failed: still redirected to login. "
-            f"Auth cookie present: {bool(aspxauth)}; final URL checked: {test.url}"
+        login_post = s.post(
+            action_url, data=fields, headers=headers, allow_redirects=True, timeout=100
         )
-    else:
-        logging.info("No login required.")
+        if not (200 <= login_post.status_code < 300):
+            diagnostics = safe_response_diagnostics(login_post, s)
+            raise AuthenticationError(
+                "Wansoft authentication failed: login POST returned HTTP "
+                f"{login_post.status_code}. Diagnostics: {diagnostics}"
+            )
+
+        verify_protected_access(
+            s,
+            verification_url,
+            context="login verification",
+            verification_path=verification_path,
+        )
+        logging.info("Wansoft login succeeded; verified access to %s", verification_path)
+        return
+
+    verify_protected_access(
+        s,
+        verification_url,
+        context="session check",
+        verification_path=verification_path,
+    )
 
 
 # ------------------------- Warm-up helpers -------------------------
