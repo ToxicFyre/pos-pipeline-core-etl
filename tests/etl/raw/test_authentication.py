@@ -6,10 +6,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import requests
+from bs4 import BeautifulSoup
 
 from pos_core.etl.raw.extraction import (
     INVENTORY_TRANSFERS_PAGE,
     REPORT_PAGE_PATH,
+    _find_login_form,
     extract_login_validation_messages,
     is_login_response,
     login_if_needed,
@@ -102,6 +104,61 @@ class TestIsLoginResponse:
             text=_protected_page_html(),
         )
         assert is_login_response(resp) is False
+
+
+class TestLoginFormDetection:
+    def test_find_login_form_accepts_root_action_on_logon_url(self) -> None:
+        """Regression: Wansoft login form posts to app root, not /Account/LogOn."""
+        page_url = (
+            f"{BASE_URL}/Account/LogOn?ReturnUrl=%2FReports%2FConsolidatedSalesMasterReport"
+        )
+        html = _login_page_html(action="/Wansoft.Web/")
+        soup = BeautifulSoup(html, "html.parser")
+
+        form = _find_login_form(soup, page_url)
+
+        assert form is not None
+        assert form.get("action") == "/Wansoft.Web/"
+
+    def test_login_if_needed_posts_to_app_root_action(self) -> None:
+        """Regression: login_if_needed must not fail when form action is app root."""
+        session = MagicMock(spec=requests.Session)
+        session.cookies = []
+
+        login_html = _login_page_html(action="/Wansoft.Web/")
+        login_page = _make_response(
+            url=f"{BASE_URL}/Account/LogOn?ReturnUrl=%2FReports%2FConsolidatedSalesMasterReport",
+            text=login_html,
+        )
+        protected = _make_response(
+            url=f"{BASE_URL}{REPORT_PAGE_PATH}",
+            text=_protected_page_html(),
+        )
+
+        get_calls = {"count": 0}
+
+        def fake_get(url: str, **_kwargs: object) -> requests.Response:
+            if url == f"{BASE_URL}/":
+                return _make_response(url=f"{BASE_URL}/", status_code=200)
+            get_calls["count"] += 1
+            if get_calls["count"] == 1:
+                return login_page
+            return protected
+
+        session.get.side_effect = fake_get
+        session.post.return_value = _make_response(
+            url=f"{BASE_URL}{REPORT_PAGE_PATH}",
+            text=_protected_page_html(),
+        )
+
+        login_if_needed(session, BASE_URL, "user", TEST_PASSWORD)
+
+        post_args = session.post.call_args
+        posted_url = post_args[0][0]
+        posted_fields = post_args[1]["data"]
+        assert posted_url == f"{BASE_URL}/Wansoft.Web/"
+        assert posted_fields["UserName"] == "user"
+        assert posted_fields["Password"] == TEST_PASSWORD
 
 
 class TestExtractLoginValidationMessages:
