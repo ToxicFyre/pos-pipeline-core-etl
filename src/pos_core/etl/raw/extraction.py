@@ -264,11 +264,33 @@ def _is_login_form_action(action: str, page_url: str) -> bool:
     return "/Account/LogOn" in resolved or "Account/LogOn" in action
 
 
-def _form_matches_login_shape(form: Tag, page_url: str) -> bool:
-    """Return True when a form looks like the Wansoft login form."""
+def _is_login_page_url(page_url: str) -> bool:
+    """Return True when the page URL is a Wansoft login route."""
+    return "/Account/LogOn" in page_url or "/Account/Login" in page_url
+
+
+def _form_has_login_fields(form: Tag) -> bool:
+    """Return True when a form contains username and password inputs."""
     has_password = form.find("input", attrs={"type": "password"}) is not None
     if not has_password:
         return False
+
+    field_names = {
+        _attr_to_str(inp.get("name"))
+        for inp in form.find_all("input")
+        if isinstance(inp, Tag)
+    }
+    field_names.discard("")
+    user_candidates = ("UserName", "Email", "Login", "Username")
+    return any(name in field_names for name in user_candidates)
+
+
+def _form_matches_login_shape(form: Tag, page_url: str) -> bool:
+    """Return True when a form looks like the Wansoft login form."""
+    if not _form_has_login_fields(form):
+        return False
+    if _is_login_page_url(page_url):
+        return True
     action = _attr_to_str(form.get("action"))
     return _is_login_form_action(action, page_url)
 
