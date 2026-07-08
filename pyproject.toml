@@ -61,6 +61,9 @@ Repository = "https://github.com/ToxicFyre/pos-pipeline-core-etl.git"
 Issues = "https://github.com/ToxicFyre/pos-pipeline-core-etl/issues"
 
 [project.optional-dependencies]
+login-handler = [
+    "pos-login-handler @ git+https://github.com/ToxicFyre/pos-login-handler.git",
+]
 dev = [
     "pytest>=7.0",
     "mypy>=1.0.0",

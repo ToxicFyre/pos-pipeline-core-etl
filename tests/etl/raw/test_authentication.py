@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import os
+
+os.environ["POS_BRONZE_BACKEND"] = "legacy_http"
+
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -57,9 +61,7 @@ def _login_page_html(
 ) -> str:
     validation_block = ""
     if validation_message:
-        validation_block = (
-            f'<div class="validation-summary-errors">{validation_message}</div>'
-        )
+        validation_block = f'<div class="validation-summary-errors">{validation_message}</div>'
     return (
         f"<html><head><title>Login</title></head><body>{validation_block}{extra_forms}"
         f'<form action="{action}" method="post">'
@@ -109,9 +111,7 @@ class TestIsLoginResponse:
 class TestLoginFormDetection:
     def test_find_login_form_accepts_root_action_on_logon_url(self) -> None:
         """Regression: Wansoft login form posts to app root, not /Account/LogOn."""
-        page_url = (
-            f"{BASE_URL}/Account/LogOn?ReturnUrl=%2FReports%2FConsolidatedSalesMasterReport"
-        )
+        page_url = f"{BASE_URL}/Account/LogOn?ReturnUrl=%2FReports%2FConsolidatedSalesMasterReport"
         html = _login_page_html(action="/Wansoft.Web/")
         soup = BeautifulSoup(html, "html.parser")
 
@@ -203,9 +203,7 @@ class TestLoginIfNeeded:
         assert "Existing Wansoft session is authenticated" in caplog.text
         assert "Login succeeded" not in caplog.text
 
-    def test_invalid_password_returns_login_page(
-        self, caplog: pytest.LogCaptureFixture
-    ) -> None:
+    def test_invalid_password_returns_login_page(self, caplog: pytest.LogCaptureFixture) -> None:
         session = MagicMock(spec=requests.Session)
         session.cookies = []
 
@@ -237,9 +235,7 @@ class TestLoginIfNeeded:
         session = MagicMock(spec=requests.Session)
         session.cookies = []
 
-        login_html = _login_page_html(
-            validation_message="Usuario o contraseña incorrectos."
-        )
+        login_html = _login_page_html(validation_message="Usuario o contraseña incorrectos.")
         login_page = _make_response(url=f"{BASE_URL}/Account/LogOn", text=login_html)
 
         session.get.side_effect = lambda url, **_kwargs: (
@@ -268,7 +264,10 @@ class TestLoginIfNeeded:
             else login_page
         )
 
-        with patch.dict("os.environ", {}, clear=True), pytest.raises(AuthenticationError) as exc_info:
+        with (
+            patch.dict("os.environ", {}, clear=True),
+            pytest.raises(AuthenticationError) as exc_info,
+        ):
             login_if_needed(session, BASE_URL, None, None)
 
         assert "WS_USER" in str(exc_info.value) or "credentials" in str(exc_info.value).lower()
@@ -378,9 +377,7 @@ class TestLoginIfNeeded:
         session.cookies = []
 
         decoy_form = (
-            '<form action="/Search" method="get">'
-            '<input type="text" name="query" value="">'
-            "</form>"
+            '<form action="/Search" method="get"><input type="text" name="query" value=""></form>'
         )
         login_html = _login_page_html(extra_forms=decoy_form)
         login_page = _make_response(url=f"{BASE_URL}/Account/LogOn", text=login_html)

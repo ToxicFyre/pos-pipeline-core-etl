@@ -25,6 +25,7 @@ Examples:
       --start 2025-09-08 --end 2025-09-14 -v
 
 Environment (optional):
+  POS_BRONZE_BACKEND: Bronze backend - "login_handler" (default) or "legacy_http"
   WS_BASE: Set in utils/secrets.env (see utils/secrets.env.example)
   WS_USER: Set in utils/secrets.env
   WS_PASS: Set in utils/secrets.env
@@ -276,9 +277,7 @@ def _form_has_login_fields(form: Tag) -> bool:
         return False
 
     field_names = {
-        _attr_to_str(inp.get("name"))
-        for inp in form.find_all("input")
-        if isinstance(inp, Tag)
+        _attr_to_str(inp.get("name")) for inp in form.find_all("input") if isinstance(inp, Tag)
     }
     field_names.discard("")
     user_candidates = ("UserName", "Email", "Login", "Username")
@@ -1384,6 +1383,35 @@ def main() -> None:
     out_path = args.outdir / out_name
     out_path.write_bytes(blob)
     logging.info("Saved %s (%d bytes)", out_path, len(blob))
+
+
+def _selected_bronze_backend() -> str:
+    """Return the configured bronze extraction backend name."""
+    return os.environ.get("POS_BRONZE_BACKEND", "login_handler").strip().lower()
+
+
+_bronze_backend = _selected_bronze_backend()
+if _bronze_backend == "login_handler":
+    try:
+        from pos_core.etl.raw.backends import login_handler as _login_handler_backend
+    except ImportError as exc:
+        raise ImportError(
+            "POS bronze backend 'login_handler' requires pos-login-handler. "
+            "Install with: pip install -e '.[login-handler]' "
+            "or pip install -e /path/to/pos-login-handler"
+        ) from exc
+
+    make_session = _login_handler_backend.make_session
+    login_if_needed = _login_handler_backend.login_if_needed
+    export_sales_report = _login_handler_backend.export_sales_report
+    export_report = _login_handler_backend.export_report
+    export_transfers_issued = _login_handler_backend.export_transfers_issued
+elif _bronze_backend == "legacy_http":
+    pass
+else:
+    raise ValueError("Invalid POS_BRONZE_BACKEND. Expected 'login_handler' or 'legacy_http'.")
+
+logger.info("Using POS bronze backend: %s", _bronze_backend)
 
 
 if __name__ == "__main__":

@@ -30,6 +30,13 @@ cd pos-pipeline-core-etl
 pip install -e .[dev]
 ```
 
+For bronze downloads via browser-authenticated Wansoft exports (default backend):
+
+```bash
+pip install -e ../pos-login-handler
+pip install -e ".[login-handler,dev]"
+```
+
 ### 2. Configuration
 
 Create `utils/sucursales.json` with your branch configuration:
@@ -58,6 +65,15 @@ export WS_BASE="https://your-pos-instance.com"
 export WS_USER="your_username"
 export WS_PASS="your_password"
 ```
+
+**Bronze extraction backend** (default: `login_handler` via pos-login-handler):
+
+```bash
+export POS_BRONZE_BACKEND=login_handler   # default
+# export POS_BRONZE_BACKEND=legacy_http   # rollback to direct HTTP
+```
+
+Install `pos-login-handler` when using the default backend. Set `legacy_http` to use the original direct HTTP extraction without Chrome.
 
 ### 4. Run Your First ETL
 

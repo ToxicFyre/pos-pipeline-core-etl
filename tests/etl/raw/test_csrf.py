@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import os
+
+os.environ["POS_BRONZE_BACKEND"] = "legacy_http"
+
 from unittest.mock import MagicMock
 
 import pytest

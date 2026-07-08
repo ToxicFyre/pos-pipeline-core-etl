@@ -27,6 +27,8 @@ jobs:
         pip install .[dev]
     
     - name: Run tests
+      env:
+        POS_BRONZE_BACKEND: legacy_http
       run: |
         python -m pytest tests/
     

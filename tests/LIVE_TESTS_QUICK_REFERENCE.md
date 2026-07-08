@@ -15,6 +15,9 @@ pytest tests/test_etl_queries.py -m live -v       # Query tests
 pytest tests/test_qa_smoke.py -m live -v          # QA tests
 pytest tests/test_forecasting_smoke.py -m live -v # Forecasting tests
 
+# Run login-handler bronze+silver live test
+pytest tests/etl/raw/test_login_handler_live.py -m live -v -s
+
 # Skip live tests (CI/CD)
 pytest -m "not live"
 
@@ -32,6 +35,7 @@ pytest tests/
 | `test_etl_queries.py` | `test_get_payments_metadata_tracking` | Metadata tracking across stages | 5 days |
 | `test_qa_smoke.py` | `test_qa_with_live_data` | QA checks at all levels (1-4) | 14 days |
 | `test_qa_smoke.py` | `test_qa_detects_data_quality_issues` | Issue detection and reporting | 7 days |
+| `etl/raw/test_login_handler_live.py` | `test_payments_bronze_and_silver_via_login_handler` | Bronze download + silver transform via pos-login-handler | 7 days |
 
 ## Prerequisites
 
@@ -40,7 +44,12 @@ Required environment variables:
 - `WS_USER` - POS username
 - `WS_PASS` - POS password
 
-Tests automatically skip if credentials not available.
+For the login-handler live test:
+- `POS_BRONZE_BACKEND=login_handler` (set automatically in the test file)
+- `pip install -e ../pos-login-handler`
+- Google Chrome installed (first browser login may take 1–2 minutes)
+
+Tests automatically skip if credentials or pos-login-handler are not available.
 
 ## Test Results Summary
 

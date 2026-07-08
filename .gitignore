@@ -74,6 +74,9 @@ dmypy.json
 .DS_Store
 Thumbs.db
 
+# Browser profile (TouchStock / Playwright)
+.ts_profile/
+
 # Python
 __pycache__/
 *.py[cod]
